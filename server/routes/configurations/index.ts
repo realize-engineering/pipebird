@@ -10,7 +10,8 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
-import { TransferStatus } from "../../../types/index.js";
+import { TransferModel } from "../../../lib/models/transfer.js";
+import { LogModel } from "../../../lib/models/log.js";
 const configurationRouter = Router();
 
 type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
@@ -207,33 +208,71 @@ configurationRouter.delete(
       });
     }
 
-    // await db.configuration.deleteMany({
-    //   where: {
-    //     id: queryParams.data.configurationId,
-    //     destinations: {
-    //       some: {
-    //         transfers: {},
-    //       },
-    //     },
-    //   },
+    const data = await db.$transaction(async (prisma) => {
+      const transfers = (
+        await prisma.transfer.findMany({
+          where: {
+            destination: {
+              configurationId: queryParams.data.configurationId,
+            },
+          },
+          select: {
+            id: true,
+            status: true,
+            destination: {
+              select: {
+                id: true,
+                name: true,
+                configurationId: true,
+                tenantId: true,
+              },
+            },
+          },
+        })
+      ).map(TransferModel.parse);
 
-    //   delete: {},
-    // });
-    // await db.transfer.deleteMany({
-    //   where: {
-    //     ''
-    //   }
-    // })
+      const pendingTransfers = transfers.filter(({ status }) =>
+        ["PENDING", "STARTED", "UNKNOWN"].includes(status),
+      );
 
-    const configuration = await db.configuration.delete({
-      where: {
-        id: queryParams.data.configurationId,
-      },
+      if (pendingTransfers.length > 0) {
+        return { pendingTransfers }; // don't delete if pending transfers
+      }
+
+      const configuration = await prisma.configuration.delete({
+        where: {
+          id: queryParams.data.configurationId,
+        },
+        select: {
+          id: true,
+          destinations: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      const logs = LogModel.create(
+        {
+          source: "CONFIGURATION",
+          action: "DELETE",
+          eventId: configuration.id,
+          meta: `Deleted configuration attached to destination ids: ${JSON.stringify(
+            configuration.destinations,
+          )}`,
+        },
+        prisma,
+      );
+
+      return { configuration, logs };
     });
-    if (!configuration) {
-      return res
-        .status(HttpStatusCode.NOT_FOUND)
-        .json({ code: "configuration_id_not_found" });
+    if ("pendingTransfers" in data) {
+      return res.status(HttpStatusCode.PRECONDITION_FAILED).json({
+        code: "transfer_in_progress",
+        message:
+          "You cannot delete configurations of ongoing transfers. You must cancel this transfer first.",
+      });
     }
     return res.status(HttpStatusCode.NO_CONTENT);
   },

@@ -14,6 +14,7 @@ const errorCodeSchema = z.enum([
   "resource_already_exists",
   "query_validation_error",
   "params_validation_error",
+  "transfer_in_progress",
 ]);
 
 export type ErrorApiSchema = {
