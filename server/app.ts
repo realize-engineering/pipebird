@@ -23,8 +23,8 @@ app.use(
   async (req: Request, res: Response<ErrorApiSchema>, next: NextFunction) => {
     if (
       !req.headers.authorization ||
-      !req.headers.authorization.split("Bearer")[1] ||
-      req.headers.authorization.split("Bearer")[1] !== env.SECRET_KEY
+      !req.headers.authorization.split("Bearer ")[1] ||
+      req.headers.authorization.split("Bearer ")[1] !== env.SECRET_KEY
     ) {
       return res
         .status(HttpStatusCode.UNAUTHORIZED)
