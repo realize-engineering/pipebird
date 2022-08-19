@@ -8,14 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Tenant {
-  id           Int           @id @default(autoincrement())
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  identifier   String
-  destinations Destination[]
-}
-
 model ColumnTransformation {
   id                      Int           @id @default(autoincrement())
   createdAt               DateTime      @default(now())
@@ -82,8 +74,7 @@ model Destination {
   transfers       Transfer[]
   configuration   Configuration? @relation(fields: [configurationId], references: [id])
   configurationId Int?
-  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  tenantId        Int
+  tenantId        String
 }
 
 model Transfer {
