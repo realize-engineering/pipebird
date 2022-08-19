@@ -10,7 +10,7 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
-import { TransferStatus } from "../../../types/index.js";
+
 const configurationRouter = Router();
 
 type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
