@@ -5,6 +5,7 @@ import { destinationRouter } from "./destinations/index.js";
 import { healthzRouter } from "./healthz.js";
 import { sourceRouter } from "./sources/index.js";
 import { viewRouter } from "./views/index.js";
+import { transferRouter } from "./transfers/index.js";
 
 const indexRouter = Router();
 
@@ -13,5 +14,6 @@ indexRouter.use("/configurations", configurationRouter);
 indexRouter.use("/destinations", destinationRouter);
 indexRouter.use("/sources", sourceRouter);
 indexRouter.use("/views", viewRouter);
+indexRouter.use("/transfers", transferRouter);
 
 export { indexRouter };

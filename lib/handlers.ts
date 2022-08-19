@@ -19,6 +19,8 @@ const errorCodeSchema = z.enum([
   "query_validation_error",
   "params_validation_error",
   "transfer_in_progress",
+  "transfer_id_not_found",
+  "transfer_not_in_progress",
 ]);
 
 export type ErrorApiSchema = {

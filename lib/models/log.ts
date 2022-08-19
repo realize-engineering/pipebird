@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
+import { logger } from "../logger.js";
 
-type CreateLogEvent = { eventId: number; meta: string } & (
+// You are only allowed to append to this log event type.
+// Deleting fields will ruin the underlying database type
+// safety on our log model.
+type CreateLogEvent = { eventId: number; meta: { message: string } } & (
   | {
       source: "SOURCE";
       action: "CREATE" | "DELETE";
@@ -19,18 +23,19 @@ type CreateLogEvent = { eventId: number; meta: string } & (
     }
   | {
       source: "TRANSFER";
-      action: "CREATE" | "DELETE";
+      action: "CREATE" | "DELETE" | "UPDATE";
     }
 );
 
 class LogModel {
   static create(event: CreateLogEvent, client: Prisma.TransactionClient) {
+    logger.info({ storedLogEvent: event.meta });
     return client.logs.create({
       data: {
         eventId: event.eventId.toString(),
         eventSource: event.source,
         eventAction: event.action,
-        meta: event.meta,
+        meta: JSON.stringify(event.meta),
       },
     });
   }

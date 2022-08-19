@@ -22,6 +22,7 @@ class TransferModel {
       },
       select: {
         id: true,
+        status: true,
       },
     });
   };
@@ -35,6 +36,29 @@ class TransferModel {
       ...transfer,
       status: TransferModel.typeValidator.cast(transfer.status),
     };
+  };
+
+  static update = async ({
+    data,
+    where,
+    client,
+  }: {
+    data: Prisma.TransferUpdateInput & {
+      status?: z.infer<typeof TransferModel.typeValidator.validator>;
+    };
+    where: Prisma.TransferWhereInput & { id: number };
+    client: Prisma.TransactionClient;
+  }) => {
+    const { status, ...updateData } = data;
+    return client.transfer.update({
+      data: {
+        ...updateData,
+        ...(status === undefined
+          ? {}
+          : { status: this.typeValidator.cast(status) }),
+      },
+      where,
+    });
   };
 }
 

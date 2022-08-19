@@ -242,12 +242,14 @@ configurationRouter.delete(
         logger.warn({
           error: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
         });
-        LogModel.create(
+        await LogModel.create(
           {
             source: "CONFIGURATION",
             action: "DELETE",
             eventId: queryParams.data.configurationId,
-            meta: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+            meta: {
+              message: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+            },
           },
           prisma,
         );
@@ -268,14 +270,16 @@ configurationRouter.delete(
         },
       });
 
-      LogModel.create(
+      await LogModel.create(
         {
           source: "CONFIGURATION",
           action: "DELETE",
           eventId: configuration.id,
-          meta: `Deleted configuration attached to destination ids: ${JSON.stringify(
-            configuration.destinations,
-          )}`,
+          meta: {
+            message: `Deleted configuration attached to destination ids: ${JSON.stringify(
+              configuration.destinations,
+            )}`,
+          },
         },
         prisma,
       );
