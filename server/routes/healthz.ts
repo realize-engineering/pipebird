@@ -9,7 +9,7 @@ healthzRouter.get("/", async (_req, res) => {
   const [dbCheckResult] = await Promise.allSettled([db.$executeRaw`SELECT 1;`]);
 
   logger.info(
-    `Sent "SELECT 1;" to Postgres. Result: "${
+    `Sent "SELECT 1;" to DB. Result: "${
       dbCheckResult.status === "fulfilled"
         ? dbCheckResult.value
         : dbCheckResult.reason

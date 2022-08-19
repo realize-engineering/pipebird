@@ -61,6 +61,10 @@ model Source {
   name       String
   status     String   @default("REACHABLE")
   sourceType String
+  host       String
+  port       Int
+  username   String
+  password   String
 
   views View[]
 }

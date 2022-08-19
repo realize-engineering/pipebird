@@ -9,6 +9,7 @@ const errorCodeSchema = z.enum([
   "destination_not_currently_supported",
   "configuration_id_not_found",
   "destination_id_not_found",
+  "source_id_not_found",
   "unhandled_exception",
   "internal_server_error",
   "resource_already_exists",
