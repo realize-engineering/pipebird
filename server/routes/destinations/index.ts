@@ -185,8 +185,8 @@ destinationRouter.delete(
         .json({ code: "destination_id_not_found" });
     }
     const results = await db.$transaction(async (prisma) => {
-      const destinationWithPendingTransfer = await prisma.destination.findFirst(
-        {
+      const destinationWithNoPendingTransfers =
+        await prisma.destination.findFirst({
           where: {
             id: queryParams.data.destinationId,
             transfers: {
@@ -197,9 +197,8 @@ destinationRouter.delete(
               },
             },
           },
-        },
-      );
-      if (!destinationWithPendingTransfer) {
+        });
+      if (!destinationWithNoPendingTransfers) {
         logger.warn({
           error: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
         });

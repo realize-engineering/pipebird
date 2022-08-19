@@ -221,7 +221,7 @@ configurationRouter.delete(
     }
 
     const results = await db.$transaction(async (prisma) => {
-      const configurationWithPendingTransfers =
+      const configurationNoWithPendingTransfers =
         await prisma.configuration.findFirst({
           where: {
             id: queryParams.data.configurationId,
@@ -237,7 +237,7 @@ configurationRouter.delete(
           },
         });
 
-      if (!configurationWithPendingTransfers) {
+      if (!configurationNoWithPendingTransfers) {
         // TODO(cumason) make log + log create atomic functions
         logger.warn({
           error: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
