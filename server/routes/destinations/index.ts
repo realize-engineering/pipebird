@@ -111,6 +111,73 @@ destinationRouter.post(
   },
 );
 
+// Update destination
+destinationRouter.patch(
+  "/:destinationId",
+  async (req, res: ApiResponse<null>) => {
+    const queryParams = z
+      .object({
+        destinationId: z
+          .string()
+          .min(1)
+          .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
+            message: "The configurationId query param must be an integer.",
+          })
+          .transform((s) => parseInt(s)),
+      })
+      .safeParse(req.params);
+    if (!queryParams.success) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "query_validation_error",
+        validationIssues: queryParams.error.issues,
+      });
+    }
+    const bodyParams = z
+      .object({
+        configurationId: z
+          .string()
+          .refine(validator.isNumeric, "configurationId must be a number.")
+          .transform((s) => parseInt(s))
+          .optional(),
+        name: z.string().min(1).optional(),
+      })
+      .safeParse(req.body);
+
+    if (!bodyParams.success) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        validationIssues: bodyParams.error.issues,
+      });
+    }
+    const destination = await db.destination.findUnique({
+      where: { id: queryParams.data.destinationId },
+    });
+    if (!destination) {
+      return res
+        .status(HttpStatusCode.NOT_FOUND)
+        .json({ code: "destination_id_not_found" });
+    }
+    try {
+      await db.destination.update({
+        where: {
+          id: queryParams.data.destinationId,
+        },
+        data: {
+          ...bodyParams.data,
+        },
+      });
+    } catch (e) {
+      logger.warn(e);
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        message: "Failed to update destination. Ensure that configuration",
+      });
+    }
+
+    return res.status(HttpStatusCode.NO_CONTENT).json(null);
+  },
+);
+
 // Get destination
 destinationRouter.get(
   "/:destinationId",
@@ -127,9 +194,10 @@ destinationRouter.get(
       })
       .safeParse(req.params);
     if (!queryParams.success) {
-      return res
-        .status(HttpStatusCode.BAD_REQUEST)
-        .json({ code: "query_validation_error" });
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "query_validation_error",
+        validationIssues: queryParams.error.issues,
+      });
     }
     const destination = await db.destination.findUnique({
       where: {
