@@ -70,7 +70,11 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     },
     select: {
       sourceType: true,
-      connectionString: true,
+      name: true,
+      host: true,
+      port: true,
+      username: true,
+      password: true,
     },
   });
 
@@ -80,11 +84,15 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
-  const { sourceType, connectionString } = source;
+  const { sourceType, name: dbName, host, port, username, password } = source;
 
   const test = await testQuery({
     dbType: sourceType,
-    connectionString: connectionString,
+    host,
+    port,
+    username,
+    password,
+    dbName,
     query: tableExpression,
   });
 

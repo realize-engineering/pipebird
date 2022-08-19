@@ -25,17 +25,32 @@ type ConnectionResult = {
 
 export const getConnection = async ({
   dbType,
-  connectionString,
+  host,
+  port,
+  username,
+  password,
+  dbName,
 }: {
   dbType: DBTypes;
-  connectionString: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  dbName: string;
 }): Promise<ConnectionResult> => {
   try {
     switch (dbType) {
       case "POSTGRES":
       case "REDSHIFT":
       case "MYSQL": {
-        const conn = new Sequelize(connectionString);
+        const conn = new Sequelize(dbName, username, password, {
+          host,
+          port,
+          dialect:
+            dbType === "REDSHIFT"
+              ? "postgres"
+              : (dbType.toLowerCase() as Lowercase<typeof dbType>),
+        });
         await conn.authenticate();
 
         return {
@@ -58,11 +73,19 @@ export const getConnection = async ({
 
 export const testQuery = async ({
   dbType,
-  connectionString,
+  host,
+  port,
+  username,
+  password,
+  dbName,
   query,
 }: {
   dbType: DBTypes;
-  connectionString: string;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  dbName: string;
   query: string;
 }): Promise<QueryResult> => {
   try {
@@ -72,7 +95,11 @@ export const testQuery = async ({
       case "MYSQL": {
         const { status, connection } = await getConnection({
           dbType,
-          connectionString,
+          host,
+          port,
+          username,
+          password,
+          dbName,
         });
         if (status === UNREACHABLE || !connection) {
           return {
