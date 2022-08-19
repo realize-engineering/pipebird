@@ -188,7 +188,7 @@ viewRouter.get("/:viewId", async (req, res: ApiResponse<ViewResponse>) => {
 });
 
 // Delete view
-viewRouter.delete("/:viewId", async (req, res: ApiResponse<ViewResponse>) => {
+viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
   const queryParams = z
     .object({
       viewId: z
@@ -283,7 +283,7 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<ViewResponse>) => {
       .json({ code: "transfer_in_progress" });
   }
 
-  return res.status(HttpStatusCode.OK).json(view);
+  return res.status(HttpStatusCode.NO_CONTENT).json(null);
 });
 
 export { viewRouter };

@@ -26,7 +26,7 @@ model ColumnTransformation {
   transformer             String
   isPrimaryKey            Boolean
   isLastModified          Boolean
-  configuration           Configuration @relation(fields: [configurationId], references: [id])
+  configuration           Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
   configurationId         Int
 
   @@unique([configurationId, nameInDestination]) // no duplicate configuration columns

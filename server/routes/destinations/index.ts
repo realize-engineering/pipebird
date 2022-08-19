@@ -1,11 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { Response, Router } from "express";
+import { Router } from "express";
 import { db } from "../../../lib/db.js";
-import {
-  ApiResponse,
-  ErrorApiSchema,
-  ListApiResponse,
-} from "../../../lib/handlers.js";
+import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
@@ -159,7 +155,7 @@ destinationRouter.get(
 // Delete destination
 destinationRouter.delete(
   "/:destinationId",
-  async (req, res: Response<ErrorApiSchema>) => {
+  async (req, res: ApiResponse<null>) => {
     const queryParams = z
       .object({
         destinationId: z
@@ -245,7 +241,7 @@ destinationRouter.delete(
           "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
       });
     }
-    return res.status(HttpStatusCode.NO_CONTENT);
+    return res.status(HttpStatusCode.NO_CONTENT).json(null);
   },
 );
 export { destinationRouter };
