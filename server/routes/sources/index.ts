@@ -5,7 +5,7 @@ import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { getConnection } from "../../../lib/connections.js";
-
+import { default as validator } from "validator";
 const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
@@ -99,7 +99,13 @@ sourceRouter.get(
   async (req, res: ApiResponse<SourceResponse>) => {
     const params = z
       .object({
-        sourceId: z.string().transform(Number),
+        sourceId: z
+          .string()
+          .min(1)
+          .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
+            message: "The sourceId query param must be an integer.",
+          })
+          .transform((s) => parseInt(s)),
       })
       .safeParse(req.params);
 
