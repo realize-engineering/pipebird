@@ -9,7 +9,7 @@ class TransferModel {
     z.enum(["PENDING", "COMPLETE", "CANCELLED", "STARTED", "FAILED"]),
   );
 
-  static create = async (
+  static create = (
     args: Omit<Prisma.TransferCreateInput, "status"> & {
       status: z.infer<typeof TransferModel.typeValidator.validator>;
     },
