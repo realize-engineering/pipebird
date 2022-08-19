@@ -11,7 +11,7 @@ healthzRouter.get("/", async (_req, res) => {
   ]);
 
   logger.info(
-    `Sent "SELECT 1;" to Postgres. Result: "${
+    `Sent "SELECT 1;" to DB. Result: "${
       dbCheckResult.status === "fulfilled"
         ? dbCheckResult.value
         : dbCheckResult.reason

@@ -1,13 +1,13 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Realize",
+    "title": "Pipebird",
     "description": "Private VPC data etl pipeline",
     "version": "1.0",
     "contact": {
-      "url": "realizefi.com",
+      "url": "pipebird.com",
       "name": "Curtis Mason",
-      "email": "curtis@realizefi.com"
+      "email": "curtis@pipebird.com"
     }
   },
   "servers": [
@@ -1070,5 +1070,6 @@
     {
       "apiKey": []
     }
-  ]
+  ],
+  "x-readme": { "explorer-enabled": false }
 }
