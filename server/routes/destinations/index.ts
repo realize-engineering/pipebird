@@ -166,7 +166,7 @@ destinationRouter.delete(
           .string()
           .min(1)
           .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
-            message: "The configurationId query param must be an integer.",
+            message: "The destinationId query param must be an integer.",
           })
           .transform((s) => parseInt(s)),
       })
@@ -202,12 +202,14 @@ destinationRouter.delete(
         logger.warn({
           error: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
         });
-        LogModel.create(
+        await LogModel.create(
           {
             source: "CONFIGURATION",
             action: "DELETE",
             eventId: queryParams.data.destinationId,
-            meta: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
+            meta: {
+              message: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
+            },
           },
           prisma,
         );
@@ -222,12 +224,14 @@ destinationRouter.delete(
         },
       });
 
-      LogModel.create(
+      await LogModel.create(
         {
           source: "DESTINATION",
           action: "DELETE",
           eventId: destination.id,
-          meta: `Deleted destination ${destination.id} because it had no pending transfers.`,
+          meta: {
+            message: `Deleted destination ${destination.id} because it had no pending transfers.`,
+          },
         },
         prisma,
       );
