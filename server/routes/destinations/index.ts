@@ -10,6 +10,9 @@ import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
+import { TransferModel } from "../../../lib/models/transfer.js";
+import { LogModel } from "../../../lib/models/log.js";
+import { logger } from "../../../lib/logger.js";
 const destinationRouter = Router();
 
 type DestinationResponse = Prisma.DestinationGetPayload<{
@@ -173,15 +176,70 @@ destinationRouter.delete(
         .status(HttpStatusCode.BAD_REQUEST)
         .json({ code: "query_validation_error" });
     }
-    const destination = await db.destination.delete({
-      where: {
-        id: queryParams.data.destinationId,
-      },
+    const destinationExists = await db.destination.findUnique({
+      where: { id: queryParams.data.destinationId },
     });
-    if (!destination) {
+    if (!destinationExists) {
       return res
         .status(HttpStatusCode.NOT_FOUND)
         .json({ code: "destination_id_not_found" });
+    }
+    const results = await db.$transaction(async (prisma) => {
+      const destinationWithNoPendingTransfers =
+        await prisma.destination.findFirst({
+          where: {
+            id: queryParams.data.destinationId,
+            transfers: {
+              every: {
+                status: {
+                  notIn: TransferModel.pendingTypes.slice(),
+                },
+              },
+            },
+          },
+        });
+      if (!destinationWithNoPendingTransfers) {
+        logger.warn({
+          error: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
+        });
+        LogModel.create(
+          {
+            source: "CONFIGURATION",
+            action: "DELETE",
+            eventId: queryParams.data.destinationId,
+            meta: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
+          },
+          prisma,
+        );
+        return null;
+      }
+      const destination = await db.destination.delete({
+        where: {
+          id: queryParams.data.destinationId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      LogModel.create(
+        {
+          source: "DESTINATION",
+          action: "DELETE",
+          eventId: destination.id,
+          meta: `Deleted destination ${destination.id} because it had no pending transfers.`,
+        },
+        prisma,
+      );
+      return destination;
+    });
+
+    if (results === null) {
+      return res.status(HttpStatusCode.PRECONDITION_FAILED).json({
+        code: "transfer_in_progress",
+        message:
+          "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
+      });
     }
     return res.status(HttpStatusCode.NO_CONTENT);
   },

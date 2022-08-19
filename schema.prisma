@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
 }
 
 datasource db {
@@ -79,9 +80,9 @@ model Destination {
   connectionString String?
 
   transfers       Transfer[]
-  configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  configurationId Int
-  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  configuration   Configuration? @relation(fields: [configurationId], references: [id])
+  configurationId Int?
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   tenantId        Int
 }
 

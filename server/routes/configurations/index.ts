@@ -10,6 +10,9 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
+import { TransferModel } from "../../../lib/models/transfer.js";
+import { LogModel } from "../../../lib/models/log.js";
+import { logger } from "../../../lib/logger.js";
 
 const configurationRouter = Router();
 
@@ -206,34 +209,86 @@ configurationRouter.delete(
         validationIssues: queryParams.error.issues,
       });
     }
-
-    // await db.configuration.deleteMany({
-    //   where: {
-    //     id: queryParams.data.configurationId,
-    //     destinations: {
-    //       some: {
-    //         transfers: {},
-    //       },
-    //     },
-    //   },
-
-    //   delete: {},
-    // });
-    // await db.transfer.deleteMany({
-    //   where: {
-    //     ''
-    //   }
-    // })
-
-    const configuration = await db.configuration.delete({
+    const configurationExists = await db.configuration.findUnique({
       where: {
         id: queryParams.data.configurationId,
       },
     });
-    if (!configuration) {
+    if (!configurationExists) {
       return res
         .status(HttpStatusCode.NOT_FOUND)
         .json({ code: "configuration_id_not_found" });
+    }
+
+    const results = await db.$transaction(async (prisma) => {
+      const configurationNoWithPendingTransfers =
+        await prisma.configuration.findFirst({
+          where: {
+            id: queryParams.data.configurationId,
+            destinations: {
+              every: {
+                transfers: {
+                  every: {
+                    status: { notIn: TransferModel.pendingTypes.slice() },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+      if (!configurationNoWithPendingTransfers) {
+        // TODO(cumason) make log + log create atomic functions
+        logger.warn({
+          error: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+        });
+        LogModel.create(
+          {
+            source: "CONFIGURATION",
+            action: "DELETE",
+            eventId: queryParams.data.configurationId,
+            meta: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+          },
+          prisma,
+        );
+        return null; // don't delete if pending transfers
+      }
+
+      const configuration = await prisma.configuration.delete({
+        where: {
+          id: queryParams.data.configurationId,
+        },
+        select: {
+          id: true,
+          destinations: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      LogModel.create(
+        {
+          source: "CONFIGURATION",
+          action: "DELETE",
+          eventId: configuration.id,
+          meta: `Deleted configuration attached to destination ids: ${JSON.stringify(
+            configuration.destinations,
+          )}`,
+        },
+        prisma,
+      );
+
+      return configuration;
+    });
+
+    if (results === null) {
+      return res.status(HttpStatusCode.PRECONDITION_FAILED).json({
+        code: "transfer_in_progress",
+        message:
+          "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
+      });
     }
     return res.status(HttpStatusCode.NO_CONTENT);
   },

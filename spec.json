@@ -433,6 +433,38 @@
             "description": "No Content"
           }
         }
+      },
+      "patch": {
+        "summary": "Update destination",
+        "tags": ["Destinations"],
+        "operationId": "patch-destinations-destination_id",
+        "description": "Update destination.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "configurationId": {
+                    "type": ["number", "null"]
+                  },
+                  "filename": {
+                    "type": ["string", "null"]
+                  },
+                  "name": {
+                    "type": ["string", "null"]
+                  }
+                }
+              }
+            }
+          },
+          "description": "Optional fields to update."
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
       }
     },
     "/transfers": {
@@ -845,10 +877,19 @@
                 "isLastModified": {
                   "type": "boolean"
                 }
-              }
+              },
+              "required": [
+                "nameInSource",
+                "nameInDestination",
+                "destinationFormatString",
+                "transformer",
+                "isPrimaryKey",
+                "isLastModified"
+              ]
             }
           }
-        }
+        },
+        "required": ["viewId"]
       },
       "CreateSource": {
         "title": "CreateSource",
@@ -875,7 +916,15 @@
           "password": {
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "name",
+          "sourceType",
+          "host",
+          "port",
+          "username",
+          "password"
+        ]
       },
       "CreateDestination": {
         "title": "CreateDestination",
@@ -910,7 +959,17 @@
               "name": {
                 "type": "string"
               }
-            }
+            },
+            "required": [
+              "configurationId",
+              "destinationType",
+              "host",
+              "port",
+              "database",
+              "username",
+              "tenantId",
+              "name"
+            ]
           },
           {
             "properties": {
@@ -930,7 +989,14 @@
               "tenantId": {
                 "type": "string"
               }
-            }
+            },
+            "required": [
+              "name",
+              "destinationType",
+              "filename",
+              "configurationId",
+              "tenantId"
+            ]
           }
         ],
         "type": "object"
@@ -945,7 +1011,8 @@
           "destinationId": {
             "type": "number"
           }
-        }
+        },
+        "required": ["destinationId"]
       },
       "CreateView": {
         "title": "CreateView",
@@ -963,7 +1030,8 @@
           "sourceId": {
             "type": "number"
           }
-        }
+        },
+        "required": ["tableExpression", "tenantColumn", "sourceId"]
       },
       "Log": {
         "title": "Log",
