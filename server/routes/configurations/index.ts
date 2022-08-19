@@ -12,6 +12,8 @@ import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
+import { logger } from "../../../lib/logger.js";
+
 const configurationRouter = Router();
 
 type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
@@ -207,36 +209,49 @@ configurationRouter.delete(
         validationIssues: queryParams.error.issues,
       });
     }
+    const configurationExists = await db.configuration.findUnique({
+      where: {
+        id: queryParams.data.configurationId,
+      },
+    });
+    if (!configurationExists) {
+      return res
+        .status(HttpStatusCode.NOT_FOUND)
+        .json({ code: "configuration_id_not_found" });
+    }
 
-    const data = await db.$transaction(async (prisma) => {
-      const transfers = (
-        await prisma.transfer.findMany({
+    const results = await db.$transaction(async (prisma) => {
+      const configurationWithPendingTransfers =
+        await prisma.configuration.findFirst({
           where: {
-            destination: {
-              configurationId: queryParams.data.configurationId,
-            },
-          },
-          select: {
-            id: true,
-            status: true,
-            destination: {
-              select: {
-                id: true,
-                name: true,
-                configurationId: true,
-                tenantId: true,
+            id: queryParams.data.configurationId,
+            destinations: {
+              every: {
+                transfers: {
+                  every: {
+                    status: { notIn: TransferModel.pendingTypes.slice() },
+                  },
+                },
               },
             },
           },
-        })
-      ).map(TransferModel.parse);
+        });
 
-      const pendingTransfers = transfers.filter(({ status }) =>
-        ["PENDING", "STARTED", "UNKNOWN"].includes(status),
-      );
-
-      if (pendingTransfers.length > 0) {
-        return { pendingTransfers }; // don't delete if pending transfers
+      if (!configurationWithPendingTransfers) {
+        // TODO(cumason) make log + log create atomic functions
+        logger.warn({
+          error: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+        });
+        LogModel.create(
+          {
+            source: "CONFIGURATION",
+            action: "DELETE",
+            eventId: queryParams.data.configurationId,
+            meta: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
+          },
+          prisma,
+        );
+        return null; // don't delete if pending transfers
       }
 
       const configuration = await prisma.configuration.delete({
@@ -253,7 +268,7 @@ configurationRouter.delete(
         },
       });
 
-      const logs = LogModel.create(
+      LogModel.create(
         {
           source: "CONFIGURATION",
           action: "DELETE",
@@ -265,13 +280,14 @@ configurationRouter.delete(
         prisma,
       );
 
-      return { configuration, logs };
+      return configuration;
     });
-    if ("pendingTransfers" in data) {
+
+    if (results === null) {
       return res.status(HttpStatusCode.PRECONDITION_FAILED).json({
         code: "transfer_in_progress",
         message:
-          "You cannot delete configurations of ongoing transfers. You must cancel this transfer first.",
+          "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
       });
     }
     return res.status(HttpStatusCode.NO_CONTENT);

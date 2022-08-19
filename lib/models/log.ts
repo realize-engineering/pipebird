@@ -1,5 +1,4 @@
 import { Prisma } from "@prisma/client";
-import { db } from "../db.js";
 
 type CreateLogEvent = { eventId: number; meta: string } & (
   | {
@@ -25,7 +24,7 @@ type CreateLogEvent = { eventId: number; meta: string } & (
 );
 
 class LogModel {
-  static create(event: CreateLogEvent, client: Prisma.TransactionClient = db) {
+  static create(event: CreateLogEvent, client: Prisma.TransactionClient) {
     return client.logs.create({
       data: {
         eventId: event.eventId.toString(),

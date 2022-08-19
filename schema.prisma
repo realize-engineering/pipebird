@@ -56,12 +56,13 @@ model View {
 }
 
 model Source {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  name       String
-  status     String   @default("REACHABLE")
-  sourceType String
+  id               Int      @id @default(autoincrement())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  name             String
+  status           String   @default("REACHABLE")
+  sourceType       String
+  connectionString String
 
   views View[]
 }

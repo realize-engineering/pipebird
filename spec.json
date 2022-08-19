@@ -194,13 +194,13 @@
         }
       }
     },
-    "/views/{view_id}": {
+    "/views/{viewId}": {
       "parameters": [
         {
           "schema": {
             "type": "string"
           },
-          "name": "view_id",
+          "name": "viewId",
           "in": "path",
           "required": true,
           "description": "The id of this view"
@@ -723,6 +723,9 @@
         "type": "object",
         "properties": {
           "name": {
+            "type": "string"
+          },
+          "connectionString": {
             "type": "string"
           },
           "status": {
