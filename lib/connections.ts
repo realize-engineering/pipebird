@@ -43,9 +43,14 @@ export const getConnection = async ({
       case "POSTGRES":
       case "REDSHIFT":
       case "MYSQL": {
-        const conn = new Sequelize(
-          `mysql://${username}:${password}@${host}:${port}/${dbName}`,
-        );
+        const conn = new Sequelize(dbName, username, password, {
+          host,
+          port,
+          dialect:
+            dbType === "REDSHIFT"
+              ? "postgres"
+              : (dbType.toLowerCase() as Lowercase<typeof dbType>),
+        });
         await conn.authenticate();
 
         return {
