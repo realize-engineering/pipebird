@@ -211,7 +211,7 @@ destinationRouter.delete(
         );
         return null;
       }
-      const destination = await db.destination.delete({
+      const destination = await prisma.destination.delete({
         where: {
           id: queryParams.data.destinationId,
         },

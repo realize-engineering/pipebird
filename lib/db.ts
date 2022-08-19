@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "./logger.js";
 
-export const db = new PrismaClient();
+export const db = new PrismaClient({ log: ["info", "warn", "error", "query"] });
 
 db.$queryRaw`PRAGMA journal_mode = WAL;`.then(() => {
   logger.info('Set journal mode to "WAL"');
