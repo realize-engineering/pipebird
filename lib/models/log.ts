@@ -18,7 +18,7 @@ type CreateLogEvent = { eventId: number; meta: string } & (
       action: "CREATE" | "DELETE";
     }
   | {
-      source: "Transfer";
+      source: "TRANSFER";
       action: "CREATE" | "DELETE";
     }
 );
