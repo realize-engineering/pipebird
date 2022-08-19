@@ -283,7 +283,7 @@ configurationRouter.delete(
           eventId: queryParams.data.configurationId,
           meta: {
             message: `Deleted configuration attached to destination ids: ${JSON.stringify(
-              [], // configuration.destinations,
+              configuration.destinations,
             )}`,
           },
         },
