@@ -4,6 +4,7 @@ import { db } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
+import { getConnection } from "../../../lib/connections.js";
 
 const sourceRouter = Router();
 
@@ -56,14 +57,30 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     });
   }
 
+  const { name, sourceType, host, port, username, password } = body.data;
+  const { status } = await getConnection({
+    dbType: sourceType,
+    host,
+    port,
+    username,
+    password,
+    dbName: name,
+  });
+
+  if (status !== "REACHABLE") {
+    return res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
+      code: "source_db_unreachable",
+    });
+  }
+
   const source = await db.source.create({
     data: {
-      name: body.data.name,
-      sourceType: body.data.sourceType,
-      host: body.data.host,
-      port: body.data.port,
-      username: body.data.username,
-      password: body.data.password,
+      name,
+      sourceType,
+      host,
+      port,
+      username,
+      password,
     },
     select: {
       id: true,
