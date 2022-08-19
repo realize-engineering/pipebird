@@ -1,4 +1,5 @@
 import { Sequelize, QueryTypes } from "sequelize";
+import { logger } from "./logger.js";
 
 const REACHABLE = "REACHABLE";
 const UNREACHABLE = "UNREACHABLE";
@@ -51,6 +52,7 @@ export const getConnection = async ({
               ? "postgres"
               : (dbType.toLowerCase() as Lowercase<typeof dbType>),
         });
+
         await conn.authenticate();
 
         return {
@@ -65,6 +67,7 @@ export const getConnection = async ({
       }
     }
   } catch (err) {
+    logger.error({ connectionError: err });
     return {
       status: UNREACHABLE,
     };

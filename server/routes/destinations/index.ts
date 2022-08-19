@@ -129,7 +129,7 @@ destinationRouter.get(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
       return res
         .status(HttpStatusCode.BAD_REQUEST)
@@ -170,7 +170,7 @@ destinationRouter.delete(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
       return res
         .status(HttpStatusCode.BAD_REQUEST)

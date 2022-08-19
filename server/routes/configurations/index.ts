@@ -95,44 +95,50 @@ configurationRouter.post(
         validationIssues: body.error.issues,
       });
     }
+    try {
+      const configuration = await db.configuration.create({
+        data: {
+          viewId: body.data.viewId,
+        },
+        select: {
+          id: true,
+          viewId: true,
+        },
+      });
+      const columns = await db.$transaction(
+        body.data.columns.map((column) =>
+          db.columnTransformation.create({
+            data: {
+              configurationId: configuration.id,
+              destinationFormatString: column.destinationFormatString,
+              isLastModified: column.isLastModified,
+              isPrimaryKey: column.isPrimaryKey,
+              nameInDestination: column.nameInDestination,
+              nameInSource: column.nameInSource,
+              transformer: column.transformer,
+            },
+            select: {
+              nameInSource: true,
+              nameInDestination: true,
+              destinationFormatString: true,
+              transformer: true,
+              isPrimaryKey: true,
+              isLastModified: true,
+            },
+          }),
+        ),
+      );
 
-    const configuration = await db.configuration.create({
-      data: {
-        viewId: body.data.viewId,
-      },
-      select: {
-        id: true,
-        viewId: true,
-      },
-    });
-
-    const columns = await db.$transaction(
-      body.data.columns.map((column) =>
-        db.columnTransformation.create({
-          data: {
-            configurationId: configuration.id,
-            destinationFormatString: column.destinationFormatString,
-            isLastModified: column.isLastModified,
-            isPrimaryKey: column.isPrimaryKey,
-            nameInDestination: column.nameInDestination,
-            nameInSource: column.nameInSource,
-            transformer: column.transformer,
-          },
-          select: {
-            nameInSource: true,
-            nameInDestination: true,
-            destinationFormatString: true,
-            transformer: true,
-            isPrimaryKey: true,
-            isLastModified: true,
-          },
-        }),
-      ),
-    );
-
-    return res
-      .status(HttpStatusCode.CREATED)
-      .json({ ...configuration, columns });
+      return res
+        .status(HttpStatusCode.CREATED)
+        .json({ ...configuration, columns });
+    } catch (e) {
+      logger.error(e);
+      return res.status(HttpStatusCode.NOT_FOUND).json({
+        code: "view_id_not_found",
+        message: `Failed to create configuration. Verify view id=${body.data.viewId} exists.`,
+      });
+    }
   },
 );
 
@@ -150,7 +156,7 @@ configurationRouter.get(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
       return res.status(HttpStatusCode.NOT_FOUND).json({
         code: "query_validation_error",
@@ -200,7 +206,7 @@ configurationRouter.delete(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.NOT_FOUND).json({
@@ -274,10 +280,10 @@ configurationRouter.delete(
         {
           source: "CONFIGURATION",
           action: "DELETE",
-          eventId: configuration.id,
+          eventId: queryParams.data.configurationId,
           meta: {
             message: `Deleted configuration attached to destination ids: ${JSON.stringify(
-              configuration.destinations,
+              [], // configuration.destinations,
             )}`,
           },
         },

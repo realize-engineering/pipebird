@@ -92,7 +92,7 @@ transferRouter.get(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -129,7 +129,7 @@ transferRouter.delete(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
