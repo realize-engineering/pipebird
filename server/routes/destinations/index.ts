@@ -170,7 +170,8 @@ destinationRouter.patch(
       logger.warn(e);
       return res.status(HttpStatusCode.BAD_REQUEST).json({
         code: "body_validation_error",
-        message: "Failed to update destination. Ensure that configuration",
+        message:
+          "Failed to update destination. Ensure that configuration id exists.",
       });
     }
 
