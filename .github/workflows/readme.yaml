@@ -1,0 +1,13 @@
+name: Sync OAS to ReadMe
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: readmeio/rdme@7.2.0
+        with:
+          rdme: openapi './spec.json' --key=${{ secrets.README_OAS_KEY }} --version=${{secrets.README_VERSION_ID}}
