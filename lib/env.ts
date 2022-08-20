@@ -16,6 +16,10 @@ const envSchema = z.object({
     )
     .transform((s) => parseInt(s)),
   SECRET_KEY: z.string().min(128),
+  S3_USER_ACCESS_ID: z.string(),
+  S3_USER_SECRET_KEY: z.string(),
+  PROVISIONED_BUCKET_NAME: z.string(),
+  AWS_REGION: z.string(),
 });
 
 export const env = envSchema.parse(process.env);

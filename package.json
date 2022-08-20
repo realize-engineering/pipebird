@@ -12,6 +12,8 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.154.0",
+    "@aws-sdk/s3-request-presigner": "^3.154.0",
     "@prisma/client": "^4.2.1",
     "argon2": "^0.28.7",
     "bullmq": "^1.89.1",
