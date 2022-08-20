@@ -278,9 +278,11 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
     return deletedView;
   });
   if (results === "PENDING") {
-    return res
-      .status(HttpStatusCode.PRECONDITION_FAILED)
-      .json({ code: "transfer_in_progress" });
+    return res.status(HttpStatusCode.PRECONDITION_FAILED).json({
+      code: "transfer_in_progress",
+      message:
+        "You cannot delete views of ongoing transfers. You must explicitly cancel all transfers associated with this view first.",
+    });
   }
 
   return res.status(HttpStatusCode.NO_CONTENT).json(null);

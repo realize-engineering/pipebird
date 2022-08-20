@@ -23,6 +23,8 @@ class TransferModel {
       select: {
         id: true,
         status: true,
+        destinationId: true,
+        finalizedAt: true,
       },
     });
   };
@@ -58,6 +60,12 @@ class TransferModel {
           : { status: this.typeValidator.cast(status) }),
       },
       where,
+      select: {
+        id: true,
+        status: true,
+        destinationId: true,
+        finalizedAt: true,
+      },
     });
   };
 }
