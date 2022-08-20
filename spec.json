@@ -39,6 +39,10 @@
     {
       "name": "Logs",
       "description": "Log items to be used for auditability"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhooks used to notify you on transfer events."
     }
   ],
   "paths": {
@@ -646,6 +650,83 @@
         },
         "description": "Delete log"
       }
+    },
+    "/webhooks": {
+      "get": {
+        "summary": "List webhooks",
+        "tags": ["Webhooks"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Webhook"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "list-webhooks",
+        "description": "Get all registered webhooks. Currently, you can have a maximum of one webhook set. We will enqueue webhook events whenever transfer states change."
+      },
+      "post": {
+        "summary": "Create webhook",
+        "operationId": "post-webhooks",
+        "tags": ["Webhooks"],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "webhookSecret": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["webhookSecret"]
+                }
+              }
+            }
+          }
+        },
+        "description": "Replaces any existing webhooks. Webhook secret will be included in all webhook events within the x-pipebird-webhook header. You must store the secret returned from this endpoint because you will not be able to read it later. ",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": ["url"]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "",
+        "operationId": "delete-webhooks",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "description": "Delete all webhooks"
+      }
     }
   },
   "components": {
@@ -1029,6 +1110,23 @@
           }
         },
         "description": "Log entries to be used for auditability. For example, we will record logs for when resources get deleted, transfers begin and finish, and when resources are created."
+      },
+      "Webhook": {
+        "title": "Webhook",
+        "x-stoplight": {
+          "id": "crhiookonxdpz"
+        },
+        "type": "object",
+        "description": "Webhook object.",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "id": {
+            "type": "number"
+          }
+        },
+        "required": ["url", "id"]
       }
     },
     "securitySchemes": {
@@ -1043,5 +1141,7 @@
       "apiKey": []
     }
   ],
-  "x-readme": { "explorer-enabled": false }
+  "x-readme": {
+    "explorer-enabled": false
+  }
 }

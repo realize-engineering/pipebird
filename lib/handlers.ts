@@ -21,6 +21,7 @@ const errorCodeSchema = z.enum([
   "transfer_in_progress",
   "transfer_id_not_found",
   "transfer_not_in_progress",
+  "webhook_id_not_found",
   "not_implemented",
   "database_error",
 ]);
