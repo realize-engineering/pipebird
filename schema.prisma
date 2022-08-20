@@ -8,6 +8,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Webhook {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  url       String
+  secretKey String   @unique
+}
+
 model ColumnTransformation {
   id                      Int           @id @default(autoincrement())
   createdAt               DateTime      @default(now())
@@ -25,10 +33,9 @@ model ColumnTransformation {
 }
 
 model Configuration {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id           Int                    @id @default(autoincrement())
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
   destinations Destination[] // might want to fork data into multiple warehouses
   view         View                   @relation(fields: [viewId], references: [id], onDelete: Cascade)
   viewId       Int
@@ -36,15 +43,14 @@ model Configuration {
 }
 
 model View {
-  id              Int      @id @default(autoincrement())
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id              Int             @id @default(autoincrement())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   tableExpression String
   tenantColumn    String
-
-  source         Source          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  sourceId       Int
-  configurations Configuration[]
+  source          Source          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  sourceId        Int
+  configurations  Configuration[]
 }
 
 enum ConnectorStatus {
@@ -88,11 +94,10 @@ model Destination {
   status           ConnectorStatus
   destinationType  DestinationType
   connectionString String?
-
-  transfers       Transfer[]
-  configuration   Configuration? @relation(fields: [configurationId], references: [id])
-  configurationId Int?
-  tenantId        String
+  transfers        Transfer[]
+  configuration    Configuration?  @relation(fields: [configurationId], references: [id])
+  configurationId  Int?
+  tenantId         String
 }
 
 enum TransferStatus {
@@ -104,13 +109,12 @@ enum TransferStatus {
 }
 
 model Transfer {
-  id          Int            @id @default(autoincrement())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  finalizedAt DateTime?
-  status      TransferStatus
-
-  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  id            Int            @id @default(autoincrement())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  finalizedAt   DateTime?
+  status        TransferStatus
+  destination   Destination    @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   destinationId Int
 }
 
