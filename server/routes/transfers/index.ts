@@ -75,8 +75,9 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       finalizedAt: true,
     },
   });
-  transferQueue.add("initiate_transfer", { transfer });
-
+  await transferQueue.add("start_transfer", {
+    transfer,
+  });
   return res.status(HttpStatusCode.CREATED).json(transfer);
 });
 
