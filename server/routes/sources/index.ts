@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { db, pendingTransferTypes } from "../../../lib/db.js";
+import { db } from "../../../lib/db.js";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
@@ -239,6 +240,6 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
     });
   }
 
-  return res.status(HttpStatusCode.NO_CONTENT).json(null);
+  return res.status(HttpStatusCode.NO_CONTENT).end();
 });
 export { sourceRouter };

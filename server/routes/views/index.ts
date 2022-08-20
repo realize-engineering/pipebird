@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
 import { testQuery } from "../../../lib/connections.js";
-import { db, pendingTransferTypes } from "../../../lib/db.js";
+import { db } from "../../../lib/db.js";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
@@ -284,7 +285,7 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
     });
   }
 
-  return res.status(HttpStatusCode.NO_CONTENT).json(null);
+  return res.status(HttpStatusCode.NO_CONTENT).end();
 });
 
 export { viewRouter };

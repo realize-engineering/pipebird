@@ -35,7 +35,7 @@ class LogModel {
         domainId: event.domainId.toString(),
         domain: event.domain,
         action: event.action,
-        meta: JSON.stringify(event.meta),
+        meta: event.meta,
       },
     });
     return log;

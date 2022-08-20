@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { db, pendingTransferTypes } from "../../../lib/db.js";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
+import { db } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { HttpStatusCode } from "../../../utils/http.js";
@@ -173,7 +174,7 @@ destinationRouter.patch(
       });
     }
 
-    return res.status(HttpStatusCode.NO_CONTENT).json(null);
+    return res.status(HttpStatusCode.NO_CONTENT).end();
   },
 );
 
@@ -308,7 +309,7 @@ destinationRouter.delete(
           "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
       });
     }
-    return res.status(HttpStatusCode.NO_CONTENT).json(null);
+    return res.status(HttpStatusCode.NO_CONTENT).end();
   },
 );
 export { destinationRouter };
