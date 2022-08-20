@@ -5,10 +5,10 @@
 Pipebird is open-source infrastructure that enables businesses to share data directly to customers' databases or data warehouses.
 
 With Pipebird you can:
-* push data directly to major data warehouses.
-* create custom connectors to any source or destination.
-* spec out arbitrary transformations using a powerful configuration language.
 
+- push data directly to major data warehouses.
+- create custom connectors to any source or destination.
+- spec out arbitrary transformations using a powerful configuration language.
 
 ## Why use Pipebird?
 
@@ -26,8 +26,6 @@ We believe that this is a more secure and efficient way for customers to get imp
 1. Explain how it works part 4
 1. Explain how it works part 5
 
-
 ## Links
 
-You can access  the full [Pipebird documentation here](https://docs.pipebird.com/docs/getting-started).
-
+You can access the full [Pipebird documentation here](https://docs.pipebird.com/docs/getting-started).
