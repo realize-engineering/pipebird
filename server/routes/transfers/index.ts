@@ -6,6 +6,7 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
+import { transferQueue } from "../../queues/transfer/scheduler.js";
 
 const transferRouter = Router();
 
@@ -67,7 +68,14 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       },
       status: "STARTED",
     },
+    select: {
+      id: true,
+      status: true,
+      destinationId: true,
+      finalizedAt: true,
+    },
   });
+  transferQueue.add("initiate_transfer", { transfer });
 
   return res.status(HttpStatusCode.CREATED).json(transfer);
 });

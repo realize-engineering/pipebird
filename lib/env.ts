@@ -6,7 +6,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]),
   PORT: z.preprocess(Number, z.number()),
   DATABASE_URL: z.string().min(1),
-  REDIS_URL: z.string().min(1),
+  REDIS_HOST: z.string().min(1),
+  REDIS_PORT: z.string().min(1),
   SECRET_KEY: z.string().min(128),
 });
 
