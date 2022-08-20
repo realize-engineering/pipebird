@@ -222,7 +222,7 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
         domain: "SOURCE",
         domainId: params.data.sourceId,
         meta: {
-          message: `Succesfully deleted source=${params.data.sourceId}`,
+          message: `Successfully deleted source=${params.data.sourceId}`,
         },
       },
       prisma,
