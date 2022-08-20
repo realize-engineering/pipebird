@@ -1,12 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { db } from "../../../lib/db.js";
+import { db, pendingTransferTypes } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { getConnection } from "../../../lib/connections.js";
 import { default as validator } from "validator";
-import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
 const sourceRouter = Router();
 
@@ -83,6 +82,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       port,
       username,
       password,
+      status: "REACHABLE",
     },
     select: {
       id: true,
@@ -188,7 +188,7 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
                     transfers: {
                       every: {
                         status: {
-                          notIn: TransferModel.pendingTypes.slice(),
+                          notIn: pendingTransferTypes.slice(),
                         },
                       },
                     },
@@ -205,8 +205,8 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
       await LogModel.create(
         {
           action: "DELETE",
-          eventId: params.data.sourceId,
-          source: "SOURCE",
+          domainId: params.data.sourceId,
+          domain: "SOURCE",
           meta: {
             message: `Attempted to delete source ${params.data.sourceId} but failed to do so because there is a pending transfer.`,
           },
@@ -218,8 +218,8 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
     await LogModel.create(
       {
         action: "DELETE",
-        source: "SOURCE",
-        eventId: params.data.sourceId,
+        domain: "SOURCE",
+        domainId: params.data.sourceId,
         meta: {
           message: `Succesfully deleted source=${params.data.sourceId}`,
         },

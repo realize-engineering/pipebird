@@ -47,13 +47,26 @@ model View {
   configurations Configuration[]
 }
 
+enum ConnectorStatus {
+  REACHABLE
+  UNREACHABLE
+}
+
+enum SourceType {
+  MYSQL
+  POSTGRES
+  REDSHIFT
+  SNOWFLAKE
+  BIGQUERY
+}
+
 model Source {
-  id         Int      @id @default(autoincrement())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id         Int             @id @default(autoincrement())
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
   name       String
-  status     String   @default("REACHABLE")
-  sourceType String
+  status     ConnectorStatus
+  sourceType SourceType
   host       String
   port       Int
   username   String
@@ -62,13 +75,18 @@ model Source {
   views View[]
 }
 
+enum DestinationType {
+  POSTGRES
+  PROVISIONED_S3
+}
+
 model Destination {
-  id               Int      @id @default(autoincrement())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id               Int             @id @default(autoincrement())
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   name             String
-  status           String   @default("REACHABLE")
-  destinationType  String   @default("PROVISIONED_S3")
+  status           ConnectorStatus
+  destinationType  DestinationType
   connectionString String?
 
   transfers       Transfer[]
@@ -77,24 +95,45 @@ model Destination {
   tenantId        String
 }
 
+enum TransferStatus {
+  STARTED
+  PENDING
+  COMPLETE
+  FAILED
+  CANCELLED
+}
+
 model Transfer {
-  id          Int       @id @default(autoincrement())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id          Int            @id @default(autoincrement())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
   finalizedAt DateTime?
-  status      String
+  status      TransferStatus
 
   destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   destinationId Int
 }
 
-model Logs {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  eventAction String
-  eventSource String
-  eventId     String
+enum LogDomain {
+  SOURCE
+  VIEW
+  CONFIGURATION
+  DESTINATION
+  TRANSFER
+}
 
-  meta String
+enum LogAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model Log {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  domain    LogDomain
+  action    LogAction
+  domainId  String
+  meta      Json
 }

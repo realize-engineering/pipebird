@@ -5,7 +5,6 @@ import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
-import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
 
 const transferRouter = Router();
@@ -59,8 +58,8 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       .status(HttpStatusCode.NOT_FOUND)
       .json({ code: "destination_id_not_found" });
   }
-  const transfer = await TransferModel.create(
-    {
+  const transfer = await db.transfer.create({
+    data: {
       destination: {
         connect: {
           id: bodyParams.data.destinationId,
@@ -68,8 +67,7 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       },
       status: "STARTED",
     },
-    db,
-  );
+  });
 
   return res.status(HttpStatusCode.CREATED).json(transfer);
 });
@@ -135,7 +133,7 @@ transferRouter.delete(
     }
 
     const results = await db.$transaction(async (prisma) => {
-      const rawTransfer = await prisma.transfer.findUnique({
+      const transfer = await prisma.transfer.findUnique({
         where: {
           id: queryParams.data.transferId,
         },
@@ -144,27 +142,27 @@ transferRouter.delete(
           id: true,
         },
       });
-      if (!rawTransfer) {
+
+      if (!transfer) {
         return "NOT_FOUND";
       }
-      const transfer = TransferModel.parse(rawTransfer);
+
       switch (transfer.status) {
         case "PENDING":
         case "STARTED": {
-          const newTransfer = await TransferModel.update({
+          const newTransfer = await prisma.transfer.update({
             where: {
               id: transfer.id,
             },
-            client: prisma,
             data: {
               status: "CANCELLED",
             },
           });
           await LogModel.create(
             {
-              source: "TRANSFER",
+              domain: "TRANSFER",
               action: "DELETE",
-              eventId: newTransfer.id,
+              domainId: newTransfer.id,
               meta: { message: `Cancelled transfer ${newTransfer.id}` },
             },
             prisma,
@@ -176,9 +174,9 @@ transferRouter.delete(
         case "FAILED": {
           await LogModel.create(
             {
-              source: "TRANSFER",
+              domain: "TRANSFER",
               action: "DELETE",
-              eventId: rawTransfer.id,
+              domainId: transfer.id,
               meta: {
                 message: `Failed to cancel transfer on id=${transfer.id} and status=${transfer.status}`,
               },
@@ -191,17 +189,17 @@ transferRouter.delete(
         default:
           await LogModel.create(
             {
-              source: "TRANSFER",
+              domain: "TRANSFER",
               action: "DELETE",
-              eventId: rawTransfer.id,
+              domainId: transfer.id,
               meta: {
-                message: `Failed to cancel transfer on id=${transfer.id} with existing raw transfer status=${rawTransfer.status} and parsed status=${transfer.status}`,
+                message: `Failed to cancel transfer on id=${transfer.id} with existing raw transfer status=${transfer.status} and parsed status=${transfer.status}`,
               },
             },
             prisma,
           );
           return {
-            transfer: rawTransfer,
+            transfer,
             updateStatus: "UNKNOWN_STATE" as const,
           };
       }

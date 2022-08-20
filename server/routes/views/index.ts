@@ -5,10 +5,9 @@ import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
 import { testQuery } from "../../../lib/connections.js";
-import { db } from "../../../lib/db.js";
+import { db, pendingTransferTypes } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
-import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
 
 type ViewResponse = Prisma.ViewGetPayload<{
@@ -234,7 +233,7 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
                 transfers: {
                   every: {
                     status: {
-                      notIn: TransferModel.pendingTypes.slice(),
+                      notIn: pendingTransferTypes.slice(),
                     },
                   },
                 },
@@ -248,8 +247,8 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
       await LogModel.create(
         {
           action: "DELETE",
-          eventId: queryParams.data.viewId,
-          source: "VIEW",
+          domainId: queryParams.data.viewId,
+          domain: "VIEW",
           meta: {
             message: `Attempted to delete view ${queryParams.data.viewId} but failed to do so because there is a pending transfer.`,
           },
@@ -267,8 +266,8 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
     await LogModel.create(
       {
         action: "DELETE",
-        eventId: queryParams.data.viewId,
-        source: "VIEW",
+        domainId: queryParams.data.viewId,
+        domain: "VIEW",
         meta: {
           message: `Successfully deleted view ${queryParams.data.viewId}`,
         },

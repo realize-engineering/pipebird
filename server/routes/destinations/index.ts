@@ -1,12 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { db } from "../../../lib/db.js";
+import { db, pendingTransferTypes } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
-import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
 const destinationRouter = Router();
@@ -256,7 +255,7 @@ destinationRouter.delete(
             transfers: {
               every: {
                 status: {
-                  notIn: TransferModel.pendingTypes.slice(),
+                  notIn: pendingTransferTypes.slice(),
                 },
               },
             },
@@ -268,9 +267,9 @@ destinationRouter.delete(
         });
         await LogModel.create(
           {
-            source: "CONFIGURATION",
+            domain: "CONFIGURATION",
             action: "DELETE",
-            eventId: queryParams.data.destinationId,
+            domainId: queryParams.data.destinationId,
             meta: {
               message: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
             },
@@ -290,9 +289,9 @@ destinationRouter.delete(
 
       await LogModel.create(
         {
-          source: "DESTINATION",
+          domain: "DESTINATION",
           action: "DELETE",
-          eventId: destination.id,
+          domainId: destination.id,
           meta: {
             message: `Deleted destination ${destination.id} because it had no pending transfers.`,
           },
