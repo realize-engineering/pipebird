@@ -10,7 +10,6 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
-import { TransferModel } from "../../../lib/models/transfer.js";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
 
@@ -229,7 +228,7 @@ configurationRouter.delete(
               every: {
                 transfers: {
                   every: {
-                    status: { notIn: TransferModel.pendingTypes.slice() },
+                    status: { notIn: ["PENDING", "STARTED"] },
                   },
                 },
               },
@@ -244,9 +243,9 @@ configurationRouter.delete(
         });
         await LogModel.create(
           {
-            source: "CONFIGURATION",
+            domain: "CONFIGURATION",
             action: "DELETE",
-            eventId: queryParams.data.configurationId,
+            domainId: queryParams.data.configurationId,
             meta: {
               message: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
             },
@@ -272,9 +271,9 @@ configurationRouter.delete(
 
       await LogModel.create(
         {
-          source: "CONFIGURATION",
+          domain: "CONFIGURATION",
           action: "DELETE",
-          eventId: configuration.id,
+          domainId: configuration.id,
           meta: {
             message: `Deleted configuration attached to destination ids: ${JSON.stringify(
               configuration.destinations,

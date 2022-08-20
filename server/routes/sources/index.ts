@@ -81,6 +81,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       port,
       username,
       password,
+      status: "REACHABLE",
     },
     select: {
       id: true,
