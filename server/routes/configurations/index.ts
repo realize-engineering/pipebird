@@ -1,11 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { Response, Router } from "express";
+import { Router } from "express";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { db } from "../../../lib/db.js";
-import {
-  ApiResponse,
-  ErrorApiSchema,
-  ListApiResponse,
-} from "../../../lib/handlers.js";
+import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
@@ -94,44 +91,50 @@ configurationRouter.post(
         validationIssues: body.error.issues,
       });
     }
+    try {
+      const configuration = await db.configuration.create({
+        data: {
+          viewId: body.data.viewId,
+        },
+        select: {
+          id: true,
+          viewId: true,
+        },
+      });
+      const columns = await db.$transaction(
+        body.data.columns.map((column) =>
+          db.columnTransformation.create({
+            data: {
+              configurationId: configuration.id,
+              destinationFormatString: column.destinationFormatString,
+              isLastModified: column.isLastModified,
+              isPrimaryKey: column.isPrimaryKey,
+              nameInDestination: column.nameInDestination,
+              nameInSource: column.nameInSource,
+              transformer: column.transformer,
+            },
+            select: {
+              nameInSource: true,
+              nameInDestination: true,
+              destinationFormatString: true,
+              transformer: true,
+              isPrimaryKey: true,
+              isLastModified: true,
+            },
+          }),
+        ),
+      );
 
-    const configuration = await db.configuration.create({
-      data: {
-        viewId: body.data.viewId,
-      },
-      select: {
-        id: true,
-        viewId: true,
-      },
-    });
-
-    const columns = await db.$transaction(
-      body.data.columns.map((column) =>
-        db.columnTransformation.create({
-          data: {
-            configurationId: configuration.id,
-            destinationFormatString: column.destinationFormatString,
-            isLastModified: column.isLastModified,
-            isPrimaryKey: column.isPrimaryKey,
-            nameInDestination: column.nameInDestination,
-            nameInSource: column.nameInSource,
-            transformer: column.transformer,
-          },
-          select: {
-            nameInSource: true,
-            nameInDestination: true,
-            destinationFormatString: true,
-            transformer: true,
-            isPrimaryKey: true,
-            isLastModified: true,
-          },
-        }),
-      ),
-    );
-
-    return res
-      .status(HttpStatusCode.CREATED)
-      .json({ ...configuration, columns });
+      return res
+        .status(HttpStatusCode.CREATED)
+        .json({ ...configuration, columns });
+    } catch (e) {
+      logger.error(e);
+      return res.status(HttpStatusCode.NOT_FOUND).json({
+        code: "view_id_not_found",
+        message: `Failed to create configuration. Verify view id=${body.data.viewId} exists.`,
+      });
+    }
   },
 );
 
@@ -149,7 +152,7 @@ configurationRouter.get(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
       return res.status(HttpStatusCode.NOT_FOUND).json({
         code: "query_validation_error",
@@ -188,7 +191,7 @@ configurationRouter.get(
 // Delete configuration
 configurationRouter.delete(
   "/:configurationId",
-  async (req, res: Response<ErrorApiSchema>) => {
+  async (req, res: ApiResponse<null>) => {
     const queryParams = z
       .object({
         configurationId: z
@@ -199,7 +202,7 @@ configurationRouter.delete(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.NOT_FOUND).json({
@@ -228,7 +231,7 @@ configurationRouter.delete(
               every: {
                 transfers: {
                   every: {
-                    status: { notIn: ["PENDING", "STARTED"] },
+                    status: { notIn: pendingTransferTypes.slice() },
                   },
                 },
               },
@@ -293,7 +296,7 @@ configurationRouter.delete(
           "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
       });
     }
-    return res.status(HttpStatusCode.NO_CONTENT);
+    return res.status(HttpStatusCode.NO_CONTENT).end();
   },
 );
 

@@ -28,10 +28,9 @@ type CreateLogEvent = { domainId: number; meta: { message: string } } & (
 );
 
 class LogModel {
-  static create(event: CreateLogEvent, client: Prisma.TransactionClient) {
+  static async create(event: CreateLogEvent, client: Prisma.TransactionClient) {
     logger.info({ storedLogEvent: event.meta });
-
-    return client.log.create({
+    const log = await client.log.create({
       data: {
         domainId: event.domainId.toString(),
         domain: event.domain,
@@ -39,6 +38,7 @@ class LogModel {
         meta: event.meta,
       },
     });
+    return log;
   }
 }
 

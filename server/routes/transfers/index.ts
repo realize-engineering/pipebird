@@ -1,11 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { Response, Router } from "express";
+import { Router } from "express";
 import { db } from "../../../lib/db.js";
-import {
-  ApiResponse,
-  ErrorApiSchema,
-  ListApiResponse,
-} from "../../../lib/handlers.js";
+import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
@@ -15,8 +11,10 @@ const transferRouter = Router();
 
 type TransferResponse = Prisma.TransferGetPayload<{
   select: {
-    status: true;
     id: true;
+    status: true;
+    destinationId: true;
+    finalizedAt: true;
   };
 }>;
 
@@ -28,6 +26,8 @@ transferRouter.get(
       select: {
         status: true,
         id: true,
+        destinationId: true,
+        finalizedAt: true,
       },
     });
     return res.status(HttpStatusCode.OK).json({ content: transfers });
@@ -38,19 +38,14 @@ transferRouter.get(
 transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
   const bodyParams = z
     .object({
-      destinationId: z
-        .string()
-        .min(1)
-        .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
-          message: "The configurationId query param must be an integer.",
-        })
-        .transform((s) => parseInt(s)),
+      destinationId: z.number().nonnegative(),
     })
     .safeParse(req.body);
   if (!bodyParams.success) {
-    return res
-      .status(HttpStatusCode.BAD_REQUEST)
-      .json({ code: "body_validation_error" });
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "body_validation_error",
+      validationIssues: bodyParams.error.issues,
+    });
   }
 
   const destination = await db.destination.findUnique({
@@ -87,11 +82,11 @@ transferRouter.get(
           .string()
           .min(1)
           .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
-            message: "The configurationId query param must be an integer.",
+            message: "The transferId query param must be an integer.",
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -117,18 +112,18 @@ transferRouter.get(
 // Delete transfer
 transferRouter.delete(
   "/:transferId",
-  async (req, res: Response<ErrorApiSchema>) => {
+  async (req, res: ApiResponse<TransferResponse>) => {
     const queryParams = z
       .object({
         transferId: z
           .string()
           .min(1)
           .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
-            message: "The configurationId query param must be an integer.",
+            message: "The transferId query param must be an integer.",
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
 
     if (!queryParams.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -226,7 +221,7 @@ transferRouter.delete(
       });
     }
 
-    return res.status(HttpStatusCode.ACCEPTED);
+    return res.status(HttpStatusCode.ACCEPTED).json(results.transfer);
   },
 );
 

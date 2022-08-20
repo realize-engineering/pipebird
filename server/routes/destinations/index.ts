@@ -1,11 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { Response, Router } from "express";
+import { Router } from "express";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { db } from "../../../lib/db.js";
-import {
-  ApiResponse,
-  ErrorApiSchema,
-  ListApiResponse,
-} from "../../../lib/handlers.js";
+import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
@@ -62,14 +59,14 @@ destinationRouter.post(
           destinationType: z.enum(["PROVISIONED_S3"]),
           connectionString: z.string().optional(),
           configurationId: z.number().nonnegative(),
-          tenantId: z.number().nonnegative(),
+          tenantId: z.string().min(1),
         }),
         z.object({
           name: z.string().min(1),
           destinationType: z.enum(["MYSQL", "POSTGRES"]),
           connectionString: z.string().optional(),
           configurationId: z.number().nonnegative(),
-          tenantId: z.number().nonnegative(),
+          tenantId: z.string().min(1),
           host: z.string(),
           port: z.number().nonnegative(),
           database: z.string(),
@@ -114,6 +111,74 @@ destinationRouter.post(
   },
 );
 
+// Update destination
+destinationRouter.patch(
+  "/:destinationId",
+  async (req, res: ApiResponse<null>) => {
+    const queryParams = z
+      .object({
+        destinationId: z
+          .string()
+          .min(1)
+          .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
+            message: "The configurationId query param must be an integer.",
+          })
+          .transform((s) => parseInt(s)),
+      })
+      .safeParse(req.params);
+    if (!queryParams.success) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "query_validation_error",
+        validationIssues: queryParams.error.issues,
+      });
+    }
+    const bodyParams = z
+      .object({
+        configurationId: z
+          .string()
+          .refine(validator.isNumeric, "configurationId must be a number.")
+          .transform((s) => parseInt(s))
+          .optional(),
+        name: z.string().min(1).optional(),
+      })
+      .safeParse(req.body);
+
+    if (!bodyParams.success) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        validationIssues: bodyParams.error.issues,
+      });
+    }
+    const destination = await db.destination.findUnique({
+      where: { id: queryParams.data.destinationId },
+    });
+    if (!destination) {
+      return res
+        .status(HttpStatusCode.NOT_FOUND)
+        .json({ code: "destination_id_not_found" });
+    }
+    try {
+      await db.destination.update({
+        where: {
+          id: queryParams.data.destinationId,
+        },
+        data: {
+          ...bodyParams.data,
+        },
+      });
+    } catch (e) {
+      logger.warn(e);
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        message:
+          "Failed to update destination. Ensure that configuration id exists.",
+      });
+    }
+
+    return res.status(HttpStatusCode.NO_CONTENT).end();
+  },
+);
+
 // Get destination
 destinationRouter.get(
   "/:destinationId",
@@ -128,11 +193,12 @@ destinationRouter.get(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
-      return res
-        .status(HttpStatusCode.BAD_REQUEST)
-        .json({ code: "query_validation_error" });
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "query_validation_error",
+        validationIssues: queryParams.error.issues,
+      });
     }
     const destination = await db.destination.findUnique({
       where: {
@@ -158,7 +224,7 @@ destinationRouter.get(
 // Delete destination
 destinationRouter.delete(
   "/:destinationId",
-  async (req, res: Response<ErrorApiSchema>) => {
+  async (req, res: ApiResponse<null>) => {
     const queryParams = z
       .object({
         destinationId: z
@@ -169,7 +235,7 @@ destinationRouter.delete(
           })
           .transform((s) => parseInt(s)),
       })
-      .safeParse(req.query);
+      .safeParse(req.params);
     if (!queryParams.success) {
       return res
         .status(HttpStatusCode.BAD_REQUEST)
@@ -191,7 +257,7 @@ destinationRouter.delete(
             transfers: {
               every: {
                 status: {
-                  notIn: ["PENDING", "STARTED"],
+                  notIn: pendingTransferTypes.slice(),
                 },
               },
             },
@@ -214,7 +280,7 @@ destinationRouter.delete(
         );
         return null;
       }
-      const destination = await db.destination.delete({
+      const destination = await prisma.destination.delete({
         where: {
           id: queryParams.data.destinationId,
         },
@@ -244,7 +310,7 @@ destinationRouter.delete(
           "You cannot delete configurations of ongoing transfers. You must explicitly cancel all transfers associated with this configuration first.",
       });
     }
-    return res.status(HttpStatusCode.NO_CONTENT);
+    return res.status(HttpStatusCode.NO_CONTENT).end();
   },
 );
 export { destinationRouter };

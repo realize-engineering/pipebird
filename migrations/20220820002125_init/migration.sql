@@ -1,14 +1,4 @@
 -- CreateTable
-CREATE TABLE "Tenant" (
-    "id" SERIAL NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "identifier" TEXT NOT NULL,
-
-    CONSTRAINT "Tenant_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "ColumnTransformation" (
     "id" SERIAL NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -72,7 +62,7 @@ CREATE TABLE "Destination" (
     "destinationType" TEXT NOT NULL DEFAULT 'PROVISIONED_S3',
     "connectionString" TEXT,
     "configurationId" INTEGER,
-    "tenantId" INTEGER NOT NULL,
+    "tenantId" TEXT NOT NULL,
 
     CONSTRAINT "Destination_pkey" PRIMARY KEY ("id")
 );
@@ -106,7 +96,7 @@ CREATE TABLE "Logs" (
 CREATE UNIQUE INDEX "ColumnTransformation_configurationId_nameInDestination_key" ON "ColumnTransformation"("configurationId", "nameInDestination");
 
 -- AddForeignKey
-ALTER TABLE "ColumnTransformation" ADD CONSTRAINT "ColumnTransformation_configurationId_fkey" FOREIGN KEY ("configurationId") REFERENCES "Configuration"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ColumnTransformation" ADD CONSTRAINT "ColumnTransformation_configurationId_fkey" FOREIGN KEY ("configurationId") REFERENCES "Configuration"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Configuration" ADD CONSTRAINT "Configuration_viewId_fkey" FOREIGN KEY ("viewId") REFERENCES "View"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -116,9 +106,6 @@ ALTER TABLE "View" ADD CONSTRAINT "View_sourceId_fkey" FOREIGN KEY ("sourceId") 
 
 -- AddForeignKey
 ALTER TABLE "Destination" ADD CONSTRAINT "Destination_configurationId_fkey" FOREIGN KEY ("configurationId") REFERENCES "Configuration"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Destination" ADD CONSTRAINT "Destination_tenantId_fkey" FOREIGN KEY ("tenantId") REFERENCES "Tenant"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Transfer" ADD CONSTRAINT "Transfer_destinationId_fkey" FOREIGN KEY ("destinationId") REFERENCES "Destination"("id") ON DELETE CASCADE ON UPDATE CASCADE;
