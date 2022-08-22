@@ -6,14 +6,10 @@ import dfd from "danfojs-node";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 
-export default async function (
-  job: Job<{
-    transfer: TransferQueueJobData;
-  }>,
-) {
-  logger.info("Processor is handling job with transfer:", job.data.transfer);
+export default async function (job: Job<TransferQueueJobData>) {
+  logger.info("Processor is handling job with transfer:", job.data);
 
-  const transfer = job.data.transfer;
+  const transfer = job.data;
   const destination = transfer.destination;
   const configuration = destination.configuration;
 

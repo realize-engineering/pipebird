@@ -46,7 +46,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
         "BIGQUERY",
       ]),
       host: z.string(),
-      port: z.string().transform(Number),
+      port: z.number().int().nonnegative(),
       username: z.string(),
       password: z.string(),
     })
