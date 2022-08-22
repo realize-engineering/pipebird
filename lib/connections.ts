@@ -1,16 +1,8 @@
+import { SourceType } from "@prisma/client";
 import { Sequelize, QueryTypes } from "sequelize";
 import { logger } from "./logger.js";
 
-const REACHABLE = "REACHABLE";
-const UNREACHABLE = "UNREACHABLE";
-
-type DBTypes =
-  | "MYSQL"
-  | "POSTGRES"
-  | "SNOWFLAKE"
-  | "REDSHIFT"
-  | "BIGQUERY"
-  | string;
+type DBTypes = SourceType;
 
 type QueryResult = {
   status: "REACHABLE" | "UNREACHABLE";
@@ -19,10 +11,15 @@ type QueryResult = {
   message?: string;
 };
 
-type ConnectionResult = {
-  status: "REACHABLE" | "UNREACHABLE";
-  connection?: Sequelize;
-};
+type ConnectionResult =
+  | {
+      status: "REACHABLE";
+      connection: Sequelize;
+    }
+  | {
+      status: "UNREACHABLE";
+      error?: string;
+    };
 
 export const getConnection = async ({
   dbType,
@@ -56,20 +53,20 @@ export const getConnection = async ({
         await conn.authenticate();
 
         return {
-          status: REACHABLE,
+          status: "REACHABLE",
           connection: conn,
         };
       }
       default: {
         return {
-          status: UNREACHABLE,
+          status: "UNREACHABLE",
         };
       }
     }
   } catch (err) {
     logger.error({ connectionError: err });
     return {
-      status: UNREACHABLE,
+      status: "UNREACHABLE",
     };
   }
 };
@@ -96,7 +93,7 @@ export const testQuery = async ({
       case "POSTGRES":
       case "REDSHIFT":
       case "MYSQL": {
-        const { status, connection } = await getConnection({
+        const result = await getConnection({
           dbType,
           host,
           port,
@@ -104,26 +101,28 @@ export const testQuery = async ({
           password,
           dbName,
         });
-        if (status === UNREACHABLE || !connection) {
+        if (result.status === "UNREACHABLE") {
           return {
-            status,
+            status: result.status,
             error: true,
             message: "Cannot connect to the database.",
           };
         }
 
         // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await connection.query(query, { type: QueryTypes.SELECT });
+        const res = await result.connection.query(query, {
+          type: QueryTypes.SELECT,
+        });
 
         return {
-          status,
+          status: result.status,
           error: false,
           columns: Object.keys(res[0]),
         };
       }
       default: {
         return {
-          status: UNREACHABLE,
+          status: "UNREACHABLE",
           error: true,
           message: "Database type is not currently supported.",
         };
@@ -132,7 +131,7 @@ export const testQuery = async ({
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
-      status: REACHABLE,
+      status: "REACHABLE",
       error: true,
       message,
     };

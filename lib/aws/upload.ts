@@ -1,6 +1,5 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
-import { ReadStream } from "fs";
 
 import { S3 } from "./s3.js";
 import { env } from "../env.js";
@@ -8,7 +7,7 @@ import { env } from "../env.js";
 const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
 export const uploadObject = async (
-  contents: ReadStream,
+  contents: PutObjectCommand["input"]["Body"],
   bucket: string = BUCKET,
 ) => {
   const key = randomUUID();

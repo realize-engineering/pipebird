@@ -17,6 +17,7 @@
     "@prisma/client": "^4.2.1",
     "argon2": "^0.28.7",
     "bullmq": "^1.89.1",
+    "danfojs-node": "^1.1.1",
     "date-fns": "^2.29.1",
     "dotenv": "^16.0.1",
     "express": "^4.18.1",

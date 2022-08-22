@@ -71,14 +71,42 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
     select: {
       id: true,
       status: true,
-      destinationId: true,
       finalizedAt: true,
+      destination: {
+        select: {
+          id: true,
+          destinationType: true,
+          configuration: {
+            select: {
+              view: {
+                select: {
+                  tableExpression: true,
+                  source: {
+                    select: {
+                      id: true,
+                      host: true,
+                      port: true,
+                      username: true,
+                      password: true,
+                      name: true,
+                      sourceType: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
-  await transferQueue.add("start_transfer", {
-    transfer,
+  await transferQueue.add("start_transfer", transfer);
+  return res.status(HttpStatusCode.CREATED).json({
+    id: transfer.id,
+    status: transfer.status,
+    destinationId: transfer.destination.id,
+    finalizedAt: transfer.finalizedAt,
   });
-  return res.status(HttpStatusCode.CREATED).json(transfer);
 });
 
 // Get transfer

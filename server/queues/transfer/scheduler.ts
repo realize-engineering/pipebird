@@ -1,11 +1,50 @@
+import { Prisma } from "@prisma/client";
 import { Queue, Worker } from "bullmq";
 import { env } from "../../../lib/env.js";
 import { logger } from "../../../lib/logger.js";
 import { queueNames } from "../../../lib/queues.js";
 import processor from "./processor.js";
-const transferQueue = new Queue(queueNames.INITIATE_TRANSFER, {
-  connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },
-});
+
+export type TransferQueueJobData = Prisma.TransferGetPayload<{
+  select: {
+    id: true;
+    status: true;
+    finalizedAt: true;
+    destination: {
+      select: {
+        id: true;
+        destinationType: true;
+        configuration: {
+          select: {
+            view: {
+              select: {
+                tableExpression: true;
+                source: {
+                  select: {
+                    id: true;
+                    host: true;
+                    port: true;
+                    username: true;
+                    password: true;
+                    name: true;
+                    sourceType: true;
+                  };
+                };
+              };
+            };
+          };
+        };
+      };
+    };
+  };
+}>;
+
+const transferQueue = new Queue<TransferQueueJobData>(
+  queueNames.INITIATE_TRANSFER,
+  {
+    connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },
+  },
+);
 
 const worker = new Worker(queueNames.INITIATE_TRANSFER, processor, {
   connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },
