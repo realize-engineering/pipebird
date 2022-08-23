@@ -1,0 +1,44 @@
+version: "3.8"
+
+volumes:
+  pipebird_redis:
+  pipebird_psql:
+
+services:
+  db:
+    image: postgres:14.2-alpine
+    restart: unless-stopped
+    container_name: pipebird-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pipebird}
+      POSTGRES_USER: ${POSTGRES_USER:-pipebird}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pipebird}
+      PGDATA: /data/postgres
+    volumes:
+      - pipebird_psql:/data/postgres
+  redis:
+    image: redis:7.0-alpine
+    restart: unless-stopped
+    container_name: pipebird-redis
+    volumes:
+      - pipebird_redis:/data
+    ports:
+      - ${REDIS_PORT}:6379
+  api:
+    build: .
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - redis
+      - db
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/${POSTGRES_DB}?schema=public
+      - SECRET_KEY=${SECRET_KEY}
+      - CLOUDFORMATION_S3_BUCKET=${CLOUDFORMATION_S3_BUCKET}
+      - REDIS_PORT=${REDIS_PORT}
+      - PORT=${PORT}
+      - S3_USER_ACCESS_ID=${S3_USER_ACCESS_ID}
+      - S3_USER_SECRET_KEY=${S3_USER_SECRET_KEY}
+      - PROVISIONED_BUCKET_NAME=${PROVISIONED_BUCKET_NAME}
+      - AWS_REGION=${AWS_REGION}
