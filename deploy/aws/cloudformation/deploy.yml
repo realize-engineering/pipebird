@@ -1,0 +1,165 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Here are some details about the template.
+Metadata:
+  AWS::CloudFormation::Designer:
+    12d7e160-0a80-41e1-9076-14d9d321b425:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -160
+        y: -60
+      z: 0
+      embeds: []
+      isassociatedwith:
+        - 75ee4d4d-5387-4e64-a6e7-df69e2be9de2
+      dependson:
+        - af0c845b-f4f3-4d92-9488-ab4306d11151
+    75ee4d4d-5387-4e64-a6e7-df69e2be9de2:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -290
+        y: -70
+      z: 0
+      embeds: []
+    0f44b41f-d758-4479-8a37-4cb92468693d:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -60
+        y: -60
+      z: 0
+      embeds: []
+    af0c845b-f4f3-4d92-9488-ab4306d11151:
+      size:
+        width: 60
+        height: 60
+      position:
+        x: -183.43789279679805
+        y: 38.066131655976676
+      z: 0
+      embeds: []
+    f149317d-b50b-4115-a622-bd7b6a1005ae:
+      source:
+        id: 12d7e160-0a80-41e1-9076-14d9d321b425
+      target:
+        id: af0c845b-f4f3-4d92-9488-ab4306d11151
+      z: 11
+Resources:
+  PipeBirdSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: Enable the ports pipebird requires (80, 22, 3000)
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 75ee4d4d-5387-4e64-a6e7-df69e2be9de2
+  PipeBirdStorage:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+          - "0"
+          - Fn::GetAZs: ""
+      Size: "100"
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 0f44b41f-d758-4479-8a37-4cb92468693d
+  PipeBirdInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 12d7e160-0a80-41e1-9076-14d9d321b425
+    Properties:
+      SubnetId:
+        Ref: subnetId
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - "\n"
+            - - "#!/bin/bash -xe"
+              - sudo apt-get update -y
+              - sudo apt install unzip
+              - sudo wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip
+              - unzip main.zip
+              - sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname
+                -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              - sudo chmod +x /usr/local/bin/docker-compose
+              - cd pipebird-main && docker-compose up
+      KeyName:
+        Ref: ec2KeyPair
+      Tags:
+        - Key: Name
+          Value: PipeBird
+      ImageId: ami-052efd3df9dad4825
+      AvailabilityZone:
+        Fn::Select:
+          - "0"
+          - Fn::GetAZs: ""
+      InstanceType: t2.medium
+      BlockDeviceMappings:
+        - DeviceName: "/dev/sda1"
+          Ebs:
+            VolumeSize: "50"
+      SecurityGroupIds:
+        - Ref: PipeBirdSecurityGroup
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT30M
+    DependsOn:
+      - ProvisionedPipeBirdBucket
+  ProvisionedPipeBirdBucket:
+    Type: AWS::S3::Bucket
+    Properties: {}
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: af0c845b-f4f3-4d92-9488-ab4306d11151
+Parameters:
+  ec2KeyPair:
+    Description: Key pair to access the box running PipeBird
+    Type: AWS::EC2::KeyPair::KeyName
+  VPC:
+    Description: The VPC to run pipebird inside of
+    Type: AWS::EC2::VPC::Id
+  licenseKey:
+    Description: License Key for your pipebird deployment. Get yours at my.pipebird.com
+    Type: String
+  subnetId:
+    Description: Subnet id to deploy ec2 in within your vpc.
+    Type: String
+Outputs:
+  YourPipeBirdIP:
+    Description:
+      IP address for your self-hosted PipeBird instance. Get started by
+      signing up here!
+    Value:
+      Fn::Join:
+        - ""
+        - - http://
+          - Fn::GetAtt:
+              - PipeBirdInstance
+              - PublicIp
+          - ":3000"
