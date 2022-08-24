@@ -1,8 +1,8 @@
 import { SourceType } from "@prisma/client";
-import { Sequelize, QueryTypes } from "sequelize";
+import { Readable } from "stream";
+import pg from "pg";
+import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
-
-type DBTypes = SourceType;
 
 type QueryResult = {
   status: "REACHABLE" | "UNREACHABLE";
@@ -10,16 +10,6 @@ type QueryResult = {
   columns?: string[];
   message?: string;
 };
-
-type ConnectionResult =
-  | {
-      status: "REACHABLE";
-      connection: Sequelize;
-    }
-  | {
-      status: "UNREACHABLE";
-      error?: string;
-    };
 
 export const getConnection = async ({
   dbType,
@@ -29,45 +19,50 @@ export const getConnection = async ({
   password,
   dbName,
 }: {
-  dbType: DBTypes;
+  dbType: SourceType;
   host: string;
   port: number;
   username: string;
   password: string;
   dbName: string;
-}): Promise<ConnectionResult> => {
+}): Promise<
+  | {
+      status: "REACHABLE";
+      query: (sql: string) => Promise<{ rows: Record<string, unknown>[] }>;
+      extractToCsv: (sql: string) => Readable;
+    }
+  | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
+> => {
   try {
     switch (dbType) {
-      case "POSTGRES":
-      case "REDSHIFT":
-      case "MYSQL": {
-        const conn = new Sequelize(dbName, username, password, {
+      case "POSTGRES": {
+        const client = new pg.Client({
           host,
           port,
-          dialect:
-            dbType === "REDSHIFT"
-              ? "postgres"
-              : (dbType.toLowerCase() as Lowercase<typeof dbType>),
+          user: username,
+          password,
+          database: dbName,
         });
-
-        await conn.authenticate();
+        await client.connect();
 
         return {
           status: "REACHABLE",
-          connection: conn,
+          query: (sql: string) => client.query(sql),
+          extractToCsv: (sql: string) =>
+            client.query(
+              pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
+            ),
         };
       }
+
       default: {
-        return {
-          status: "UNREACHABLE",
-        };
+        return { status: "UNREACHABLE", error: "not_implemented" };
       }
     }
-  } catch (err) {
-    logger.error({ connectionError: err });
-    return {
-      status: "UNREACHABLE",
-    };
+  } catch (error) {
+    logger.error(error);
+
+    return { status: "UNREACHABLE", error: "connection_refused" };
   }
 };
 
@@ -80,7 +75,7 @@ export const testQuery = async ({
   dbName,
   query,
 }: {
-  dbType: DBTypes;
+  dbType: SourceType;
   host: string;
   port: number;
   username: string;
@@ -101,7 +96,8 @@ export const testQuery = async ({
           password,
           dbName,
         });
-        if (result.status === "UNREACHABLE") {
+
+        if (result.status !== "REACHABLE") {
           return {
             status: result.status,
             error: true,
@@ -110,14 +106,12 @@ export const testQuery = async ({
         }
 
         // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await result.connection.query(query, {
-          type: QueryTypes.SELECT,
-        });
+        const res = await result.query(query);
 
         return {
           status: result.status,
           error: false,
-          columns: Object.keys(res[0]),
+          columns: Object.keys(res.rows[0]),
         };
       }
       default: {

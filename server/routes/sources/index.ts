@@ -5,9 +5,9 @@ import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
-import { getConnection } from "../../../lib/connections.js";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
+import { getConnection } from "../../../lib/connections.js";
 const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
@@ -60,19 +60,24 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
   }
 
   const { name, sourceType, host, port, username, password } = body.data;
-  const { status } = await getConnection({
+
+  const connection = await getConnection({
+    dbName: name,
     dbType: sourceType,
     host,
     port,
     username,
     password,
-    dbName: name,
   });
 
-  if (status !== "REACHABLE") {
-    return res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
-      code: "source_db_unreachable",
-    });
+  if (connection.status === "UNREACHABLE") {
+    return connection.error === "not_implemented"
+      ? res
+          .status(HttpStatusCode.NOT_IMPLEMENTED)
+          .json({ code: "not_implemented" })
+      : res
+          .status(HttpStatusCode.SERVICE_UNAVAILABLE)
+          .json({ code: "source_db_unreachable" });
   }
 
   const source = await db.source.create({

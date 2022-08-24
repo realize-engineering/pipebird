@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 
 import { S3 } from "./s3.js";
 import { env } from "../env.js";
+import { Upload } from "@aws-sdk/lib-storage";
 
 const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
@@ -11,13 +12,14 @@ export const uploadObject = async (
   bucket: string = BUCKET,
 ) => {
   const key = randomUUID();
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: contents,
+  const upload = new Upload({
+    client: S3,
+    params: {
+      Bucket: bucket,
+      Key: key,
+      Body: contents,
+    },
   });
 
-  const uploadRes = await S3.send(command);
-
-  return { result: uploadRes, key };
+  return { result: await upload.done(), key };
 };

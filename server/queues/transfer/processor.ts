@@ -1,11 +1,9 @@
 import { Job } from "bullmq";
-import { QueryTypes } from "sequelize";
-import { getConnection } from "../../../lib/connections.js";
 import { logger } from "../../../lib/logger.js";
-import dfd from "danfojs-node";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
+import { getConnection } from "../../../lib/connections.js";
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -57,15 +55,13 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
-    const rows = await conn.connection.query(view.tableExpression, {
-      type: QueryTypes.SELECT,
-    });
-
-    const df = new dfd.DataFrame(rows);
-
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
-        await uploadObject(Buffer.from(df.toCSV()));
+        await uploadObject(
+          conn.extractToCsv(
+            `SELECT * FROM (${view.tableExpression}) AS t WHERE "${view.tenantColumn}" = '${destination.tenantId}'`, // TODO(timothygoltser): use tagged template literal
+          ),
+        );
         break;
       }
     }
