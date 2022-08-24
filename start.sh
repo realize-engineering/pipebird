@@ -2,7 +2,7 @@
 
 if [ ! -f .env ]
 then
-    printenv > .env
+    echo "DATABASE_URL=$(printenv DATABASE_URL)" > .env
 fi
 
 npx prisma migrate deploy
