@@ -9,11 +9,11 @@ FROM node:16-slim
 WORKDIR /app
 RUN apt-get update
 RUN apt-get install -y openssl
+COPY ./start.sh ./start.sh
 COPY package.json ./package.json
-COPY .env ./.env
 COPY schema.prisma ./schema.prisma
 COPY migrations ./migrations
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-
-CMD ["npm", "start"]
+RUN chmod +x ./start.sh
+CMD ["./start.sh"]

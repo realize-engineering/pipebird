@@ -8,11 +8,19 @@
           "12d7e160-0a80-41e1-9076-14d9d321b425":
             {
               "size": { "width": 60, "height": 60 },
-              "position": { "x": 150, "y": 60 },
+              "position": { "x": 300, "y": -40 },
               "z": 1,
               "embeds": [],
-              "isassociatedwith": ["75ee4d4d-5387-4e64-a6e7-df69e2be9de2"],
-              "dependson": ["af0c845b-f4f3-4d92-9488-ab4306d11151"],
+              "isassociatedwith":
+                [
+                  "75ee4d4d-5387-4e64-a6e7-df69e2be9de2",
+                  "0f44b41f-d758-4479-8a37-4cb92468693d",
+                ],
+              "dependson":
+                [
+                  "af0c845b-f4f3-4d92-9488-ab4306d11151",
+                  "2fdd17ad-0f65-46e0-9597-44875772b447",
+                ],
             },
           "75ee4d4d-5387-4e64-a6e7-df69e2be9de2":
             {
@@ -24,48 +32,48 @@
           "0f44b41f-d758-4479-8a37-4cb92468693d":
             {
               "size": { "width": 60, "height": 60 },
-              "position": { "x": 60, "y": 60 },
+              "position": { "x": 150, "y": -80 },
               "z": 1,
               "embeds": [],
             },
           "af0c845b-f4f3-4d92-9488-ab4306d11151":
             {
               "size": { "width": 60, "height": 60 },
-              "position": { "x": 250, "y": 190 },
+              "position": { "x": 120, "y": 180 },
               "z": 1,
               "embeds": [],
             },
-          "5712b969-bb67-4153-86de-353b6b1b6e93":
+          "9f44a320-98cb-4f48-8843-8c51edd67f0b":
             {
               "size": { "width": 60, "height": 60 },
-              "position": { "x": 390, "y": 90 },
-              "z": 1,
+              "position": { "x": 560, "y": 260 },
+              "z": 0,
               "embeds": [],
+            },
+          "2fdd17ad-0f65-46e0-9597-44875772b447":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": 330, "y": 250 },
+              "z": 0,
+              "embeds": [],
+              "dependson":
+                [
+                  "af0c845b-f4f3-4d92-9488-ab4306d11151",
+                  "a6609656-fabb-487f-a506-84b6271aa1e6",
+                ],
+            },
+          "a6609656-fabb-487f-a506-84b6271aa1e6":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": 610, "y": 120 },
+              "z": 0,
+              "embeds": [],
+              "isassociatedwith": ["2fdd17ad-0f65-46e0-9597-44875772b447"],
             },
         },
     },
   "Resources":
     {
-      "DBSecret":
-        {
-          "Type": "AWS::SecretsManager::Secret",
-          "Properties":
-            {
-              "Description": "This is the secret for the PipeBird instance",
-              "GenerateSecretString":
-                {
-                  "SecretStringTemplate": '{"username": "pipebird"}',
-                  "GenerateStringKey": "password",
-                  "PasswordLength": 32,
-                  "ExcludeCharacters": "\"@/\\",
-                },
-            },
-          "Metadata":
-            {
-              "AWS::CloudFormation::Designer":
-                { "id": "5712b969-bb67-4153-86de-353b6b1b6e93" },
-            },
-        },
       "PipeBirdSecurityGroup":
         {
           "Type": "AWS::EC2::SecurityGroup",
@@ -116,7 +124,8 @@
           "Properties":
             {
               "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": "" }] },
-              "Size": "100",
+              "Size": "10",
+              "Encrypted": true,
             },
           "Metadata":
             {
@@ -134,6 +143,13 @@
             },
           "Properties":
             {
+              "Volumes":
+                [
+                  {
+                    "Device": "/dev/pipeBirdData",
+                    "VolumeId": { "Ref": "PipeBirdStorage" },
+                  },
+                ],
               "SubnetId": { "Ref": "subnetId" },
               "UserData":
                 {
@@ -161,23 +177,57 @@
                                       {
                                         "Fn::Sub":
                                           [
-                                            "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public",
+                                            "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/pipebird",
                                             {
                                               "POSTGRES_PASSWORD":
-                                                { "Ref": "DBSecret" },
-                                              "POSTGRES_USER": "pipebird",
-                                              "POSTGRES_DB": "pipebird",
+                                                { "Ref": "databasePassword" },
+                                              "POSTGRES_USER":
+                                                { "Ref": "databaseUsername" },
                                             },
                                           ],
                                       },
                                   },
                                 ],
                             },
+                            {
+                              "Fn::Sub":
+                                [
+                                  'echo "LICENSE_KEY=${LICENSE_KEY}" >> .env',
+                                  { "LICENSE_KEY": { "Ref": "licenseKey" } },
+                                ],
+                            },
                             'echo "REDIS_HOST=localhost" >> .env',
                             'echo "REDIS_PORT=6379" >> .env',
                             'echo "SECRET_KEY=$(openssl rand -hex 32)" >> .env',
-                            'echo "S3_USER_ACCESS_ID=$()" >> .env',
-                            'echo "S3_USER_SECRET_KEY=$()" >> .env',
+                            'echo "ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env',
+                            {
+                              "Fn::Sub":
+                                [
+                                  'echo "S3_USER_ACCESS_ID=${ACCESS_ID}" >> .env',
+                                  {
+                                    "ACCESS_ID":
+                                      {
+                                        "Ref": "PipeBirdProvisionedS3UserKeys",
+                                      },
+                                  },
+                                ],
+                            },
+                            {
+                              "Fn::Sub":
+                                [
+                                  'echo "S3_USER_SECRET_KEY=${SECRET_KEY}" >> .env',
+                                  {
+                                    "SECRET_KEY":
+                                      {
+                                        "Fn::GetAtt":
+                                          [
+                                            "PipeBirdProvisionedS3UserKeys",
+                                            "SecretAccessKey",
+                                          ],
+                                      },
+                                  },
+                                ],
+                            },
                             'echo "PROVISIONED_BUCKET_NAME=ProvisionedPipeBirdBucket" >> .env',
                             {
                               "Fn::Sub":
@@ -202,7 +252,8 @@
               "SecurityGroupIds": [{ "Ref": "PipeBirdSecurityGroup" }],
             },
           "CreationPolicy": { "ResourceSignal": { "Timeout": "PT30M" } },
-          "DependsOn": ["ProvisionedPipeBirdBucket", "DBSecret"],
+          "DependsOn":
+            ["ProvisionedPipeBirdBucket", "PipeBirdProvisionedS3User"],
         },
       "ProvisionedPipeBirdBucket":
         {
@@ -214,9 +265,68 @@
                 { "id": "af0c845b-f4f3-4d92-9488-ab4306d11151" },
             },
         },
+      "PipeBirdProvisionedS3UserKeys":
+        {
+          "Type": "AWS::IAM::AccessKey",
+          "Properties": { "UserName": { "Ref": "PipeBirdProvisionedS3User" } },
+          "Metadata":
+            {
+              "AWS::CloudFormation::Designer":
+                { "id": "9f44a320-98cb-4f48-8843-8c51edd67f0b" },
+            },
+        },
+      "PipeBirdProvisionedS3User":
+        {
+          "Type": "AWS::IAM::User",
+          "Properties": {},
+          "Metadata":
+            {
+              "AWS::CloudFormation::Designer":
+                { "id": "2fdd17ad-0f65-46e0-9597-44875772b447" },
+            },
+          "DependsOn": ["ProvisionedPipeBirdBucket"],
+        },
+      "S3PipeBirdPolicy":
+        {
+          "Type": "AWS::IAM::Policy",
+          "Properties":
+            {
+              "PolicyName": "S3PipeBirdPolicy",
+              "PolicyDocument":
+                {
+                  "Version": "2012-10-17",
+                  "Statement":
+                    [
+                      {
+                        "Effect": "Allow",
+                        "Action": "*",
+                        "Resource": { "Ref": "ProvisionedPipeBirdBucket" },
+                      },
+                    ],
+                },
+              "Users": [{ "Ref": "PipeBirdProvisionedS3User" }],
+            },
+          "Metadata":
+            {
+              "AWS::CloudFormation::Designer":
+                { "id": "a6609656-fabb-487f-a506-84b6271aa1e6" },
+            },
+        },
     },
   "Parameters":
     {
+      "databaseUsername":
+        {
+          "Description": "Username for the pipebird instance's local psql database.",
+          "Type": "String",
+          "Default": "pipebird",
+        },
+      "databasePassword":
+        {
+          "Description": "Password for the pipebird instance's local psql database.",
+          "Type": "String",
+          "Default": "pipebird",
+        },
       "ec2KeyPair":
         {
           "Description": "Key pair to access the box running PipeBird",
@@ -227,14 +337,14 @@
           "Description": "The VPC to run pipebird inside of",
           "Type": "AWS::EC2::VPC::Id",
         },
-      "licenseKey":
-        {
-          "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
-          "Type": "String",
-        },
       "subnetId":
         {
           "Description": "Subnet id to deploy ec2 in within your vpc.",
+          "Type": "String",
+        },
+      "licenseKey":
+        {
+          "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
           "Type": "String",
         },
     },

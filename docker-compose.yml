@@ -1,9 +1,5 @@
 version: "3.8"
 
-volumes:
-  pipebird_redis:
-  pipebird_psql:
-
 services:
   db:
     image: postgres:14.2-alpine
@@ -14,14 +10,19 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-pipebird}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pipebird}
       PGDATA: /data/postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     volumes:
-      - pipebird_psql:/data/postgres
+      - /dev/pipebird/data/postgres:/data/postgres
   redis:
     image: redis:7.0-alpine
     restart: unless-stopped
     container_name: pipebird-redis
     volumes:
-      - pipebird_redis:/data
+      - /dev/pipebird/data/redis:/data
     ports:
       - ${REDIS_PORT}:6379
   api:
@@ -33,7 +34,7 @@ services:
       - db
     environment:
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/${POSTGRES_DB}?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird
       - SECRET_KEY=${SECRET_KEY}
       - CLOUDFORMATION_S3_BUCKET=${CLOUDFORMATION_S3_BUCKET}
       - REDIS_PORT=${REDIS_PORT}
@@ -42,3 +43,4 @@ services:
       - S3_USER_SECRET_KEY=${S3_USER_SECRET_KEY}
       - PROVISIONED_BUCKET_NAME=${PROVISIONED_BUCKET_NAME}
       - AWS_REGION=${AWS_REGION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
