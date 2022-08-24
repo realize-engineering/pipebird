@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Here are some details about the template.",
+  "Description": "Template deploys a pipebird ec2 instance + bucket with your VPC.",
   "Metadata":
     {
       "AWS::CloudFormation::Designer":
