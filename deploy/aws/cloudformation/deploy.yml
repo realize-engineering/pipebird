@@ -70,6 +70,54 @@
               "embeds": [],
               "isassociatedwith": ["2fdd17ad-0f65-46e0-9597-44875772b447"],
             },
+          "0b9ef87d-f40a-4249-8df4-369c7870a695":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": 20, "y": 10 },
+              "z": 0,
+              "dependson": ["af0c845b-f4f3-4d92-9488-ab4306d11151"],
+            },
+          "52745e6c-9ca0-48b5-90f9-602b05d69ce8":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": -50, "y": 220 },
+              "z": 0,
+              "dependson":
+                [
+                  "af0c845b-f4f3-4d92-9488-ab4306d11151",
+                  "0b9ef87d-f40a-4249-8df4-369c7870a695",
+                ],
+            },
+          "ad87abca-2f09-4032-8a14-8c87d1d6d2a5":
+            {
+              "source": { "id": "52745e6c-9ca0-48b5-90f9-602b05d69ce8" },
+              "target": { "id": "af0c845b-f4f3-4d92-9488-ab4306d11151" },
+              "z": 11,
+            },
+          "f08d9bdd-22a3-4f24-8cb9-5d6f04af2015":
+            {
+              "source": { "id": "0b9ef87d-f40a-4249-8df4-369c7870a695" },
+              "target": { "id": "af0c845b-f4f3-4d92-9488-ab4306d11151" },
+              "z": 12,
+            },
+          "ddb56c7b-2352-43e2-b7c1-0027d1cdc1d7":
+            {
+              "source": { "id": "52745e6c-9ca0-48b5-90f9-602b05d69ce8" },
+              "target": { "id": "0b9ef87d-f40a-4249-8df4-369c7870a695" },
+              "z": 13,
+            },
+          "d7aa9df2-c6ef-4ebb-a91b-877dab996be9":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": 444.7415429476021, "y": -121.79635147244073 },
+              "z": 0,
+            },
+          "660d2149-d241-47bf-8d7f-9c839ac0cb09":
+            {
+              "size": { "width": 60, "height": 60 },
+              "position": { "x": 585.2059129091086, "y": -73.31749812289424 },
+              "z": 0,
+            },
         },
     },
   "Resources":
@@ -228,7 +276,7 @@
                                   },
                                 ],
                             },
-                            'echo "PROVISIONED_BUCKET_NAME=ProvisionedPipeBirdBucket" >> .env',
+                            'echo "PROVISIONED_BUCKET_NAME=PipeBirdProvisionedBucket" >> .env',
                             {
                               "Fn::Sub":
                                 [
@@ -253,12 +301,38 @@
             },
           "CreationPolicy": { "ResourceSignal": { "Timeout": "PT30M" } },
           "DependsOn":
-            ["ProvisionedPipeBirdBucket", "PipeBirdProvisionedS3User"],
+            ["PipeBirdProvisionedBucket", "PipeBirdProvisionedS3User"],
         },
-      "ProvisionedPipeBirdBucket":
+      "PipeBirdProvisionedBucket":
         {
           "Type": "AWS::S3::Bucket",
-          "Properties": {},
+          "Properties":
+            {
+              "BucketEncryption":
+                {
+                  "ServerSideEncryptionConfiguration":
+                    [
+                      {
+                        "ServerSideEncryptionByDefault":
+                          {
+                            "SSEAlgorithm": "aws:kms",
+                            "KMSMasterKeyID":
+                              {
+                                "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:${s3KeyAlias}",
+                              },
+                          },
+                        "BucketKeyEnabled": true,
+                      },
+                    ],
+                },
+              "PublicAccessBlockConfiguration":
+                {
+                  "BlockPublicAcls": true,
+                  "BlockPublicPolicy": true,
+                  "IgnorePublicAcls": true,
+                  "RestrictPublicBuckets": true,
+                },
+            },
           "Metadata":
             {
               "AWS::CloudFormation::Designer":
@@ -284,9 +358,9 @@
               "AWS::CloudFormation::Designer":
                 { "id": "2fdd17ad-0f65-46e0-9597-44875772b447" },
             },
-          "DependsOn": ["ProvisionedPipeBirdBucket"],
+          "DependsOn": ["PipeBirdProvisionedBucket"],
         },
-      "S3PipeBirdPolicy":
+      "PipeBirdS3Policy":
         {
           "Type": "AWS::IAM::Policy",
           "Properties":
@@ -300,7 +374,7 @@
                       {
                         "Effect": "Allow",
                         "Action": "*",
-                        "Resource": { "Ref": "ProvisionedPipeBirdBucket" },
+                        "Resource": { "Ref": "PipeBirdProvisionedBucket" },
                       },
                     ],
                 },
@@ -310,6 +384,67 @@
             {
               "AWS::CloudFormation::Designer":
                 { "id": "a6609656-fabb-487f-a506-84b6271aa1e6" },
+            },
+        },
+      "s3Key":
+        {
+          "Type": "AWS::KMS::Key",
+          "Properties":
+            {
+              "KeyPolicy":
+                {
+                  "Version": "2012-10-17",
+                  "Id": "pipebird-key-s3",
+                  "Statement":
+                    [
+                      {
+                        "Sid": "Enable IAM User Permissions",
+                        "Effect": "Allow",
+                        "Action": "kms:*",
+                        "Resource": "*",
+                        "Principal":
+                          {
+                            "AWS":
+                              {
+                                "Fn::Join":
+                                  [
+                                    "",
+                                    [
+                                      "arn:aws:iam::",
+                                      { "Ref": "AWS::AccountId" },
+                                      ":root",
+                                    ],
+                                  ],
+                              },
+                          },
+                      },
+                      {
+                        "Sid": "Give VPC logs permission",
+                        "Effect": "Allow",
+                        "Principal":
+                          { "Service": ["delivery.logs.amazonaws.com"] },
+                        "Action": "kms:GenerateDataKey*",
+                        "Resource": "*",
+                      },
+                    ],
+                },
+              "Enabled": true,
+            },
+          "Metadata":
+            {
+              "AWS::CloudFormation::Designer":
+                { "id": "d7aa9df2-c6ef-4ebb-a91b-877dab996be9" },
+            },
+        },
+      "s3KeyAlias":
+        {
+          "Type": "AWS::KMS::Alias",
+          "Properties":
+            { "AliasName": "alias/s3", "TargetKeyId": { "Ref": "s3Key" } },
+          "Metadata":
+            {
+              "AWS::CloudFormation::Designer":
+                { "id": "660d2149-d241-47bf-8d7f-9c839ac0cb09" },
             },
         },
     },
@@ -340,7 +475,7 @@
       "subnetId":
         {
           "Description": "Subnet id to deploy ec2 in within your vpc.",
-          "Type": "String",
+          "Type": "AWS::EC2::Subnet::Id",
         },
       "licenseKey":
         {
