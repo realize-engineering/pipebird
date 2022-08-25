@@ -7,6 +7,13 @@
           "Description": "Key pair to access the box running PipeBird",
           "Type": "AWS::EC2::KeyPair::KeyName",
         },
+      "PrimaryIPAddress":
+        {
+          "Description": "Primary ip location from which you will be accessing the bastion instance from (curl ifconfig.me)",
+          "Type": "String",
+          "ConstraintDescription": "Must be a valid ipv4 address",
+          "MinLength": 7,
+        },
       "DBUser":
         {
           "NoEcho": true,
@@ -322,12 +329,21 @@
           "Type": "AWS::EC2::Instance",
           "Properties":
             {
-              "SubnetId": { "Ref": "TestPublicSubnet" },
               "KeyName": { "Ref": "ec2KeyPair" },
               "Tags": [{ "Key": "Name", "Value": "TestEc2" }],
               "ImageId": "ami-052efd3df9dad4825",
               "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": "" }] },
               "InstanceType": "t2.micro",
+              "NetworkInterfaces":
+                [
+                  {
+                    "AssociatePublicIpAddress": true,
+                    "DeleteOnTermination": true,
+                    "DeviceIndex": "0",
+                    "GroupSet": [{ "Ref": "TestEC2SecurityGroup" }],
+                    "SubnetId": { "Ref": "TestPublicSubnet" },
+                  },
+                ],
             },
           "Metadata":
             {
@@ -472,6 +488,7 @@
               "AvailabilityZone":
                 { "Fn::Select": [0, { "Fn::GetAZs": "us-east-1" }] },
               "AllocatedStorage": 5,
+              "BackupRetentionPeriod": 0,
               "DBInstanceClass": "db.t3.micro",
               "DBInstanceIdentifier": "testdb",
               "Engine": "MySQL",
@@ -490,6 +507,8 @@
       "TestNATGateway":
         {
           "Type": "AWS::EC2::NatGateway",
+          "DeletionPolicy": "Delete",
+          "UpdateReplacePolicy": "Delete",
           "Properties":
             {
               "AllocationId":
@@ -527,6 +546,16 @@
                     "FromPort": 3306,
                     "ToPort": 3306,
                     "CidrIp": "112.0.0.0/24",
+                  },
+                  {
+                    "IpProtocol": "tcp",
+                    "FromPort": 22,
+                    "ToPort": 22,
+                    "CidrIp":
+                      {
+                        "Fn::Sub":
+                          ["${ip}/32", { "ip": { "Ref": "PrimaryIPAddress" } }],
+                      },
                   },
                 ],
             },
