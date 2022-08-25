@@ -1,16 +1,12 @@
-<!-- PROJECT LOGO -->
+<!-- PIPEBIRD LOGO -->
 <p align="center">
   <a href="https://github.com/pipebird/pipebird">
-    <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/6307cb7c58c2d8b9d7a41141_Frame%2011994.svg" alt="Pipebird Logo">
+    <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/6307cb7c58c2d8b9d7a41141_Frame%2011994.svg" width="600" alt="Pipebird Logo">
   </a>
 
-  <h1 align="center">Pipebird</h2>
-
   <p align="center">
-    Open source API to securely share data with customers.
-    <br />
-    <br />
-    Offer secure pipelines to your customers' data warehouses, directly from your product.
+   <br />
+    Offer secure data pipelines to your customers' data warehouses, directly from your product.
     <br />
     <br />
     <a href="https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg">Slack</a>
@@ -24,28 +20,29 @@
 
 ## About Pipebird
 
-Pipebird is open-source infrastructure that enables businesses to share data directly to their customers' data warehouses or databases.
+[![GitHub stars](https://img.shields.io/github/stars/pipebird/pipebird?style=social&label=Star&maxAge=2592000)](https://GitHub.com/pipebird/pipebird/stargazers/)[![License](https://img.shields.io/static/v1?label=license&message=MIT&color=brightgreen)](https://github.com/pipebird/pipebird/tree/a9b1c6c0420550ad5069aca66c295223e0d05e27/LICENSE/README.md) [![License](https://img.shields.io/static/v1?label=license&message=ELv2&color=brightgreen)](https://github.com/pipebird/pipebird/tree/a9b1c6c0420550ad5069aca66c295223e0d05e27/LICENSE/README.md)
+
+**Direct, secure, and cost efficient data sharing.** Pipebird is open source infrastructure that enables businesses to share data directly to their customers' data warehouses or databases.
 
 Once integrated, Pipebird eliminates the need for your customers to use a third-party ETL provider or build their own pipelines to access data from your product.
 
-Offering pipelines natively in your product minimizes security and compliance risks, eliminates complexity for customers, and allows you to internalize revenue previously captured by third-party ETL providers. Major companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already made big investments in building out data sharing features for their customers - with Pipebird you can offer the same features in a matter of hours.
+Offering data pipelines natively in your product:
+- **minimizes security and compliance risks** created by third-parties. Launch Pipebird within your virtual cloud with the press of a button, your data never hits our servers.
+- **eliminates pipeline complexity for customers and partners.** Create customer-defined pipelines directly from your product using a declarative configuration language.
+- **internalizes revenue previously captured by third-party ETL providers.** Customers pay you for providing higher-quality data in a more secure manner.
 
-## Why use Pipebird?
+We believe that native product data pipelines are the future of how companies will retrieve data from their vendors - we've already seen major companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) make big investments in building out data sharing features for their customers.
 
-Pipebird is built for developers and companies that want to securely push data to their customers' data warehouses.
+Pipebird makes it easy for any company to offer customers the same powerful data sharing features in just a few of hours.
 
-Rather than using a third-party ETL provider or scraping data from APIs, your customers can pull data and apply transformations directly from your platform.
+## Product features
 
-We believe that this is a more secure and efficient way for customers to get important data from your platform into their source-of-truth systems.
+
+## Quick start
+
 
 ## How it works
 
-1. Explain how it works part 1
-1. Explain how it works part 2
-1. Explain how it works part 3
-1. Explain how it works part 4
-1. Explain how it works part 5
 
-## Links
+## License
 
-You can access the full [Pipebird documentation here](https://docs.pipebird.com/docs/getting-started).
