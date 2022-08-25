@@ -1,14 +1,34 @@
-# Pipebird
+<!-- PROJECT LOGO -->
+<p align="center">
+  <a href="https://github.com/pipebird/pipebird">
+    <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/6307cb7c58c2d8b9d7a41141_Frame%2011994.svg" alt="Pipebird Logo">
+  </a>
+
+  <h1 align="center">Pipebird</h2>
+
+  <p align="center">
+    Open source API to securely share data with customers.
+    <br />
+    <br />
+    Offer secure pipelines to your customers' data warehouses, directly from your product.
+    <br />
+    <br />
+    <a href="https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg">Slack</a>
+    ·
+    <a href="https://pipebird.com/">Website</a>
+    ·
+    <a href="https://docs.pipebird.com/reference/welcome-to-pipebird">Docs</a>
+  </p>
+</p>
+
 
 ## About Pipebird
 
-Pipebird is open-source infrastructure that enables businesses to share data directly to customers' databases or data warehouses.
+Pipebird is open-source infrastructure that enables businesses to share data directly to their customers' data warehouses or databases.
 
-With Pipebird you can:
+Once integrated, Pipebird eliminates the need for your customers to use a third-party ETL provider or build their own pipelines to access data from your product.
 
-- push data directly to major data warehouses.
-- create custom connectors to any source or destination.
-- spec out arbitrary transformations using a powerful configuration language.
+Offering pipelines natively in your product minimizes security and compliance risks, eliminates complexity for customers, and allows you to internalize revenue previously captured by third-party ETL providers. Major companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already made big investments in building out data sharing features for their customers - with Pipebird you can offer the same features in a matter of hours.
 
 ## Why use Pipebird?
 
