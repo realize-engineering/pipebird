@@ -14,5 +14,3 @@
 
 ## Specifications
 
-- Platform:
-- Python Version:
