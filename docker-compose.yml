@@ -34,7 +34,7 @@ services:
       - db
     environment:
       - REDIS_HOST=redis
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird?connect_timeout=300&schema=public
       - SECRET_KEY=${SECRET_KEY}
       - CLOUDFORMATION_S3_BUCKET=${CLOUDFORMATION_S3_BUCKET}
       - REDIS_PORT=${REDIS_PORT}
