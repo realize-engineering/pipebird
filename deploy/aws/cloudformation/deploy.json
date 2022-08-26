@@ -416,7 +416,7 @@
   },
   "Outputs": {
     "YourPipeBirdIP": {
-      "Description": "IP address for your self-hosted PipeBird instance. Get started by signing up here!",
+      "Description": "IP address for your self-hosted PipeBird instance.",
       "Value": {
         "Fn::Join": [
           "",
