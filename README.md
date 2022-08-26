@@ -34,15 +34,3 @@ Offering data pipelines natively in your product:
 We believe that native product data pipelines are the future of how companies will retrieve data from their vendors - we've already seen major companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) make big investments in building out data sharing features for their customers.
 
 Pipebird makes it easy for any company to offer customers the same powerful data sharing features in just a few of hours.
-
-## Product features
-
-
-## Quick start
-
-
-## How it works
-
-
-## License
-
