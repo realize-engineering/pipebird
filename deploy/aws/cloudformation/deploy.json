@@ -413,7 +413,7 @@
     "licenseKey": {
       "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
       "Type": "String",
-      "MinLength": 7,
+      "MinLength": 67,
       "NoEcho": true
     }
   },
