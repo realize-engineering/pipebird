@@ -14,14 +14,11 @@ const configurationRouter = Router();
 
 type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
   select: {
-    id: true;
     viewId: true;
+    id: true;
     columns: {
       select: {
-        nameInSource: true;
         nameInDestination: true;
-        destinationFormatString: true;
-        transformer: true;
         isPrimaryKey: true;
         isLastModified: true;
       };
@@ -50,10 +47,7 @@ configurationRouter.get(
         id: true,
         columns: {
           select: {
-            nameInSource: true,
             nameInDestination: true,
-            destinationFormatString: true,
-            transformer: true,
             isPrimaryKey: true,
             isLastModified: true,
           },
@@ -77,8 +71,6 @@ configurationRouter.post(
           .object({
             nameInSource: z.string().min(1),
             nameInDestination: z.string().min(1),
-            destinationFormatString: z.string().min(1),
-            transformer: z.string().min(1),
             isPrimaryKey: z.boolean().default(false),
             isLastModified: z.boolean().default(false),
           })
@@ -92,42 +84,86 @@ configurationRouter.post(
       });
     }
     try {
+      const { viewId, columns } = body.data;
+      const view = await db.view.findUnique({
+        where: { id: viewId },
+        select: {
+          columns: {
+            select: {
+              id: true,
+              name: true,
+              dataType: true,
+            },
+          },
+        },
+      });
+
+      if (!view) {
+        return res.status(HttpStatusCode.NOT_FOUND).json({
+          code: "view_id_not_found",
+        });
+      }
+
       const configuration = await db.configuration.create({
         data: {
-          viewId: body.data.viewId,
+          viewId,
         },
         select: {
           id: true,
           viewId: true,
         },
       });
-      const columns = await db.$transaction(
-        body.data.columns.map((column) =>
-          db.columnTransformation.create({
+
+      // todo: ensure that primary key is included in config for upserts
+
+      let mappedCols = [];
+      try {
+        mappedCols = columns.map((col) => {
+          const sourceCol = view.columns.find(
+            (viewCol) => viewCol.name === col.nameInSource,
+          );
+          if (!sourceCol) {
+            throw new Error(
+              `Column ${col.nameInSource} does not exist on the given view`,
+            );
+          }
+          return {
+            ...col,
+            sourceCol,
+          };
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Given columns were not valid";
+        return res.status(HttpStatusCode.BAD_REQUEST).json({
+          code: "body_validation_error",
+          message,
+        });
+      }
+
+      const configColumns = await db.$transaction(
+        mappedCols.map((column) => {
+          return db.columnTransformation.create({
             data: {
               configurationId: configuration.id,
-              destinationFormatString: column.destinationFormatString,
               isLastModified: column.isLastModified,
               isPrimaryKey: column.isPrimaryKey,
-              nameInDestination: column.nameInDestination,
               nameInSource: column.nameInSource,
-              transformer: column.transformer,
+              nameInDestination: column.nameInDestination,
+              viewColumnId: column.sourceCol.id,
             },
             select: {
-              nameInSource: true,
               nameInDestination: true,
-              destinationFormatString: true,
-              transformer: true,
               isPrimaryKey: true,
               isLastModified: true,
             },
-          }),
-        ),
+          });
+        }),
       );
 
       return res
         .status(HttpStatusCode.CREATED)
-        .json({ ...configuration, columns });
+        .json({ ...configuration, columns: configColumns });
     } catch (e) {
       logger.error(e);
       return res.status(HttpStatusCode.NOT_FOUND).json({
@@ -165,14 +201,11 @@ configurationRouter.get(
         id: queryParams.data.configurationId,
       },
       select: {
-        id: true,
         viewId: true,
+        id: true,
         columns: {
           select: {
-            nameInSource: true,
             nameInDestination: true,
-            destinationFormatString: true,
-            transformer: true,
             isPrimaryKey: true,
             isLastModified: true,
           },

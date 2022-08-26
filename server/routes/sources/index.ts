@@ -12,10 +12,12 @@ const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
   select: {
+    id: true;
     name: true;
     status: true;
     sourceType: true;
-    id: true;
+    schema: true;
+    database: true;
   };
 }>;
 
@@ -23,10 +25,12 @@ type SourceResponse = Prisma.SourceGetPayload<{
 sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
   const sources = await db.source.findMany({
     select: {
+      id: true,
       name: true,
       status: true,
       sourceType: true,
-      id: true,
+      schema: true,
+      database: true,
     },
   });
 
@@ -47,6 +51,8 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       ]),
       host: z.string(),
       port: z.string().transform(Number),
+      schema: z.string(),
+      database: z.string(),
       username: z.string(),
       password: z.string(),
     })
@@ -59,14 +65,16 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     });
   }
 
-  const { name, sourceType, host, port, username, password } = body.data;
+  const { name, sourceType, host, port, schema, database, username, password } =
+    body.data;
+
   const { status } = await getConnection({
     dbType: sourceType,
     host,
     port,
     username,
     password,
-    dbName: name,
+    database,
   });
 
   if (status !== "REACHABLE") {
@@ -81,6 +89,8 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       sourceType,
       host,
       port,
+      schema,
+      database,
       username,
       password,
       status: "REACHABLE",
@@ -90,6 +100,8 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       name: true,
       status: true,
       sourceType: true,
+      schema: true,
+      database: true,
     },
   });
 
@@ -126,6 +138,8 @@ sourceRouter.get(
         name: true,
         status: true,
         sourceType: true,
+        schema: true,
+        database: true,
       },
     });
 
