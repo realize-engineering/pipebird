@@ -177,13 +177,14 @@
             "Fn::Join": [
               "\n",
               [
-                "#!/bin/bash -xe",
-                "sudo apt-get update -y",
-                "sudo apt install unzip",
-                "sudo wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip",
+                "#!/bin/bash -ex",
+                "echo \">>>>>>>>>>>>> USER_DATA_CONFIG <<<<<<<<<<<<<\"",
+                "apt-get update -y",
+                "apt install unzip",
+                "wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip",
                 "unzip main.zip",
-                "sudo curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
-                "sudo chmod +x /usr/local/bin/docker-compose",
+                "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
+                "chmod +x /usr/local/bin/docker-compose",
                 "touch .env",
                 "echo \"PORT=3000\" >> .env",
                 {
@@ -243,7 +244,8 @@
                   ]
                 },
                 "mv .env pipebird-main",
-                "cd pipebird-main && docker-compose up"
+                "cd pipebird-main && docker-compose up -d",
+                "echo \">>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<\""
               ]
             ]
           }
@@ -260,6 +262,7 @@
     "PipeBirdProvisionedBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
+        "Tags": [{ "Key": "Name", "Value": "PipeBirdBucket" }],
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [
             {
