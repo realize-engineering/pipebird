@@ -164,7 +164,7 @@
       "Properties": {
         "Volumes": [
           {
-            "Device": "/dev/pipeBirdData",
+            "Device": "/dev/pipebird",
             "VolumeId": { "Ref": "PipeBirdStorage" }
           }
         ],
