@@ -18,9 +18,8 @@ type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
     id: true;
     columns: {
       select: {
+        nameInSource: true;
         nameInDestination: true;
-        isPrimaryKey: true;
-        isLastModified: true;
       };
     };
   };
@@ -47,9 +46,8 @@ configurationRouter.get(
         id: true,
         columns: {
           select: {
+            nameInSource: true,
             nameInDestination: true,
-            isPrimaryKey: true,
-            isLastModified: true,
           },
         },
       },
@@ -71,8 +69,6 @@ configurationRouter.post(
           .object({
             nameInSource: z.string().min(1),
             nameInDestination: z.string().min(1),
-            isPrimaryKey: z.boolean().default(false),
-            isLastModified: z.boolean().default(false),
           })
           .array(),
       })
@@ -146,16 +142,13 @@ configurationRouter.post(
           return db.columnTransformation.create({
             data: {
               configurationId: configuration.id,
-              isLastModified: column.isLastModified,
-              isPrimaryKey: column.isPrimaryKey,
               nameInSource: column.nameInSource,
               nameInDestination: column.nameInDestination,
               viewColumnId: column.sourceCol.id,
             },
             select: {
+              nameInSource: true,
               nameInDestination: true,
-              isPrimaryKey: true,
-              isLastModified: true,
             },
           });
         }),
@@ -205,9 +198,8 @@ configurationRouter.get(
         id: true,
         columns: {
           select: {
+            nameInSource: true,
             nameInDestination: true,
-            isPrimaryKey: true,
-            isLastModified: true,
           },
         },
       },

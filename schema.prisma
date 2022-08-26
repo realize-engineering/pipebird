@@ -82,8 +82,6 @@ model ColumnTransformation {
   updatedAt         DateTime @updatedAt
   nameInSource      String
   nameInDestination String
-  isPrimaryKey      Boolean
-  isLastModified    Boolean
 
   configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
   configurationId Int
