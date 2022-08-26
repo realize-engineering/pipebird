@@ -385,14 +385,15 @@
     "databaseUsername": {
       "Description": "Username for the pipebird instance's local psql database.",
       "Type": "String",
-      "Default": "pipebird"
+      "NoEcho": true,
+      "MinLength": 1
     },
     "databasePassword": {
       "Description": "Password for the pipebird instance's local psql database.",
       "Type": "String",
-      "Default": "pipebird"
+      "MinLength": 7,
+      "NoEcho": true
     },
-
     "ec2KeyPair": {
       "Description": "Key pair to access the box running PipeBird",
       "Type": "AWS::EC2::KeyPair::KeyName"
@@ -402,16 +403,18 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "subnetId": {
-      "Description": "Pipe bird is deployed in this subnet. This must be in the same VPC as the one you specified above, and it must ",
+      "Description": "Pipe bird is deployed in this subnet. This must be in the same VPC as the VPC specified above.",
       "Type": "AWS::EC2::Subnet::Id"
     },
     "availabilityZone": {
       "Type": "AWS::EC2::AvailabilityZone::Name",
-      "Description": "This availability zone must match the subnetId you provided above."
+      "Description": "This availability zone must match the availability zone of the above subnet."
     },
     "licenseKey": {
       "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
-      "Type": "String"
+      "Type": "String",
+      "MinLength": 7,
+      "NoEcho": true
     }
   },
   "Outputs": {
