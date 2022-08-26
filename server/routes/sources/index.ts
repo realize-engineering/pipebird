@@ -13,7 +13,7 @@ const sourceRouter = Router();
 type SourceResponse = Prisma.SourceGetPayload<{
   select: {
     id: true;
-    name: true;
+    nickname: true;
     status: true;
     sourceType: true;
     schema: true;
@@ -26,7 +26,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
   const sources = await db.source.findMany({
     select: {
       id: true,
-      name: true,
+      nickname: true,
       status: true,
       sourceType: true,
       schema: true,
@@ -41,7 +41,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
 sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
   const body = z
     .object({
-      name: z.string(),
+      nickname: z.string(),
       sourceType: z.enum([
         "MYSQL",
         "POSTGRES",
@@ -65,8 +65,16 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     });
   }
 
-  const { name, sourceType, host, port, schema, database, username, password } =
-    body.data;
+  const {
+    nickname,
+    sourceType,
+    host,
+    port,
+    schema,
+    database,
+    username,
+    password,
+  } = body.data;
 
   const { status } = await getConnection({
     dbType: sourceType,
@@ -85,7 +93,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
 
   const source = await db.source.create({
     data: {
-      name,
+      nickname,
       sourceType,
       host,
       port,
@@ -97,7 +105,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     },
     select: {
       id: true,
-      name: true,
+      nickname: true,
       status: true,
       sourceType: true,
       schema: true,
@@ -135,7 +143,7 @@ sourceRouter.get(
       where: { id: params.data.sourceId },
       select: {
         id: true,
-        name: true,
+        nickname: true,
         status: true,
         sourceType: true,
         schema: true,
@@ -178,7 +186,7 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
     where: { id: params.data.sourceId },
     select: {
       id: true,
-      name: true,
+      nickname: true,
       status: true,
       sourceType: true,
     },

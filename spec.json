@@ -34,7 +34,7 @@
     },
     {
       "name": "Views",
-      "description": "Materialized view of a table created from some source"
+      "description": "View of a table created from some source"
     },
     {
       "name": "Logs",

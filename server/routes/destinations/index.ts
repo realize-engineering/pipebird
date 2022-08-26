@@ -17,7 +17,7 @@ type DestinationResponse = Prisma.DestinationGetPayload<{
     tenantId: true;
     configurationId: true;
     destinationType: true;
-    name: true;
+    nickname: true;
   };
 }>;
 
@@ -39,7 +39,7 @@ destinationRouter.get(
         tenantId: true,
         configurationId: true,
         destinationType: true,
-        name: true,
+        nickname: true,
       },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       take,
@@ -55,14 +55,14 @@ destinationRouter.post(
     const body = z
       .union([
         z.object({
-          name: z.string().min(1),
+          nickname: z.string().min(1),
           destinationType: z.enum(["PROVISIONED_S3"]),
           connectionString: z.string().optional(),
           configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
         }),
         z.object({
-          name: z.string().min(1),
+          nickname: z.string().min(1),
           destinationType: z.enum(["MYSQL", "POSTGRES"]),
           connectionString: z.string().optional(),
           configurationId: z.number().nonnegative(),
@@ -87,14 +87,14 @@ destinationRouter.post(
           data: {
             configurationId: body.data.configurationId,
             destinationType: body.data.destinationType,
-            name: body.data.name,
+            nickname: body.data.nickname,
             tenantId: body.data.tenantId,
             status: "REACHABLE",
           },
           select: {
             id: true,
             tenantId: true,
-            name: true,
+            nickname: true,
             configurationId: true,
             destinationType: true,
           },
@@ -207,7 +207,7 @@ destinationRouter.get(
       select: {
         id: true,
         tenantId: true,
-        name: true,
+        nickname: true,
         configurationId: true,
         destinationType: true,
       },

@@ -25,7 +25,7 @@ model Source {
   id         Int             @id @default(autoincrement())
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
-  name       String
+  nickname   String
   status     ConnectorStatus
   sourceType SourceType
   host       String
@@ -100,7 +100,7 @@ model Destination {
   id              Int             @id @default(autoincrement())
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
-  name            String
+  nickname        String
   status          ConnectorStatus
   destinationType DestinationType
   host            String?
