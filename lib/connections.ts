@@ -3,6 +3,7 @@ import { Readable } from "stream";
 import pg from "pg";
 import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
+import { Sql } from "sql-template-tag";
 
 type QueryResult = {
   status: "REACHABLE" | "UNREACHABLE";
@@ -23,13 +24,16 @@ export const getConnection = async ({
   host: string;
   port: number;
   username: string;
-  password: string;
+  password?: string;
   dbName: string;
 }): Promise<
   | {
       status: "REACHABLE";
-      query: (sql: string) => Promise<{ rows: Record<string, unknown>[] }>;
-      extractToCsv: (sql: string) => Readable;
+      query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
+      queryUnsafe: (
+        sql: string,
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+      extractToCsvUnsafe: (sql: string) => Readable;
     }
   | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
 > => {
@@ -47,8 +51,9 @@ export const getConnection = async ({
 
         return {
           status: "REACHABLE",
-          query: (sql: string) => client.query(sql),
-          extractToCsv: (sql: string) =>
+          query: (sql: Sql) => client.query(sql),
+          queryUnsafe: (sql: string) => client.query(sql),
+          extractToCsvUnsafe: (sql: string) =>
             client.query(
               pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
             ),
@@ -106,7 +111,7 @@ export const testQuery = async ({
         }
 
         // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await result.query(query);
+        const res = await result.queryUnsafe(query);
 
         return {
           status: result.status,

@@ -17,6 +17,12 @@ export type TransferQueueJobData = Prisma.TransferGetPayload<{
         tenantId: true;
         configuration: {
           select: {
+            columns: {
+              select: {
+                nameInSource: true;
+                nameInDestination: true;
+              };
+            };
             view: {
               select: {
                 tableExpression: true;

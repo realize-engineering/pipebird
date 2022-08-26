@@ -79,6 +79,12 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
           tenantId: true,
           configuration: {
             select: {
+              columns: {
+                select: {
+                  nameInSource: true,
+                  nameInDestination: true,
+                },
+              },
               view: {
                 select: {
                   tableExpression: true,

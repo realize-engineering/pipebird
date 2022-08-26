@@ -26,8 +26,11 @@
     "mysql2": "^2.3.3",
     "pg": "^8.7.3",
     "pg-copy-streams": "^6.0.2",
+    "pg-query-stream": "^4.2.4",
+    "pgsql-parser": "^13.3.12",
     "pino": "^8.4.1",
     "pino-http": "^8.2.0",
+    "sql-template-tag": "^5.0.3",
     "validator": "^13.7.0",
     "zod": "^3.18.0"
   },
