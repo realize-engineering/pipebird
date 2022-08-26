@@ -144,7 +144,9 @@
     "PipeBirdStorage": {
       "Type": "AWS::EC2::Volume",
       "Properties": {
-        "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": "" }] },
+        "AvailabilityZone": {
+          "Ref": "availabilityZone"
+        },
         "Size": "10",
         "Encrypted": true
       },
@@ -164,11 +166,12 @@
       "Properties": {
         "Volumes": [
           {
-            "Device": "/dev/pipebird",
+            "Device": "/dev/sdf",
             "VolumeId": { "Ref": "PipeBirdStorage" }
           }
         ],
         "SubnetId": { "Ref": "subnetId" },
+        "AvailabilityZone": { "Ref": "availabilityZone" },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -248,11 +251,7 @@
         "KeyName": { "Ref": "ec2KeyPair" },
         "Tags": [{ "Key": "Name", "Value": "PipeBird" }],
         "ImageId": "ami-052efd3df9dad4825",
-        "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": "" }] },
         "InstanceType": "t2.medium",
-        "BlockDeviceMappings": [
-          { "DeviceName": "/dev/sda1", "Ebs": { "VolumeSize": "50" } }
-        ],
         "SecurityGroupIds": [{ "Ref": "PipeBirdSecurityGroup" }]
       },
       "CreationPolicy": { "ResourceSignal": { "Timeout": "PT30M" } },
@@ -316,7 +315,7 @@
             {
               "Effect": "Allow",
               "Action": "*",
-              "Resource": { "Ref": "PipeBirdProvisionedBucket" }
+              "Resource": { "Fn::GetAtt": ["PipeBirdProvisionedBucket", "Arn"] }
             }
           ]
         },
@@ -390,6 +389,7 @@
       "Type": "String",
       "Default": "pipebird"
     },
+
     "ec2KeyPair": {
       "Description": "Key pair to access the box running PipeBird",
       "Type": "AWS::EC2::KeyPair::KeyName"
@@ -399,8 +399,12 @@
       "Type": "AWS::EC2::VPC::Id"
     },
     "subnetId": {
-      "Description": "Subnet id to deploy ec2 in within your vpc.",
+      "Description": "Pipe bird is deployed in this subnet. This must be in the same VPC as the one you specified above, and it must ",
       "Type": "AWS::EC2::Subnet::Id"
+    },
+    "availabilityZone": {
+      "Type": "AWS::EC2::AvailabilityZone::Name",
+      "Description": "This availability zone must match the subnetId you provided above."
     },
     "licenseKey": {
       "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
