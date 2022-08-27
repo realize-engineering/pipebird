@@ -34,7 +34,7 @@
     },
     {
       "name": "Views",
-      "description": "Materialized view of a table created from some source"
+      "description": "View of a table created from some source"
     },
     {
       "name": "Logs",
@@ -181,7 +181,7 @@
           }
         },
         "operationId": "post-views",
-        "description": "Create a new materialized view for a given integration based on a table expression",
+        "description": "Create a new view for a given source",
         "parameters": [],
         "requestBody": {
           "content": {
@@ -670,18 +670,6 @@
                 },
                 "nameInDestination": {
                   "type": "string"
-                },
-                "destinationFormatString": {
-                  "type": "string"
-                },
-                "transformer": {
-                  "type": "string"
-                },
-                "isPrimaryKey": {
-                  "type": "boolean"
-                },
-                "isLastModified": {
-                  "type": "boolean"
                 }
               }
             }
@@ -698,17 +686,31 @@
         },
         "type": "object",
         "properties": {
-          "tableExpression": {
-            "type": "string"
-          },
-          "tenantColumn": {
-            "type": "string"
+          "id": {
+            "type": "number"
           },
           "sourceId": {
             "type": "number"
           },
-          "id": {
-            "type": "number"
+          "tableName": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "dataType": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -719,10 +721,13 @@
         },
         "type": "object",
         "properties": {
-          "name": {
+          "nickname": {
             "type": "string"
           },
-          "connectionString": {
+          "schema": {
+            "type": "string"
+          },
+          "database": {
             "type": "string"
           },
           "status": {
@@ -741,64 +746,25 @@
         "x-stoplight": {
           "id": "el9hfq298kemv"
         },
-        "oneOf": [
-          {
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "destinationType": {
-                "type": "string",
-                "enum": ["PROVISIONED_S3"]
-              },
-              "configurationType": {
-                "type": "number"
-              },
-              "tenantId": {
-                "type": "string"
-              },
-              "id": {
-                "type": "number"
-              }
-            }
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
           },
-          {
-            "properties": {
-              "configurationId": {
-                "type": "number"
-              },
-              "destinationType": {
-                "type": "string",
-                "enum": ["POSTGRES", "MYSQL"]
-              },
-              "host": {
-                "type": "string"
-              },
-              "port": {
-                "type": "number"
-              },
-              "database": {
-                "type": "string"
-              },
-              "username": {
-                "type": "string"
-              },
-              "password": {
-                "type": "string"
-              },
-              "tenantId": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "id": {
-                "type": "number"
-              }
-            }
+          "destinationType": {
+            "type": "string",
+            "enum": ["POSTGRES", "PROVISIONED_S3"]
+          },
+          "configurationId": {
+            "type": "number"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "number"
           }
-        ],
-        "type": "object"
+        }
       },
       "Transfer": {
         "title": "Transfer",
@@ -861,28 +827,9 @@
                 },
                 "nameInDestination": {
                   "type": "string"
-                },
-                "destinationFormatString": {
-                  "type": "string"
-                },
-                "transformer": {
-                  "type": "string"
-                },
-                "isPrimaryKey": {
-                  "type": "boolean"
-                },
-                "isLastModified": {
-                  "type": "boolean"
                 }
               },
-              "required": [
-                "nameInSource",
-                "nameInDestination",
-                "destinationFormatString",
-                "transformer",
-                "isPrimaryKey",
-                "isLastModified"
-              ]
+              "required": ["nameInSource", "nameInDestination"]
             }
           }
         },
@@ -895,7 +842,7 @@
         },
         "type": "object",
         "properties": {
-          "name": {
+          "nickname": {
             "type": "string"
           },
           "sourceType": {
@@ -906,6 +853,12 @@
           },
           "port": {
             "type": "number"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "database": {
+            "type": "string"
           },
           "username": {
             "type": "string"
@@ -944,16 +897,22 @@
               "port": {
                 "type": "number"
               },
+              "schema": {
+                "type": "string"
+              },
               "database": {
                 "type": "string"
               },
               "username": {
                 "type": "string"
               },
+              "password": {
+                "type": "string"
+              },
               "tenantId": {
                 "type": "string"
               },
-              "name": {
+              "nickname": {
                 "type": "string"
               }
             },
@@ -962,10 +921,12 @@
               "destinationType",
               "host",
               "port",
+              "schema",
               "database",
               "username",
+              "password",
               "tenantId",
-              "name"
+              "nickname"
             ]
           },
           {
@@ -977,9 +938,6 @@
                 "type": "string",
                 "enum": ["PROVISIONED_S3"]
               },
-              "filename": {
-                "type": "string"
-              },
               "configurationId": {
                 "type": "number"
               },
@@ -990,7 +948,6 @@
             "required": [
               "name",
               "destinationType",
-              "filename",
               "configurationId",
               "tenantId"
             ]
@@ -1018,14 +975,32 @@
         },
         "type": "object",
         "properties": {
-          "tableExpression": {
-            "type": "string"
-          },
-          "tenantColumn": {
-            "type": "string"
-          },
           "sourceId": {
             "type": "number"
+          },
+          "tableName": {
+            "type": "string"
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "isPrimaryKey": {
+                  "type": "boolean"
+                },
+                "isLastModified": {
+                  "type": "boolean"
+                },
+                "isTenantColumn": {
+                  "type": "boolean"
+                }
+              },
+              "required": ["name"]
+            }
           }
         },
         "required": ["tableExpression", "tenantColumn", "sourceId"]
