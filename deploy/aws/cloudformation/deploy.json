@@ -181,12 +181,19 @@
                 "echo \">>>>>>>>>>>>> USER_DATA_CONFIG <<<<<<<<<<<<<\"",
                 "apt-get update -y",
                 "apt install unzip",
+                "apt install docker.io",
                 "wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip",
                 "unzip main.zip",
                 "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
                 "chmod +x /usr/local/bin/docker-compose",
                 "touch .env",
                 "echo \"PORT=3000\" >> .env",
+                {
+                  "Fn::Sub": [
+                    "echo \"CLOUDFORMATION_S3_BUCKET=${BUCKET_NAME}\" >> .env",
+                    { "BUCKET_NAME": { "Ref": "PipeBirdProvisionedBucket" } }
+                  ]
+                },
                 {
                   "Fn::Sub": [
                     "echo \"DATABASE_URL=${DATABASE_URL}\" >> .env",
@@ -205,14 +212,27 @@
                 },
                 {
                   "Fn::Sub": [
+                    "echo \"POSTGRES_USER=${POSTGRES_USER}\" >> .env",
+                    { "POSTGRES_USER": { "Ref": "databaseUsername" } }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
+                    "echo \"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}\" >> .env",
+                    { "POSTGRES_PASSWORD": { "Ref": "databasePassword" } }
+                  ]
+                },
+                "echo \"POSTGRES_DB=pipebird\" >> .env",
+                {
+                  "Fn::Sub": [
                     "echo \"LICENSE_KEY=${LICENSE_KEY}\" >> .env",
                     { "LICENSE_KEY": { "Ref": "licenseKey" } }
                   ]
                 },
                 "echo \"REDIS_HOST=localhost\" >> .env",
                 "echo \"REDIS_PORT=6379\" >> .env",
-                "echo \"SECRET_KEY=$(openssl rand -hex 32)\" >> .env",
-                "echo \"ENCRYPTION_KEY=$(openssl rand -hex 32)\" >> .env",
+                "echo \"SECRET_KEY=$(openssl rand -hex 64)\" >> .env",
+                "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
                 {
                   "Fn::Sub": [
                     "echo \"S3_USER_ACCESS_ID=${ACCESS_ID}\" >> .env",
