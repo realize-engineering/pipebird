@@ -4,121 +4,94 @@ import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
 import { getConnection } from "../../../lib/connections.js";
-import { parse, deparse, SelectStmt } from "pgsql-parser";
 
-const buildExtractExpression = ({
-  columns,
-  subqueryStatement,
-  tenantColumnName,
+const buildTemplatedQuery = ({
+  viewColumns,
+  resultColumns,
+  tableName,
+  tenantColumn,
   tenantId,
-  lastTransferXmin,
+  lastModifiedColumn,
+  lastModifiedAt,
 }: {
-  columns: { nameInSource: string; nameInDestination: string }[];
-  subqueryStatement: SelectStmt;
-  tenantColumnName: string;
+  viewColumns: string[];
+  resultColumns: { nameInSource: string; nameInDestination: string }[];
+  tableName: string;
+  tenantColumn: string;
   tenantId: string;
-  lastTransferXmin: number;
+  lastModifiedColumn: string;
+  lastModifiedAt: string;
 }) =>
-  deparse([
-    {
-      RawStmt: {
-        stmt: {
-          SelectStmt: {
-            targetList: columns.map((cc) => ({
-              ResTarget: {
-                name: cc.nameInDestination.replaceAll('"', ""),
-                val: {
-                  ColumnRef: {
-                    fields: [
-                      {
-                        String: {
-                          str: cc.nameInSource.replaceAll('"', ""),
-                        },
-                      },
-                    ],
-                  },
-                },
-              },
-            })),
-            fromClause: [
-              {
-                RangeSubselect: {
-                  subquery: {
-                    SelectStmt: subqueryStatement,
-                  },
-                  alias: { aliasname: "t" },
-                },
-              },
-            ],
-            whereClause: {
-              BoolExpr: {
-                boolop: "AND_EXPR",
-                args: [
-                  {
-                    A_Expr: {
-                      kind: "AEXPR_OP",
-                      name: [{ String: { str: "=" } }],
-                      lexpr: {
-                        ColumnRef: {
-                          fields: [{ String: { str: tenantColumnName } }],
-                        },
-                      },
-                      rexpr: {
-                        A_Const: {
-                          val: { String: { str: tenantId } },
-                        },
-                      },
-                    },
-                  },
-                  {
-                    A_Expr: {
-                      kind: "AEXPR_OP",
-                      name: [{ String: { str: ">" } }],
-                      lexpr: {
-                        TypeCast: {
-                          arg: {
-                            TypeCast: {
-                              arg: {
-                                ColumnRef: {
-                                  fields: [{ String: { str: "xmin" } }],
-                                },
-                              },
-                              typeName: {
-                                names: [{ String: { str: "text" } }],
-                                typemod: -1,
-                              },
-                            },
-                          },
-                          typeName: {
-                            names: [
-                              { String: { str: "pg_catalog" } },
-                              { String: { str: "int8" } },
-                            ],
-                            typemod: -1,
-                          },
-                        },
-                      },
-                      rexpr: {
-                        A_Const: {
-                          val: { Integer: { ival: lastTransferXmin } },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-            limitOption: "LIMIT_OPTION_DEFAULT",
-            op: "SETOP_NONE",
-          },
-        },
-        stmt_location: 0,
-      },
-    },
-  ]);
+  `SELECT ${resultColumns
+    .map(
+      (column) =>
+        `"${column.nameInSource.replaceAll(
+          '"',
+          "",
+        )}" AS "${column.nameInDestination.replaceAll('"', "")}"`,
+    )
+    .join(", ")} FROM (SELECT ${viewColumns
+    .map((column) => `"${column.replaceAll('"', "")}"`)
+    .join(
+      ", ",
+    )} FROM "${tableName}") AS t WHERE "${tenantColumn}" = '${tenantId}' AND "${lastModifiedColumn}" > '${lastModifiedAt}'`;
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
+    const transfer = await db.transfer.findUnique({
+      where: { id: job.data.id },
+      select: {
+        id: true,
+        status: true,
+        finalizedAt: true,
+        destination: {
+          select: {
+            id: true,
+            destinationType: true,
+            tenantId: true,
+            lastModifiedAt: true,
+            configuration: {
+              select: {
+                columns: {
+                  select: {
+                    nameInSource: true,
+                    nameInDestination: true,
+                  },
+                },
+                view: {
+                  select: {
+                    tableName: true,
+                    columns: true,
+                    source: {
+                      select: {
+                        id: true,
+                        host: true,
+                        port: true,
+                        username: true,
+                        password: true,
+                        database: true,
+                        sourceType: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!transfer) {
+      throw new Error(`Transfer with ID ${job.data.id} does not exist`);
+    }
+
+    if (transfer.status !== "STARTED") {
+      throw new Error(
+        `Transfer with ID ${transfer.id} has already been processed`,
+      );
+    }
+
     await db.transfer.update({
       where: {
         id: job.data.id,
@@ -130,7 +103,6 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     logger.info("Processor is handling job with transfer:", job.data);
 
-    const transfer = job.data;
     const destination = transfer.destination;
     const configuration = destination.configuration;
 
@@ -149,7 +121,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       port,
       username,
       password,
-      name: dbName,
+      database,
     } = source;
 
     const conn = await getConnection({
@@ -158,7 +130,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       port,
       username,
       password,
-      dbName,
+      database,
     });
 
     if (conn.status !== "REACHABLE") {
@@ -167,38 +139,21 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
-    const parsedTableExpr = parse(view.tableExpression);
-
-    if (!("SelectStmt" in parsedTableExpr[0].RawStmt.stmt)) {
-      throw new Error();
-    }
-
-    parsedTableExpr[0].RawStmt.stmt.SelectStmt.targetList.unshift({
-      ResTarget: {
-        val: {
-          ColumnRef: {
-            fields: [
-              {
-                String: {
-                  str: "xmin",
-                },
-              },
-            ],
-          },
-        },
-      },
-    });
-
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
         await uploadObject(
           conn.extractToCsvUnsafe(
-            buildExtractExpression({
-              columns: configuration.columns,
-              subqueryStatement: parsedTableExpr[0].RawStmt.stmt.SelectStmt,
-              tenantColumnName: view.tenantColumn,
+            buildTemplatedQuery({
+              viewColumns: view.columns.map((col) => col.name),
+              resultColumns: configuration.columns,
+              tableName: view.tableName,
+              tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
+                .name,
               tenantId: destination.tenantId,
-              lastTransferXmin: 0,
+              lastModifiedColumn: view.columns.filter(
+                (col) => col.isLastModified,
+              )[0].name,
+              lastModifiedAt: destination.lastModifiedAt.toISOString(),
             }),
           ),
         );
@@ -212,6 +167,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       },
       data: {
         status: "COMPLETE",
+        finalizedAt: new Date(),
       },
     });
   } catch (error) {
@@ -223,6 +179,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       },
       data: {
         status: "FAILED",
+        finalizedAt: new Date(),
       },
     });
   }

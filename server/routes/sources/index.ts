@@ -12,10 +12,12 @@ const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
   select: {
-    name: true;
+    id: true;
+    nickname: true;
     status: true;
     sourceType: true;
-    id: true;
+    schema: true;
+    database: true;
   };
 }>;
 
@@ -23,10 +25,12 @@ type SourceResponse = Prisma.SourceGetPayload<{
 sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
   const sources = await db.source.findMany({
     select: {
-      name: true,
+      id: true,
+      nickname: true,
       status: true,
       sourceType: true,
-      id: true,
+      schema: true,
+      database: true,
     },
   });
 
@@ -37,7 +41,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
 sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
   const body = z
     .object({
-      name: z.string(),
+      nickname: z.string(), // TODO(timothygoltser): This should be optional
       sourceType: z.enum([
         "MYSQL",
         "POSTGRES",
@@ -47,8 +51,10 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       ]),
       host: z.string(),
       port: z.number().int().nonnegative(),
+      schema: z.string(),
+      database: z.string(),
       username: z.string(),
-      password: z.string(),
+      password: z.string(), // TODO(timothygoltser): This should be optional
     })
     .safeParse(req.body);
 
@@ -59,42 +65,51 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     });
   }
 
-  const { name, sourceType, host, port, username, password } = body.data;
+  const {
+    nickname,
+    sourceType,
+    host,
+    port,
+    schema,
+    database,
+    username,
+    password,
+  } = body.data;
 
   const connection = await getConnection({
-    dbName: name,
     dbType: sourceType,
     host,
     port,
     username,
     password,
+    database,
   });
 
   if (connection.status === "UNREACHABLE") {
-    return connection.error === "not_implemented"
-      ? res
-          .status(HttpStatusCode.NOT_IMPLEMENTED)
-          .json({ code: "not_implemented" })
-      : res
-          .status(HttpStatusCode.SERVICE_UNAVAILABLE)
-          .json({ code: "source_db_unreachable" });
+    return res
+      .status(HttpStatusCode.SERVICE_UNAVAILABLE)
+      .json({ code: "source_db_unreachable" });
   }
 
   const source = await db.source.create({
     data: {
-      name,
+      nickname,
       sourceType,
       host,
       port,
+      schema,
+      database,
       username,
       password,
       status: "REACHABLE",
     },
     select: {
       id: true,
-      name: true,
+      nickname: true,
       status: true,
       sourceType: true,
+      schema: true,
+      database: true,
     },
   });
 
@@ -128,9 +143,11 @@ sourceRouter.get(
       where: { id: params.data.sourceId },
       select: {
         id: true,
-        name: true,
+        nickname: true,
         status: true,
         sourceType: true,
+        schema: true,
+        database: true,
       },
     });
 
@@ -169,7 +186,7 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
     where: { id: params.data.sourceId },
     select: {
       id: true,
-      name: true,
+      nickname: true,
       status: true,
       sourceType: true,
     },

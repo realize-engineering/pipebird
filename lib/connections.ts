@@ -18,14 +18,14 @@ export const getConnection = async ({
   port,
   username,
   password,
-  dbName,
+  database,
 }: {
   dbType: SourceType;
   host: string;
   port: number;
   username: string;
   password?: string;
-  dbName: string;
+  database: string;
 }): Promise<
   | {
       status: "REACHABLE";
@@ -45,7 +45,7 @@ export const getConnection = async ({
           port,
           user: username,
           password,
-          database: dbName,
+          database,
         });
         await client.connect();
 
@@ -77,7 +77,7 @@ export const testQuery = async ({
   port,
   username,
   password,
-  dbName,
+  database,
   query,
 }: {
   dbType: SourceType;
@@ -85,7 +85,7 @@ export const testQuery = async ({
   port: number;
   username: string;
   password: string;
-  dbName: string;
+  database: string;
   query: string;
 }): Promise<QueryResult> => {
   try {
@@ -99,7 +99,7 @@ export const testQuery = async ({
           port,
           username,
           password,
-          dbName,
+          database,
         });
 
         if (result.status !== "REACHABLE") {

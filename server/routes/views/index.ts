@@ -15,8 +15,14 @@ type ViewResponse = Prisma.ViewGetPayload<{
   select: {
     id: true;
     sourceId: true;
-    tenantColumn: true;
-    tableExpression: true;
+    tableName: true;
+    columns: {
+      select: {
+        id: true;
+        name: true;
+        dataType: true;
+      };
+    };
   };
 }>;
 
@@ -39,8 +45,14 @@ viewRouter.get("/", async (req, res: ListApiResponse<ViewResponse>) => {
     select: {
       id: true,
       sourceId: true,
-      tenantColumn: true,
-      tableExpression: true,
+      tableName: true,
+      columns: {
+        select: {
+          id: true,
+          name: true,
+          dataType: true,
+        },
+      },
     },
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     take,
@@ -52,11 +64,19 @@ viewRouter.get("/", async (req, res: ListApiResponse<ViewResponse>) => {
 viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   const body = z
     .object({
-      tableExpression: z.string(),
-      tenantColumn: z.string(),
       sourceId: z.number(),
+      tableName: z.string(),
+      columns: z
+        .object({
+          name: z.string(),
+          isPrimaryKey: z.boolean().default(false),
+          isLastModified: z.boolean().default(false),
+          isTenantColumn: z.boolean().default(false),
+        })
+        .array(),
     })
     .safeParse(req.body);
+
   if (!body.success) {
     return res.status(HttpStatusCode.BAD_REQUEST).json({
       code: "body_validation_error",
@@ -64,17 +84,17 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
-  const { tableExpression, tenantColumn, sourceId } = body.data;
-
+  const { tableName, columns, sourceId } = body.data;
   const source = await db.source.findUnique({
     where: {
       id: sourceId,
     },
     select: {
       sourceType: true,
-      name: true,
       host: true,
       port: true,
+      schema: true,
+      database: true,
       username: true,
       password: true,
     },
@@ -86,7 +106,23 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
-  const { sourceType, name: dbName, host, port, username, password } = source;
+  if (
+    columns.filter((col) => col.isLastModified).length !== 1 ||
+    columns.filter((col) => col.isPrimaryKey).length !== 1 ||
+    columns.filter((col) => col.isTenantColumn).length !== 1
+  ) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "body_validation_error",
+      message:
+        "Exactly one last modified column, one primary key column, and one tenant column must be used.",
+    });
+  }
+
+  const { sourceType, host, port, schema, database, username, password } =
+    source;
+  const columnSelect = columns
+    .map((col) => `"${col.name.replaceAll('"', "")}"`)
+    .join(", ");
 
   const test = await testQuery({
     dbType: sourceType,
@@ -94,8 +130,8 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     port,
     username,
     password,
-    dbName,
-    query: tableExpression,
+    database,
+    query: `SELECT ${columnSelect} FROM "${schema}"."${tableName}" LIMIT 1`,
   });
 
   if (test.error) {
@@ -118,28 +154,31 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
       code: "invalid_table_expression",
       message:
         test.message ||
-        "Table expression is not valid for the provided source.",
-    });
-  }
-
-  if (!test.columns || !test.columns.includes(tenantColumn)) {
-    return res.status(HttpStatusCode.BAD_REQUEST).json({
-      code: "body_validation_error",
-      message: "Table expression and tenant column mismatch.",
+        "The provided columns could not be queried from the table.",
     });
   }
 
   const view = await db.view.create({
     data: {
       sourceId,
-      tenantColumn,
-      tableExpression,
+      tableName,
+      columns: {
+        createMany: {
+          data: columns.map((col) => ({ ...col, dataType: "varchar" })), // todo: select correct data type after updating connections file
+        },
+      },
     },
     select: {
       id: true,
       sourceId: true,
-      tenantColumn: true,
-      tableExpression: true,
+      tableName: true,
+      columns: {
+        select: {
+          id: true,
+          name: true,
+          dataType: true,
+        },
+      },
     },
   });
 
@@ -174,8 +213,14 @@ viewRouter.get("/:viewId", async (req, res: ApiResponse<ViewResponse>) => {
     select: {
       id: true,
       sourceId: true,
-      tenantColumn: true,
-      tableExpression: true,
+      tableName: true,
+      columns: {
+        select: {
+          id: true,
+          name: true,
+          dataType: true,
+        },
+      },
     },
   });
 
@@ -214,8 +259,7 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
     select: {
       id: true,
       sourceId: true,
-      tenantColumn: true,
-      tableExpression: true,
+      tableName: true,
     },
   });
   if (!view) {

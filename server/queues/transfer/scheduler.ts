@@ -1,51 +1,10 @@
-import { Prisma } from "@prisma/client";
 import { Queue, Worker } from "bullmq";
 import { env } from "../../../lib/env.js";
 import { logger } from "../../../lib/logger.js";
 import { queueNames } from "../../../lib/queues.js";
 import processor from "./processor.js";
 
-export type TransferQueueJobData = Prisma.TransferGetPayload<{
-  select: {
-    id: true;
-    status: true;
-    finalizedAt: true;
-    destination: {
-      select: {
-        id: true;
-        destinationType: true;
-        tenantId: true;
-        configuration: {
-          select: {
-            columns: {
-              select: {
-                nameInSource: true;
-                nameInDestination: true;
-              };
-            };
-            view: {
-              select: {
-                tableExpression: true;
-                tenantColumn: true;
-                source: {
-                  select: {
-                    id: true;
-                    host: true;
-                    port: true;
-                    username: true;
-                    password: true;
-                    name: true;
-                    sourceType: true;
-                  };
-                };
-              };
-            };
-          };
-        };
-      };
-    };
-  };
-}>;
+export type TransferQueueJobData = { id: number };
 
 const transferQueue = new Queue<TransferQueueJobData>(
   queueNames.INITIATE_TRANSFER,
