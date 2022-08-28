@@ -13,6 +13,8 @@ import {
   sanitizeQueryParam,
 } from "../../../lib/snowflake/load.js";
 import zlib from "node:zlib";
+import { z } from "zod";
+import { parseISO } from "date-fns";
 
 const buildTemplatedQuery = ({
   viewColumns,
@@ -44,6 +46,21 @@ const buildTemplatedQuery = ({
     .join(
       ", ",
     )} FROM "${tableName}") AS t WHERE "${tenantColumn}" = '${tenantId}' AND "${lastModifiedColumn}" > '${lastModifiedAt}'`;
+
+const buildLastModifiedQuery = ({
+  lastModifiedColumn,
+  tableName,
+}: {
+  lastModifiedColumn: string;
+  tableName: string;
+}) => {
+  const lastModifiedColumnEscaped = lastModifiedColumn.replaceAll('"', "");
+
+  return `SELECT "${lastModifiedColumnEscaped}" FROM "${tableName.replaceAll(
+    '"',
+    "",
+  )}" ORDER BY "${lastModifiedColumnEscaped}" DESC LIMIT 1;`;
+};
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -162,6 +179,9 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
+    const lastModifiedColumn = view.columns.filter(
+      (col) => col.isLastModified,
+    )[0].name;
     const queryDataStream = sourceConnection
       .extractToCsvUnsafe(
         buildTemplatedQuery({
@@ -171,13 +191,20 @@ export default async function (job: Job<TransferQueueJobData>) {
           tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
             .name,
           tenantId: destination.tenantId,
-          lastModifiedColumn: view.columns.filter(
-            (col) => col.isLastModified,
-          )[0].name,
+          lastModifiedColumn,
           lastModifiedAt: destination.lastModifiedAt.toISOString(),
         }),
       )
       .pipe(zlib.createGzip());
+
+    const { rows } = await sourceConnection.queryUnsafe(
+      buildLastModifiedQuery({ lastModifiedColumn, tableName: view.tableName }),
+    );
+    const newLastModifiedAt = z
+      .string()
+      .transform((str) => parseISO(str))
+      .or(z.date())
+      .parse(rows[0][lastModifiedColumn]);
 
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
@@ -272,6 +299,11 @@ export default async function (job: Job<TransferQueueJobData>) {
         status: "COMPLETE",
         finalizedAt: new Date(),
       },
+    });
+
+    await db.destination.update({
+      where: { id: destination.id },
+      data: { lastModifiedAt: newLastModifiedAt },
     });
   } catch (error) {
     logger.error(error);
