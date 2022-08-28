@@ -398,6 +398,7 @@
     "PipeBirdProvisionedUser": {
       "Type": "AWS::IAM::User",
       "Properties": {
+        "UserName": { "Fn::Sub": "${AWS::StackName}-pipebird-user-1" },
         "Tags": [
           {
             "Key": "Name",
