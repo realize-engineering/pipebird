@@ -3,6 +3,8 @@ import { Sequelize } from "sequelize";
 import { db } from "../db.js";
 import { getColumnTypeForDest } from "../transforms/index.js";
 
+export const sanitizeQueryParam = (value: string) => value.replace(/\W/g, "");
+
 export const getUniqueTableName = ({
   nickname,
   tenantId,
@@ -11,7 +13,10 @@ export const getUniqueTableName = ({
   nickname: string;
   tenantId: string;
   destinationId: number;
-}) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
+}) =>
+  `ShareData_${sanitizeQueryParam(
+    nickname.replaceAll(" ", "_"),
+  )}_${sanitizeQueryParam(tenantId)}_${destinationId}`;
 
 /*
  * Creates a new table in Snowflake for each added destination
@@ -60,7 +65,9 @@ export const createDestinationTable = async ({
     throw new Error("Configuration not associated with destination.");
   }
 
-  const schemaCreateOperation = `CREATE SCHEMA IF NOT EXISTS "${database}"."${schema}" WITH MANAGED ACCESS;`;
+  const schemaCreateOperation = `CREATE SCHEMA IF NOT EXISTS "${sanitizeQueryParam(
+    database,
+  )}"."${sanitizeQueryParam(schema)}" WITH MANAGED ACCESS;`;
   await client.query(schemaCreateOperation);
 
   const tableName = getUniqueTableName({
@@ -73,16 +80,18 @@ export const createDestinationTable = async ({
     const columnType = destCol.viewColumn.dataType;
 
     // todo(ianedwards): change this to use additional source and destination types
-    return `"${destCol.nameInDestination}" ${getColumnTypeForDest({
+    return `"${sanitizeQueryParam(
+      destCol.nameInDestination,
+    )}" ${getColumnTypeForDest({
       sourceType: "POSTGRES",
       destinationType: "SNOWFLAKE",
       columnType,
     })}`;
   });
 
-  const tableCreateOperation = `CREATE TABLE IF NOT EXISTS "${schema}"."${tableName}" ( ${columnsWithType.join(
-    ", ",
-  )} );`;
+  const tableCreateOperation = `CREATE TABLE IF NOT EXISTS "${sanitizeQueryParam(
+    schema,
+  )}"."${sanitizeQueryParam(tableName)}" ( ${columnsWithType.join(", ")} );`;
   await client.query(tableCreateOperation);
 
   return tableName;
@@ -112,29 +121,41 @@ export const buildInitiateUpsert = ({
   const stageSelect = `
         SELECT 
           ${columns
-            .map((col, idx) => `$${idx + 1} "${col.nameInDestination}"`)
+            .map(
+              (col, idx) =>
+                `$${idx + 1} "${sanitizeQueryParam(col.nameInDestination)}"`,
+            )
             .join(",\n")}
-        from @"${schema}"."${stageName}"
+        from @"${sanitizeQueryParam(schema)}"."${sanitizeQueryParam(stageName)}"
     `;
 
+  const SCHEMA_WITH_TABLE_NAME = `"${sanitizeQueryParam(
+    schema,
+  )}"."${sanitizeQueryParam(tableName)}"`;
   const initiateUpsertOperation = `
-      MERGE INTO "${schema}"."${tableName}" USING (${stageSelect}) newData 
-      ON "${schema}"."${tableName}"."${primaryKeyCol}" = newData."${primaryKeyCol}"
+      MERGE INTO ${SCHEMA_WITH_TABLE_NAME} USING (${stageSelect}) newData 
+      ON ${SCHEMA_WITH_TABLE_NAME}."${primaryKeyCol}" = newData."${primaryKeyCol}"
       WHEN MATCHED THEN UPDATE SET
         ${columns
           .filter((col) => col.nameInDestination !== primaryKeyCol)
           .map(
             (col) =>
-              `"${col.nameInDestination}" = newData."${col.nameInDestination}"`,
+              `"${sanitizeQueryParam(
+                col.nameInDestination,
+              )}" = newData."${sanitizeQueryParam(col.nameInDestination)}"`,
           )
           .join(",\n")}
       WHEN NOT MATCHED THEN
         INSERT (
-          ${columns.map((col) => `"${col.nameInDestination}"`).join(",\n")}
+          ${columns
+            .map((col) => `"${sanitizeQueryParam(col.nameInDestination)}"`)
+            .join(",\n")}
         )
         VALUES (
           ${columns
-            .map((col) => `newData."${col.nameInDestination}"`)
+            .map(
+              (col) => `newData."${sanitizeQueryParam(col.nameInDestination)}"`,
+            )
             .join(",\n")}
         )
     `;
@@ -154,9 +175,13 @@ export const removeLoadedData = async ({
   schema: string;
   tempStageName: string;
 }) => {
-  const removeFilesOperation = `REMOVE @"${schema}"."${tempStageName}"`;
+  const removeFilesOperation = `REMOVE @"${sanitizeQueryParam(
+    schema,
+  )}"."${sanitizeQueryParam(tempStageName)}"`;
   await client.query(removeFilesOperation);
 
-  const dropStageOperation = `DROP STAGE "${schema}"."${tempStageName}"`;
+  const dropStageOperation = `DROP STAGE "${sanitizeQueryParam(
+    schema,
+  )}"."${sanitizeQueryParam(tempStageName)}"`;
   await client.query(dropStageOperation);
 };

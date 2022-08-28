@@ -10,6 +10,7 @@ import {
   buildInitiateUpsert,
   getUniqueTableName,
   removeLoadedData,
+  sanitizeQueryParam,
 } from "../../../lib/snowflake/load.js";
 
 const buildTemplatedQuery = ({
@@ -210,17 +211,19 @@ export default async function (job: Job<TransferQueueJobData>) {
         const pathPrefix = `snowflake/${destination.tenantId}/${destination.id}`;
         await uploadObject(queryDataStream, pathPrefix);
 
-        const tempStageName = `SharedData_TempTable_${
+        const tempStageName = `SharedData_TempStage_${
           destination.id
         }_${new Date().getTime()}`;
 
-        logger.info({ schemaName: destination.schema });
-
         const createStageOperation = `
-          create or replace stage "${destination.schema}"."${tempStageName}"
+          create or replace stage "${sanitizeQueryParam(
+            destSchema,
+          )}"."${tempStageName}"
           url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
-          credentials = (aws_key_id='${env.S3_USER_ACCESS_ID}' aws_secret_key='${env.S3_USER_SECRET_KEY}')
-          encryption = (TYPE='AWS_SSE_S3')
+          credentials = (aws_key_id='${
+            env.S3_USER_ACCESS_ID
+          }' aws_secret_key='${env.S3_USER_SECRET_KEY}')
+          encryption = (TYPE='AWS_SSE_KMS' KEY='${env.KMS_KEY_ID}')
           file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
         `;
         await destConnection.client.query(createStageOperation);
