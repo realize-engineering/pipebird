@@ -12,6 +12,7 @@ import {
   removeLoadedData,
   sanitizeQueryParam,
 } from "../../../lib/snowflake/load.js";
+import zlib from "node:zlib";
 
 const buildTemplatedQuery = ({
   viewColumns,
@@ -161,22 +162,26 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
-    const queryDataStream = sourceConnection.extractToCsvUnsafe(
-      buildTemplatedQuery({
-        viewColumns: view.columns.map((col) => col.name),
-        resultColumns: configuration.columns,
-        tableName: view.tableName,
-        tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0].name,
-        tenantId: destination.tenantId,
-        lastModifiedColumn: view.columns.filter((col) => col.isLastModified)[0]
-          .name,
-        lastModifiedAt: destination.lastModifiedAt.toISOString(),
-      }),
-    );
+    const queryDataStream = sourceConnection
+      .extractToCsvUnsafe(
+        buildTemplatedQuery({
+          viewColumns: view.columns.map((col) => col.name),
+          resultColumns: configuration.columns,
+          tableName: view.tableName,
+          tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
+            .name,
+          tenantId: destination.tenantId,
+          lastModifiedColumn: view.columns.filter(
+            (col) => col.isLastModified,
+          )[0].name,
+          lastModifiedAt: destination.lastModifiedAt.toISOString(),
+        }),
+      )
+      .pipe(zlib.createGzip());
 
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
-        await uploadObject(queryDataStream);
+        await uploadObject({ contents: queryDataStream, extension: "gz" });
         break;
       }
 
@@ -209,7 +214,11 @@ export default async function (job: Job<TransferQueueJobData>) {
         }
 
         const pathPrefix = `snowflake/${destination.tenantId}/${destination.id}`;
-        await uploadObject(queryDataStream, pathPrefix);
+        await uploadObject({
+          contents: queryDataStream,
+          pathPrefix,
+          extension: "gz",
+        });
 
         const tempStageName = `SharedData_TempStage_${
           destination.id
