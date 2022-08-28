@@ -5,12 +5,25 @@ import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
 import { Sql } from "sql-template-tag";
 
-type QueryResult = {
-  status: "REACHABLE" | "UNREACHABLE";
-  error: boolean;
-  columns?: string[];
-  message?: string;
-};
+type QueryResult =
+  | {
+      status: "REACHABLE";
+      error: false;
+      columns: string[];
+      queryUnsafe: (
+        sql: string,
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+    }
+  | {
+      status: "REACHABLE";
+      error: true;
+      message?: string;
+    }
+  | {
+      status: "UNREACHABLE";
+      error: true;
+      message?: string;
+    };
 
 export const getConnection = async ({
   dbType,
@@ -117,6 +130,7 @@ export const testQuery = async ({
           status: result.status,
           error: false,
           columns: Object.keys(res.rows[0]),
+          queryUnsafe: result.queryUnsafe,
         };
       }
       default: {

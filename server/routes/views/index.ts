@@ -10,6 +10,7 @@ import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
+import { sanitizeQueryParam } from "../../../lib/snowflake/load.js";
 
 type ViewResponse = Prisma.ViewGetPayload<{
   select: {
@@ -158,13 +159,33 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
+  // todo: this will need to be dependent upon the source type in the future
+  const infoRes = await test.queryUnsafe(
+    `SELECT column_name, data_type FROM information_schema.columns WHERE table_name='${sanitizeQueryParam(
+      tableName,
+    )}'`,
+  );
+
+  const viewColumnCreateData = columns.map((col) => {
+    const columnInfo = infoRes.rows.filter(
+      (row) => row.column_name === col.name,
+    )[0];
+
+    return {
+      ...col,
+      dataType: columnInfo?.data_type
+        ? (columnInfo.data_type as string)
+        : "varchar",
+    };
+  });
+
   const view = await db.view.create({
     data: {
       sourceId,
       tableName,
       columns: {
         createMany: {
-          data: columns.map((col) => ({ ...col, dataType: "varchar" })), // todo: select correct data type after updating connections file
+          data: viewColumnCreateData,
         },
       },
     },

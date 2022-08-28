@@ -40,11 +40,13 @@ export const dataTypeConversions: DTConversions = {
       varchar: "varchar",
       text: "text",
       bytea: "binary",
+      "timestamp without time zone": "timestamp",
       timestamp: "timestamp",
       timestamptz: "timestamptz",
       date: "date",
       time: "time",
       jsonb: "variant",
+      "USER-DEFINED": "varchar",
     },
   },
 };

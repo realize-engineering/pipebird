@@ -232,7 +232,7 @@ export default async function (job: Job<TransferQueueJobData>) {
           credentials = (aws_key_id='${
             env.S3_USER_ACCESS_ID
           }' aws_secret_key='${env.S3_USER_SECRET_KEY}')
-          encryption = (TYPE='AWS_SSE_KMS' KEY='${env.KMS_KEY_ID}')
+          encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID='${env.KMS_KEY_ID}')
           file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
         `;
         await destConnection.client.query(createStageOperation);
