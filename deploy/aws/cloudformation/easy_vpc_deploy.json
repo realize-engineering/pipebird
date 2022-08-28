@@ -212,7 +212,15 @@
   "Resources": {
     "TestVPC": {
       "Type": "AWS::EC2::VPC",
-      "Properties": { "CidrBlock": "112.0.0.0/20" },
+      "Properties": {
+        "CidrBlock": "112.0.0.0/20",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-vpc-1" }
+          }
+        ]
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "da75044c-f493-4add-9a3f-78bae49f007f"
@@ -222,7 +230,12 @@
     "TestInternetGateway": {
       "Type": "AWS::EC2::InternetGateway",
       "Properties": {
-        "Tags": [{ "Key": "Name", "Value": "TestInternetGateway" }]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-iag-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -249,7 +262,13 @@
           "Fn::Select": [0, { "Fn::GetAZs": "us-east-1" }]
         },
         "VpcId": { "Ref": "TestVPC" },
-        "CidrBlock": "112.0.1.0/24"
+        "CidrBlock": "112.0.1.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-private-subnet-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -264,7 +283,13 @@
           "Fn::Select": [0, { "Fn::GetAZs": "us-east-1" }]
         },
         "VpcId": { "Ref": "TestVPC" },
-        "CidrBlock": "112.0.0.0/24"
+        "CidrBlock": "112.0.0.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-public-subnet-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -279,7 +304,13 @@
           "Fn::Select": [1, { "Fn::GetAZs": "us-east-1" }]
         },
         "VpcId": { "Ref": "TestVPC" },
-        "CidrBlock": "112.0.2.0/24"
+        "CidrBlock": "112.0.2.0/24",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-private-subnet-2" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -291,7 +322,12 @@
       "Type": "AWS::EC2::Instance",
       "Properties": {
         "KeyName": { "Ref": "ec2KeyPair" },
-        "Tags": [{ "Key": "Name", "Value": "TestEc2" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-ec2-bastion-1" }
+          }
+        ],
         "ImageId": "ami-052efd3df9dad4825",
         "AvailabilityZone": { "Fn::Select": ["0", { "Fn::GetAZs": "" }] },
         "InstanceType": "t2.micro",
@@ -336,7 +372,12 @@
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Ref": "TestVPC" },
-        "Tags": [{ "Key": "Name", "Value": "TestRouteTable" }]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-public-route-table-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -361,7 +402,12 @@
       "Type": "AWS::EC2::RouteTable",
       "Properties": {
         "VpcId": { "Ref": "TestVPC" },
-        "Tags": [{ "Key": "Name", "Value": "TestPrivateRouteTable" }]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-private-route-table-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -385,7 +431,12 @@
     "TestDBSecurityGroup": {
       "Type": "AWS::RDS::DBSecurityGroup",
       "Properties": {
-        "Tags": [{ "Key": "Name", "Value": "TestDBSecurityGroup" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-db-security-group-1" }
+          }
+        ],
         "GroupDescription": "Private subnets for this test db instance.",
         "EC2VpcId": { "Ref": "TestVPC" },
         "DBSecurityGroupIngress": [
@@ -411,7 +462,12 @@
           { "Ref": "TestPrivateSubnet1" },
           { "Ref": "TestPrivateSubnet2" }
         ],
-        "Tags": [{ "Key": "Name", "Value": "TestDBSubnetGroup" }]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-db-subnet-group-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -432,7 +488,12 @@
         "DBInstanceClass": "db.t3.micro",
         "DBInstanceIdentifier": "testdb",
         "Engine": "MySQL",
-        "Tags": [{ "Key": "Name", "Value": "TestDB" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-db-1" }
+          }
+        ],
         "MasterUsername": { "Ref": "DBUser" },
         "MasterUserPassword": { "Ref": "DBPassword" },
         "DBSecurityGroups": [{ "Ref": "TestDBSecurityGroup" }],
@@ -453,7 +514,12 @@
           "Fn::GetAtt": ["TestElasticIPAddress", "AllocationId"]
         },
         "SubnetId": { "Ref": "TestPublicSubnet" },
-        "Tags": [{ "Key": "Name", "Value": "TestNATGateway" }]
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-nat-1" }
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -463,7 +529,15 @@
     },
     "TestElasticIPAddress": {
       "Type": "AWS::EC2::EIP",
-      "Properties": { "Domain": "vpc" },
+      "Properties": {
+        "Domain": "vpc",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-eip-1" }
+          }
+        ]
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "a3bf7ed0-75d7-4ed2-a0a0-2b11abcf78bb"
@@ -473,6 +547,12 @@
     "TestEC2SecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-security-group-1" }
+          }
+        ],
         "GroupDescription": "Security group for enabling database access",
         "VpcId": { "Ref": "TestVPC" },
         "SecurityGroupIngress": [

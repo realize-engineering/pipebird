@@ -104,6 +104,12 @@
     "PipeBirdSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-security-group-1" }
+          }
+        ],
         "VpcId": { "Ref": "VPC" },
         "GroupDescription": "Enable the ports pipebird requires (80, 22, 3000)",
         "SecurityGroupIngress": [
@@ -150,6 +156,12 @@
         "AvailabilityZone": {
           "Ref": "availabilityZone"
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-ebs-1" }
+          }
+        ],
         "Size": "10",
         "Encrypted": true
       },
@@ -272,7 +284,12 @@
           }
         },
         "KeyName": { "Ref": "ec2KeyPair" },
-        "Tags": [{ "Key": "Name", "Value": "PipeBird" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-pipebird-ec2-1" }
+          }
+        ],
         "ImageId": "ami-052efd3df9dad4825",
         "InstanceType": "t2.medium",
         "SecurityGroupIds": [{ "Ref": "PipeBirdSecurityGroup" }]
@@ -282,7 +299,12 @@
     "PipeBirdProvisionedBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
-        "Tags": [{ "Key": "Name", "Value": "PipeBirdBucket" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-pipebird-bucket-1" }
+          }
+        ],
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [
             {
@@ -311,7 +333,9 @@
     },
     "PipeBirdProvisionedS3UserKeys": {
       "Type": "AWS::IAM::AccessKey",
-      "Properties": { "UserName": { "Ref": "PipeBirdProvisionedS3User" } },
+      "Properties": {
+        "UserName": { "Ref": "PipeBirdProvisionedS3User" }
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "9f44a320-98cb-4f48-8843-8c51edd67f0b"
@@ -320,7 +344,14 @@
     },
     "PipeBirdProvisionedS3User": {
       "Type": "AWS::IAM::User",
-      "Properties": {},
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-pipebird-user-1" }
+          }
+        ]
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "2fdd17ad-0f65-46e0-9597-44875772b447"
@@ -353,6 +384,12 @@
     "s3Key": {
       "Type": "AWS::KMS::Key",
       "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": { "Fn::Sub": "${AWS::StackName}-pipebird-kms-key-1" }
+          }
+        ],
         "KeyPolicy": {
           "Version": "2012-10-17",
           "Id": "pipebird-key-s3",
