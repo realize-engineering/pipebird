@@ -9,6 +9,7 @@ const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
 export const uploadObject = async (
   contents: PutObjectCommand["input"]["Body"],
+  pathPrefix?: string,
   bucket: string = BUCKET,
 ) => {
   const key = randomUUID();
@@ -16,7 +17,7 @@ export const uploadObject = async (
     client: S3,
     params: {
       Bucket: bucket,
-      Key: key,
+      Key: pathPrefix ? `${pathPrefix}/${key}` : key,
       Body: contents,
     },
   });

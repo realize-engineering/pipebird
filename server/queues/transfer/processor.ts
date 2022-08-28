@@ -4,6 +4,12 @@ import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
 import { getConnection } from "../../../lib/connections.js";
+import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
+import { env } from "../../../lib/env.js";
+import {
+  buildInitiateUpsert,
+  getUniqueTableName,
+} from "../../../lib/snowflake/load.js";
 
 const buildTemplatedQuery = ({
   viewColumns,
@@ -47,9 +53,15 @@ export default async function (job: Job<TransferQueueJobData>) {
         destination: {
           select: {
             id: true,
+            nickname: true,
             destinationType: true,
             tenantId: true,
             lastModifiedAt: true,
+            host: true,
+            username: true,
+            password: true,
+            database: true,
+            schema: true,
             configuration: {
               select: {
                 columns: {
@@ -116,47 +128,119 @@ export default async function (job: Job<TransferQueueJobData>) {
     const source = view.source;
 
     const {
-      sourceType: dbType,
-      host,
-      port,
-      username,
-      password,
-      database,
+      sourceType: srcDbType,
+      host: srcHost,
+      port: srcPort,
+      username: srcUsername,
+      password: srcPassword,
+      database: srcDatabase,
     } = source;
 
-    const conn = await getConnection({
-      dbType,
-      host,
-      port,
-      username,
-      password,
-      database,
+    const {
+      host: destHost,
+      username: destUsername,
+      password: destPassword,
+      database: destDatabase,
+      schema: destSchema,
+    } = destination;
+
+    const sourceConnection = await getConnection({
+      dbType: srcDbType,
+      host: srcHost,
+      port: srcPort,
+      username: srcUsername,
+      password: srcPassword,
+      database: srcDatabase,
     });
 
-    if (conn.status !== "REACHABLE") {
+    if (sourceConnection.status !== "REACHABLE") {
       throw new Error(
         `Source with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
       );
     }
 
+    const queryDataStream = sourceConnection.extractToCsvUnsafe(
+      buildTemplatedQuery({
+        viewColumns: view.columns.map((col) => col.name),
+        resultColumns: configuration.columns,
+        tableName: view.tableName,
+        tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0].name,
+        tenantId: destination.tenantId,
+        lastModifiedColumn: view.columns.filter((col) => col.isLastModified)[0]
+          .name,
+        lastModifiedAt: destination.lastModifiedAt.toISOString(),
+      }),
+    );
+
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
-        await uploadObject(
-          conn.extractToCsvUnsafe(
-            buildTemplatedQuery({
-              viewColumns: view.columns.map((col) => col.name),
-              resultColumns: configuration.columns,
-              tableName: view.tableName,
-              tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
-                .name,
-              tenantId: destination.tenantId,
-              lastModifiedColumn: view.columns.filter(
-                (col) => col.isLastModified,
-              )[0].name,
-              lastModifiedAt: destination.lastModifiedAt.toISOString(),
-            }),
-          ),
-        );
+        await uploadObject(queryDataStream);
+        break;
+      }
+
+      case "SNOWFLAKE": {
+        const credentialsExist =
+          !!destHost &&
+          !!destUsername &&
+          !!destPassword &&
+          !!destDatabase &&
+          !!destSchema;
+
+        if (!credentialsExist) {
+          throw new Error(
+            `Incomplete credentials for destination with ID ${destination.id}, aborting transfer ${transfer.id}`,
+          );
+        }
+
+        const destConnection = await getSnowflakeConnection({
+          host: destHost,
+          username: destUsername,
+          password: destPassword,
+          database: destDatabase,
+          schema: destSchema,
+        });
+
+        if (destConnection.status !== "REACHABLE") {
+          throw new Error(
+            `Destination with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
+          );
+        }
+
+        const pathPrefix = `snowflake/${destination.tenantId}/${destination.id}`;
+        await uploadObject(queryDataStream, pathPrefix);
+
+        const tempStageName = `SharedData_TempTable_${
+          destination.id
+        }_${new Date().getTime()}`;
+
+        logger.info({ schemaName: destination.schema });
+
+        const createStageOperation = `
+          create or replace stage "${destination.schema}"."${tempStageName}"
+          url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
+          credentials = (aws_key_id='${env.S3_USER_ACCESS_ID}' aws_secret_key='${env.S3_USER_SECRET_KEY}')
+          encryption = (TYPE='AWS_SSE_S3')
+          file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
+        `;
+        await destConnection.client.query(createStageOperation);
+
+        const primaryKeyCol = destination.configuration.view.columns.filter(
+          (col) => col.isPrimaryKey,
+        )[0].name;
+        const tableName = getUniqueTableName({
+          nickname: destination.nickname,
+          destinationId: destination.id,
+          tenantId: destination.tenantId,
+        });
+        const upsertOperation = buildInitiateUpsert({
+          columns: destination.configuration.columns,
+          schema: destSchema,
+          stageName: tempStageName,
+          tableName,
+          primaryKeyCol,
+        });
+        await destConnection.client.query(upsertOperation);
+
         break;
       }
     }

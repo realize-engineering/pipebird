@@ -94,6 +94,7 @@ model ColumnTransformation {
 enum DestinationType {
   POSTGRES
   PROVISIONED_S3
+  SNOWFLAKE
 }
 
 model Destination {
