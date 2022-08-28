@@ -13,6 +13,10 @@ export const getUniqueTableName = ({
   destinationId: number;
 }) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
 
+/*
+ * Creates a new table in Snowflake for each added destination
+ * using a consistent naming format.
+ */
 export const createDestinationTable = async ({
   client,
   schema,
@@ -84,6 +88,9 @@ export const createDestinationTable = async ({
   return tableName;
 };
 
+/*
+ * Builds and returns a merge query that upserts data for a given destination.
+ */
 export const buildInitiateUpsert = ({
   columns,
   schema,
@@ -133,4 +140,23 @@ export const buildInitiateUpsert = ({
     `;
 
   return initiateUpsertOperation;
+};
+
+/*
+ * Deletes a stage and its files in S3
+ */
+export const removeLoadedData = async ({
+  client,
+  schema,
+  tempStageName,
+}: {
+  client: Sequelize;
+  schema: string;
+  tempStageName: string;
+}) => {
+  const removeFilesOperation = `REMOVE @"${schema}"."${tempStageName}"`;
+  await client.query(removeFilesOperation);
+
+  const dropStageOperation = `DROP STAGE "${schema}"."${tempStageName}"`;
+  await client.query(dropStageOperation);
 };

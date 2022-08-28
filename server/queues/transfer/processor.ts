@@ -9,6 +9,7 @@ import { env } from "../../../lib/env.js";
 import {
   buildInitiateUpsert,
   getUniqueTableName,
+  removeLoadedData,
 } from "../../../lib/snowflake/load.js";
 
 const buildTemplatedQuery = ({
@@ -241,6 +242,12 @@ export default async function (job: Job<TransferQueueJobData>) {
         });
         await destConnection.client.query(upsertOperation);
 
+        await removeLoadedData({
+          client: destConnection.client,
+          schema: destSchema,
+          tempStageName,
+        });
+
         break;
       }
     }
@@ -256,6 +263,8 @@ export default async function (job: Job<TransferQueueJobData>) {
     });
   } catch (error) {
     logger.error(error);
+
+    // todo(ianedwards): perform any necessary rollbacks on external stages on failure
 
     await db.transfer.update({
       where: {
