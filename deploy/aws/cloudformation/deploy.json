@@ -249,6 +249,12 @@
                 "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
                 {
                   "Fn::Sub": [
+                    "echo \"KMS_KEY_ID=${KMS_KEY_ID}\" >> .env",
+                    { "KMS_KEY_ID": { "Fn::GetAtt": ["s3Key", "KeyId"] } }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
                     "echo \"S3_USER_ACCESS_ID=${ACCESS_ID}\" >> .env",
                     {
                       "ACCESS_ID": {
