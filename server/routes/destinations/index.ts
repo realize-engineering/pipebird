@@ -9,6 +9,8 @@ import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
+import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
+import { createDestinationTable } from "../../../lib/snowflake/load.js";
 const destinationRouter = Router();
 
 type DestinationResponse = Prisma.DestinationGetPayload<{
@@ -62,7 +64,7 @@ destinationRouter.post(
         }),
         z.object({
           nickname: z.string().min(1),
-          destinationType: z.enum(["MYSQL", "POSTGRES"]),
+          destinationType: z.enum(["SNOWFLAKE", "POSTGRES"]),
           configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
           host: z.string(),
@@ -100,6 +102,66 @@ destinationRouter.post(
         });
         return res.status(HttpStatusCode.CREATED).json(destination);
       }
+
+      case "SNOWFLAKE": {
+        const {
+          nickname,
+          destinationType,
+          configurationId,
+          tenantId,
+          host,
+          schema,
+          database,
+          username,
+          password,
+        } = body.data;
+
+        const connection = await getSnowflakeConnection({
+          host,
+          username,
+          password,
+          database,
+          schema,
+        });
+
+        if (connection.status === "UNREACHABLE") {
+          return res
+            .status(HttpStatusCode.SERVICE_UNAVAILABLE)
+            .json({ code: "source_db_unreachable" });
+        }
+
+        const destination = await db.destination.create({
+          data: {
+            configurationId,
+            destinationType,
+            nickname,
+            tenantId,
+            host,
+            schema,
+            database,
+            username,
+            password,
+            status: "REACHABLE",
+          },
+          select: {
+            id: true,
+            tenantId: true,
+            nickname: true,
+            configurationId: true,
+            destinationType: true,
+          },
+        });
+
+        await createDestinationTable({
+          client: connection.client,
+          schema,
+          database,
+          destination,
+        });
+
+        return res.status(HttpStatusCode.CREATED).json(destination);
+      }
+
       default: {
         return res.status(HttpStatusCode.NOT_IMPLEMENTED).json({
           code: "destination_not_currently_supported",
