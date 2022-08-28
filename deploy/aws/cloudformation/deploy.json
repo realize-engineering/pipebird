@@ -141,8 +141,11 @@
         }
       }
     },
+
     "PipeBirdStorage": {
       "Type": "AWS::EC2::Volume",
+      "DeletionPolicy": "Snapshot",
+      "UpdateReplacePolicy": "Retain",
       "Properties": {
         "AvailabilityZone": {
           "Ref": "availabilityZone"
@@ -178,7 +181,6 @@
               "\n",
               [
                 "#!/bin/bash -ex",
-                "echo \">>>>>>>>>>>>> USER_DATA_CONFIG <<<<<<<<<<<<<\"",
                 "apt-get update -y",
                 "apt install unzip -y",
                 "apt install docker.io -y",
@@ -264,8 +266,7 @@
                   ]
                 },
                 "mv .env pipebird-main",
-                "cd pipebird-main && docker-compose up -d",
-                "echo \">>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<\""
+                "cd pipebird-main && docker-compose up -d"
               ]
             ]
           }
@@ -276,8 +277,7 @@
         "InstanceType": "t2.medium",
         "SecurityGroupIds": [{ "Ref": "PipeBirdSecurityGroup" }]
       },
-      "CreationPolicy": { "ResourceSignal": { "Timeout": "PT30M" } },
-      "DependsOn": ["PipeBirdProvisionedBucket", "PipeBirdProvisionedS3User"]
+      "DependsOn": ["PipeBirdProvisionedS3User"]
     },
     "PipeBirdProvisionedBucket": {
       "Type": "AWS::S3::Bucket",
@@ -445,7 +445,7 @@
           "",
           [
             "http://",
-            { "Fn::GetAtt": ["PipeBirdInstance", "PublicIp"] },
+            { "Fn::GetAtt": ["PipeBirdInstance", "PrivateIp"] },
             ":3000"
           ]
         ]
