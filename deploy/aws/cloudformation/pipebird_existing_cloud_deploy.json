@@ -361,12 +361,12 @@
                 "cd pipebird-main && docker-compose up -d",
                 {
                   "Fn::Sub": [
-                    "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -t ${DEPLOYMENT_TYPE}",
+                    "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -s ${DEPLOYMENT_STRATEGY}",
                     {
                       "LICENSE_KEY": {
                         "Ref": "licenseKey"
                       },
-                      "DEPLOYMENT_TYPE": {
+                      "DEPLOYMENT_STRATEGY": {
                         "Fn::FindInMap": [
                           "DeploymentMapping",
                           "Details",
@@ -618,7 +618,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.1.0",
+        "version": "0.1.1",
         "type": "AWS_EXISTING_VPC"
       }
     }
