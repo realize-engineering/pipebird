@@ -3,9 +3,15 @@ import { env } from "../../../lib/env.js";
 import { logger } from "../../../lib/logger.js";
 import { queueNames } from "../../../lib/queues.js";
 import processor from "./processor.js";
-const transferQueue = new Queue(queueNames.INITIATE_TRANSFER, {
-  connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },
-});
+
+export type TransferQueueJobData = { id: number };
+
+const transferQueue = new Queue<TransferQueueJobData>(
+  queueNames.INITIATE_TRANSFER,
+  {
+    connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },
+  },
+);
 
 const worker = new Worker(queueNames.INITIATE_TRANSFER, processor, {
   connection: { host: env.REDIS_HOST, port: env.REDIS_PORT },

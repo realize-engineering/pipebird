@@ -2,7 +2,7 @@
 
 ## Bug description
 
-*Please describe the bug you're experiencing.*   
+_Please describe the bug you're experiencing._
 
 ## Steps to reproduce
 
@@ -12,8 +12,8 @@
 
 ## Environment
 
-*Please describe the operating system you're running*
+_Please describe the operating system you're running_
 
 ## Any additional context
 
-*Please add anything else that may be helpful such as screenshots, code snippets, etc.*
+_Please add anything else that may be helpful such as screenshots, code snippets, etc._

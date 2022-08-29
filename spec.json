@@ -889,7 +889,7 @@
               },
               "destinationType": {
                 "type": "string",
-                "enum": ["POSTGRES", "MYSQL"]
+                "enum": ["POSTGRES", "SNOWFLAKE"]
               },
               "host": {
                 "type": "string"
@@ -931,7 +931,7 @@
           },
           {
             "properties": {
-              "name": {
+              "nickname": {
                 "type": "string"
               },
               "destinationType": {

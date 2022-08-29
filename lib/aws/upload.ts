@@ -1,24 +1,35 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
-import { ReadStream } from "fs";
 
 import { S3 } from "./s3.js";
 import { env } from "../env.js";
+import { Upload } from "@aws-sdk/lib-storage";
+import path from "path";
 
 const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
-export const uploadObject = async (
-  contents: ReadStream,
-  bucket: string = BUCKET,
-) => {
+export const uploadObject = async ({
+  contents,
+  pathPrefix,
+  extension,
+  bucket = BUCKET,
+}: {
+  contents: PutObjectCommand["input"]["Body"];
+  pathPrefix?: string;
+  extension?: string;
+  bucket?: string;
+}) => {
   const key = randomUUID();
-  const command = new PutObjectCommand({
-    Bucket: bucket,
-    Key: key,
-    Body: contents,
+  const upload = new Upload({
+    client: S3,
+    params: {
+      Bucket: bucket,
+      Key: `${pathPrefix ? `${path.posix.join(pathPrefix, key)}` : key}${
+        extension ? `.${extension}` : ""
+      }`,
+      Body: contents,
+    },
   });
 
-  const uploadRes = await S3.send(command);
-
-  return { result: uploadRes, key };
+  return { result: await upload.done(), key };
 };

@@ -1,27 +1,15 @@
-import { Sequelize, QueryTypes } from "sequelize";
+import { SourceType } from "@prisma/client";
+import { Readable } from "stream";
+import pg from "pg";
+import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
-
-const REACHABLE = "REACHABLE";
-const UNREACHABLE = "UNREACHABLE";
-
-type DBTypes =
-  | "MYSQL"
-  | "POSTGRES"
-  | "SNOWFLAKE"
-  | "REDSHIFT"
-  | "BIGQUERY"
-  | string;
+import { Sql } from "sql-template-tag";
 
 type QueryResult = {
   status: "REACHABLE" | "UNREACHABLE";
   error: boolean;
   columns?: string[];
   message?: string;
-};
-
-type ConnectionResult = {
-  status: "REACHABLE" | "UNREACHABLE";
-  connection?: Sequelize;
 };
 
 export const getConnection = async ({
@@ -32,45 +20,54 @@ export const getConnection = async ({
   password,
   database,
 }: {
-  dbType: DBTypes;
+  dbType: SourceType;
   host: string;
   port: number;
   username: string;
-  password: string;
+  password?: string;
   database: string;
-}): Promise<ConnectionResult> => {
+}): Promise<
+  | {
+      status: "REACHABLE";
+      query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
+      queryUnsafe: (
+        sql: string,
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+      extractToCsvUnsafe: (sql: string) => Readable;
+    }
+  | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
+> => {
   try {
     switch (dbType) {
-      case "POSTGRES":
-      case "REDSHIFT":
-      case "MYSQL": {
-        const conn = new Sequelize(database, username, password, {
+      case "POSTGRES": {
+        const client = new pg.Client({
           host,
           port,
-          dialect:
-            dbType === "REDSHIFT"
-              ? "postgres"
-              : (dbType.toLowerCase() as Lowercase<typeof dbType>),
+          user: username,
+          password,
+          database,
         });
-
-        await conn.authenticate();
+        await client.connect();
 
         return {
-          status: REACHABLE,
-          connection: conn,
+          status: "REACHABLE",
+          query: (sql: Sql) => client.query(sql),
+          queryUnsafe: (sql: string) => client.query(sql),
+          extractToCsvUnsafe: (sql: string) =>
+            client.query(
+              pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
+            ),
         };
       }
+
       default: {
-        return {
-          status: UNREACHABLE,
-        };
+        return { status: "UNREACHABLE", error: "not_implemented" };
       }
     }
-  } catch (err) {
-    logger.error({ connectionError: err });
-    return {
-      status: UNREACHABLE,
-    };
+  } catch (error) {
+    logger.error(error);
+
+    return { status: "UNREACHABLE", error: "connection_refused" };
   }
 };
 
@@ -83,7 +80,7 @@ export const testQuery = async ({
   database,
   query,
 }: {
-  dbType: DBTypes;
+  dbType: SourceType;
   host: string;
   port: number;
   username: string;
@@ -96,7 +93,7 @@ export const testQuery = async ({
       case "POSTGRES":
       case "REDSHIFT":
       case "MYSQL": {
-        const { status, connection } = await getConnection({
+        const result = await getConnection({
           dbType,
           host,
           port,
@@ -104,26 +101,27 @@ export const testQuery = async ({
           password,
           database,
         });
-        if (status === UNREACHABLE || !connection) {
+
+        if (result.status !== "REACHABLE") {
           return {
-            status,
+            status: result.status,
             error: true,
             message: "Cannot connect to the database.",
           };
         }
 
         // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await connection.query(query, { type: QueryTypes.SELECT });
+        const res = await result.queryUnsafe(query);
 
         return {
-          status,
+          status: result.status,
           error: false,
-          columns: Object.keys(res[0]),
+          columns: Object.keys(res.rows[0]),
         };
       }
       default: {
         return {
-          status: UNREACHABLE,
+          status: "UNREACHABLE",
           error: true,
           message: "Database type is not currently supported.",
         };
@@ -132,7 +130,7 @@ export const testQuery = async ({
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
-      status: REACHABLE,
+      status: "REACHABLE",
       error: true,
       message,
     };

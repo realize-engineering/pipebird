@@ -6,7 +6,6 @@
 
 <!-- What changes are we making to address this problem? -->
 
-
 ## How did you test this code?
 
 <!-- Please describe the steps you took. -->

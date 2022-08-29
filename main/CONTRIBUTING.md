@@ -16,6 +16,7 @@ found a bug, want to add an improvement, or suggest an API change, please
 [create an issue](https://github.com/pipebird/pipebird/issues/new) before proceeding with a pull request.
 
 ### Creating a pull request
+
 1. Rebase main with your branch before submitting a pull request.
 2. Open the pull request.
 3. Wait for a review from a community maintainer or our team.
@@ -29,4 +30,3 @@ A member of the Pipebird team will review your PR to ensure that it solves the i
 <a href="https://github.com/pipebird/pipebird">
     <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/62fe57a6fd2bd5616374f955_Frame%2011960.svg" width=300 alt="Logo">
   </a>
-

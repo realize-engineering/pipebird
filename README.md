@@ -111,5 +111,3 @@ It's a big lift, having to solve for things like data quality, pipeline security
 That's what we've asked ourselves at Pipebird, and it's why we're building open source infrastructure to help developers give their companies the option to offer those benefits to their customers.
 
 Want to chat with us to learn more? [Choose a time to speak with someone on our team!](https://calendly.com/pipebird)
-
-<!-- markdownlint-restore -->

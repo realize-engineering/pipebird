@@ -94,6 +94,7 @@ model ColumnTransformation {
 enum DestinationType {
   POSTGRES
   PROVISIONED_S3
+  SNOWFLAKE
 }
 
 model Destination {
@@ -109,6 +110,7 @@ model Destination {
   schema          String?
   username        String?
   password        String?
+  lastModifiedAt  DateTime        @default("1970-01-01T00:00:00-00:00")
 
   transfers       Transfer[]
   configuration   Configuration @relation(fields: [configurationId], references: [id])

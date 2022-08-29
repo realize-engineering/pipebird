@@ -5,9 +5,9 @@ import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
-import { getConnection } from "../../../lib/connections.js";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
+import { getConnection } from "../../../lib/connections.js";
 const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
@@ -41,7 +41,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
 sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
   const body = z
     .object({
-      nickname: z.string(),
+      nickname: z.string(), // TODO(timothygoltser): This should be optional
       sourceType: z.enum([
         "MYSQL",
         "POSTGRES",
@@ -50,11 +50,11 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
         "BIGQUERY",
       ]),
       host: z.string(),
-      port: z.string().transform(Number),
+      port: z.number().int().nonnegative(),
       schema: z.string(),
       database: z.string(),
       username: z.string(),
-      password: z.string(),
+      password: z.string(), // TODO(timothygoltser): This should be optional
     })
     .safeParse(req.body);
 
@@ -76,7 +76,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     password,
   } = body.data;
 
-  const { status } = await getConnection({
+  const connection = await getConnection({
     dbType: sourceType,
     host,
     port,
@@ -85,10 +85,10 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     database,
   });
 
-  if (status !== "REACHABLE") {
-    return res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
-      code: "source_db_unreachable",
-    });
+  if (connection.status === "UNREACHABLE") {
+    return res
+      .status(HttpStatusCode.SERVICE_UNAVAILABLE)
+      .json({ code: "source_db_unreachable" });
   }
 
   const source = await db.source.create({

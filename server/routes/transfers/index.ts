@@ -71,14 +71,17 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
     select: {
       id: true,
       status: true,
-      destinationId: true,
       finalizedAt: true,
+      destinationId: true,
     },
   });
-  await transferQueue.add("start_transfer", {
-    transfer,
+  await transferQueue.add("start_transfer", transfer);
+  return res.status(HttpStatusCode.CREATED).json({
+    id: transfer.id,
+    status: transfer.status,
+    destinationId: transfer.destinationId,
+    finalizedAt: transfer.finalizedAt,
   });
-  return res.status(HttpStatusCode.CREATED).json(transfer);
 });
 
 // Get transfer

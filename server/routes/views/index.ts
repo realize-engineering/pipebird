@@ -120,7 +120,9 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
 
   const { sourceType, host, port, schema, database, username, password } =
     source;
-  const columnSelect = columns.map((col) => col.name).join(", ");
+  const columnSelect = columns
+    .map((col) => `"${col.name.replaceAll('"', "")}"`)
+    .join(", ");
 
   const test = await testQuery({
     dbType: sourceType,
@@ -129,7 +131,10 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     username,
     password,
     database,
-    query: `SELECT ${columnSelect} FROM ${schema}.${tableName} LIMIT 1`,
+    query: `SELECT ${columnSelect} FROM "${schema.replaceAll(
+      /\W/g,
+      "",
+    )}"."${tableName.replaceAll(/\W/g, "")}" LIMIT 1`,
   });
 
   if (test.error) {
