@@ -131,7 +131,10 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     username,
     password,
     database,
-    query: `SELECT ${columnSelect} FROM "${schema}"."${tableName}" LIMIT 1`,
+    query: `SELECT ${columnSelect} FROM "${schema.replaceAll(
+      /\W/g,
+      "",
+    )}"."${tableName.replaceAll(/\W/g, "")}" LIMIT 1`,
   });
 
   if (test.error) {
