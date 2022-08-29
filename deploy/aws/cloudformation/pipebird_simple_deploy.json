@@ -563,22 +563,22 @@
       "Description": "Password for the pipebird instance's local psql database.",
       "Type": "String",
       "MinLength": 7,
-      "Default": "pipebird",
       "NoEcho": true
     },
     "ec2KeyPair": {
       "Description": "Key pair to access the box running PipeBird",
-      "Type": "AWS::EC2::KeyPair::KeyName"
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "MinLength": 1
     },
     "VPC": {
       "Description": "The VPC to run pipebird inside of",
-      "Type": "AWS::EC2::VPC::Id"
+      "Type": "AWS::EC2::VPC::Id",
+      "MinLength": 1
     },
     "licenseKey": {
       "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
       "Type": "String",
-      "MinLength": 67,
-      "NoEcho": true
+      "MinLength": 67
     }
   },
   "Outputs": {
