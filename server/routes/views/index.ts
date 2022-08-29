@@ -4,7 +4,7 @@ import { default as validator } from "validator";
 import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
-import { testQuery } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections.js";
 import { db } from "../../../lib/db.js";
 import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
@@ -125,7 +125,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     .map((col) => `"${col.name.replaceAll('"', "")}"`)
     .join(", ");
 
-  const test = await testQuery({
+  const test = await useConnection({
     dbType: sourceType,
     host,
     port,
@@ -136,13 +136,13 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   });
 
   if (test.error) {
-    if (test.status === "UNREACHABLE") {
+    if (test.code === "connection_refused" || test.code === "not_implemented") {
       await db.source.update({
         where: {
           id: sourceId,
         },
         data: {
-          status: test.status,
+          status: "UNREACHABLE",
         },
       });
 
@@ -151,11 +151,13 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
       });
     }
 
+    const message =
+      test.code === "invalid_query"
+        ? test.message
+        : "The provided columns could not be queried from the table.";
     return res.status(HttpStatusCode.BAD_REQUEST).json({
       code: "invalid_table_expression",
-      message:
-        test.message ||
-        "The provided columns could not be queried from the table.",
+      message,
     });
   }
 

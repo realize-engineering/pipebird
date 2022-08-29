@@ -3,7 +3,7 @@ import { logger } from "../../../lib/logger.js";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
-import { getConnection } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections.js";
 import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
 import { env } from "../../../lib/env.js";
 import {
@@ -147,7 +147,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       schema: destSchema,
     } = destination;
 
-    const sourceConnection = await getConnection({
+    const sourceConnection = await useConnection({
       dbType: srcDbType,
       host: srcHost,
       port: srcPort,
@@ -156,7 +156,10 @@ export default async function (job: Job<TransferQueueJobData>) {
       database: srcDatabase,
     });
 
-    if (sourceConnection.status !== "REACHABLE") {
+    if (
+      sourceConnection.error ||
+      sourceConnection.code !== "connection_reachable"
+    ) {
       throw new Error(
         `Source with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
       );

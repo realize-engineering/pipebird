@@ -7,7 +7,7 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
-import { getConnection } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections.js";
 const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
@@ -76,7 +76,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     password,
   } = body.data;
 
-  const connection = await getConnection({
+  const connection = await useConnection({
     dbType: sourceType,
     host,
     port,
@@ -85,7 +85,7 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
     database,
   });
 
-  if (connection.status === "UNREACHABLE") {
+  if (connection.error || connection.code !== "connection_reachable") {
     return res
       .status(HttpStatusCode.SERVICE_UNAVAILABLE)
       .json({ code: "source_db_unreachable" });

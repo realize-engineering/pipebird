@@ -5,86 +5,7 @@ import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
 import { Sql } from "sql-template-tag";
 
-type QueryResult =
-  | {
-      status: "REACHABLE";
-      error: false;
-      columns: string[];
-      queryUnsafe: (
-        sql: string,
-      ) => Promise<{ rows: Record<string, unknown>[] }>;
-    }
-  | {
-      status: "REACHABLE";
-      error: true;
-      message?: string;
-    }
-  | {
-      status: "UNREACHABLE";
-      error: true;
-      message?: string;
-    };
-
-export const getConnection = async ({
-  dbType,
-  host,
-  port,
-  username,
-  password,
-  database,
-}: {
-  dbType: SourceType;
-  host: string;
-  port: number;
-  username: string;
-  password?: string;
-  database: string;
-}): Promise<
-  | {
-      status: "REACHABLE";
-      query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
-      queryUnsafe: (
-        sql: string,
-      ) => Promise<{ rows: Record<string, unknown>[] }>;
-      extractToCsvUnsafe: (sql: string) => Readable;
-    }
-  | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
-> => {
-  try {
-    switch (dbType) {
-      case "POSTGRES": {
-        const client = new pg.Client({
-          host,
-          port,
-          user: username,
-          password,
-          database,
-        });
-        await client.connect();
-
-        return {
-          status: "REACHABLE",
-          query: (sql: Sql) => client.query(sql),
-          queryUnsafe: (sql: string) => client.query(sql),
-          extractToCsvUnsafe: (sql: string) =>
-            client.query(
-              pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
-            ),
-        };
-      }
-
-      default: {
-        return { status: "UNREACHABLE", error: "not_implemented" };
-      }
-    }
-  } catch (error) {
-    logger.error(error);
-
-    return { status: "UNREACHABLE", error: "connection_refused" };
-  }
-};
-
-export const testQuery = async ({
+export const useConnection = async ({
   dbType,
   host,
   port,
@@ -96,57 +17,87 @@ export const testQuery = async ({
   dbType: SourceType;
   host: string;
   port: number;
-  username: string;
-  password: string;
   database: string;
-  query: string;
-}): Promise<QueryResult> => {
+  username: string;
+  password?: string;
+  query?: string;
+}): Promise<
+  | {
+      error: true;
+      code: "not_implemented" | "connection_refused";
+    }
+  | {
+      error: true;
+      code: "invalid_query";
+      message: string;
+    }
+  | {
+      error: false;
+      code: "connection_reachable";
+      query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
+      queryUnsafe: (
+        sql: string,
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+      extractToCsvUnsafe: (sql: string) => Readable;
+    }
+  | {
+      error: false;
+      code: "query_succeeded";
+      columns: string[];
+      result: Record<string, unknown>[];
+      queryUnsafe: (
+        sql: string,
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+    }
+> => {
   try {
     switch (dbType) {
-      case "POSTGRES":
-      case "REDSHIFT":
-      case "MYSQL": {
-        const result = await getConnection({
-          dbType,
+      case "POSTGRES": {
+        const client = new pg.Client({
           host,
           port,
-          username,
+          user: username,
           password,
           database,
         });
 
-        if (result.status !== "REACHABLE") {
+        try {
+          await client.connect();
+        } catch (error) {
+          return { error: true, code: "connection_refused" };
+        }
+
+        if (query) {
+          const res = await client.query(query);
+
           return {
-            status: result.status,
-            error: true,
-            message: "Cannot connect to the database.",
+            error: false,
+            code: "query_succeeded",
+            columns: Object.keys(res.rows[0]),
+            result: res.rows,
+            queryUnsafe: (sql: string) => client.query(sql),
           };
         }
 
-        // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await result.queryUnsafe(query);
-
         return {
-          status: result.status,
           error: false,
-          columns: Object.keys(res.rows[0]),
-          queryUnsafe: result.queryUnsafe,
+          code: "connection_reachable",
+          query: (sql: Sql) => client.query(sql),
+          queryUnsafe: (sql: string) => client.query(sql),
+          extractToCsvUnsafe: (sql: string) =>
+            client.query(
+              pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
+            ),
         };
       }
+
       default: {
-        return {
-          status: "UNREACHABLE",
-          error: true,
-          message: "Database type is not currently supported.",
-        };
+        return { error: true, code: "not_implemented" };
       }
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      status: "REACHABLE",
-      error: true,
-      message,
-    };
+  } catch (error) {
+    logger.error(error);
+
+    return { error: true, code: "connection_refused" };
   }
 };
