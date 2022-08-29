@@ -80,13 +80,13 @@ export const createDestinationTable = async ({
     const columnType = destCol.viewColumn.dataType;
 
     // todo(ianedwards): change this to use additional source and destination types
-    return `"${sanitizeQueryParam(
-      destCol.nameInDestination,
-    )}" ${getColumnTypeForDest({
-      sourceType: "POSTGRES",
-      destinationType: "SNOWFLAKE",
-      columnType,
-    })}`;
+    return `"${sanitizeQueryParam(destCol.nameInDestination)}" ${
+      getColumnTypeForDest({
+        sourceType: "POSTGRES",
+        destinationType: "SNOWFLAKE",
+        columnType,
+      }) ?? "varchar"
+    }`;
   });
 
   const tableCreateOperation = `CREATE TABLE IF NOT EXISTS "${sanitizeQueryParam(

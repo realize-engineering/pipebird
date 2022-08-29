@@ -4,6 +4,8 @@ import express, {
   Request,
   Response,
 } from "express";
+import { DatabaseError as SQDatabaseError } from "sequelize";
+import pg from "pg";
 
 import { env } from "../lib/env.js";
 import { ErrorApiSchema } from "../lib/handlers.js";
@@ -43,6 +45,17 @@ const errorHandler: ErrorRequestHandler = (
 ) => {
   if (err) {
     logger.error(err);
+
+    const isDBError =
+      err instanceof pg.DatabaseError || err instanceof SQDatabaseError;
+    if (isDBError) {
+      const message =
+        err.message ?? "A database request could not be completed";
+      return res
+        .status(HttpStatusCode.BAD_REQUEST)
+        .json({ code: "database_error", message });
+    }
+
     return res
       .status(HttpStatusCode.INTERNAL_SERVER_ERROR)
       .json({ code: "unhandled_exception" });

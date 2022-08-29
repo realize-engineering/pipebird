@@ -24,11 +24,7 @@ export const useConnection = async ({
 }): Promise<
   | {
       error: true;
-      code: "not_implemented" | "connection_refused";
-    }
-  | {
-      error: true;
-      code: "invalid_query";
+      code: "not_implemented" | "connection_refused" | "invalid_query";
       message: string;
     }
   | {
@@ -61,11 +57,7 @@ export const useConnection = async ({
           database,
         });
 
-        try {
-          await client.connect();
-        } catch (error) {
-          return { error: true, code: "connection_refused" };
-        }
+        await client.connect();
 
         if (query) {
           const res = await client.query(query);
@@ -92,12 +84,33 @@ export const useConnection = async ({
       }
 
       default: {
-        return { error: true, code: "not_implemented" };
+        return {
+          error: true,
+          code: "not_implemented",
+          message: `Database type ${dbType} has not yet been implemented.`,
+        };
       }
     }
   } catch (error) {
-    logger.error(error);
+    logger.info({ connectionError: error });
+    if (error instanceof pg.DatabaseError) {
+      if (error.code?.startsWith("08") || error.code?.startsWith("28")) {
+        return {
+          error: true,
+          code: "connection_refused",
+          message: error.message,
+        };
+      }
 
-    return { error: true, code: "connection_refused" };
+      if (error.code?.startsWith("42") || error.code?.startsWith("22")) {
+        return { error: true, code: "invalid_query", message: error.message };
+      }
+    }
+
+    return {
+      error: true,
+      code: "connection_refused",
+      message: "Something went wrong when connecting to the database",
+    };
   }
 };
