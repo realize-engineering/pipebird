@@ -17,7 +17,6 @@
   </p>
 </p>
 
-
 ## Direct, secure, and cost efficient data sharing
 
 ![GitHub Repo stars](https://img.shields.io/github/stars/Pipebird/pipebird?style=social) [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=brightgreen)](https://github.com/pipebird/pipebird/tree/a9b1c6c0420550ad5069aca66c295223e0d05e27/LICENSE/README.md) <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
@@ -38,16 +37,16 @@ We believe that verified, native product data pipelines offer a more secure and 
 
 **Our goal is to make it easy for any company to offer the same powerful data sharing features in just a few of hours, increasing security and decreasing complexity for their customers.**
 
-
 ## Get started for free
 
 Pipebird is designed to be deployed on your own infrastructure so that you keep control of your data.
 
-### [Deploy a Pipebird ec2 instance within your existing AWS VPC](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-lglxt2zjl1jo-us-east-1/pipebird_existing_cloud_deploy&stackName=pipebird&param_licenseKey=lk_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff).
+### [Deploy Pipebird to an EC2 instance within your existing AWS VPC](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-lglxt2zjl1jo-us-east-1/pipebird_existing_cloud_deploy&stackName=pipebird&param_licenseKey=lk_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff).
 
 ## Sources
 
 Data originates from one of your company's sources, which can be any of:
+
 - S3
 - MySQL
 - Postgres
@@ -59,6 +58,7 @@ Data originates from one of your company's sources, which can be any of:
 Your customers can define their own destinations, which your team can configure through our Destinations API. For example, a consumer may want you to pipe data directly into their own warehouse, or to an S3 bucket provisioned through Pipebird cloud for them to view their transformed data via a pre-signed URL.
 
 Some common destinations include:
+
 - Snowflake
 - Amazon Redshift
 - Amazon S3
@@ -76,6 +76,7 @@ If there are other destinations that you would like to see, please let us know i
 After your customers' define where they expect data to reach, they may define some set of transformations to be applied on this data in transit. They may do this by uploading Configurations which define mutations on the schema consumers want. For example, a consumer may want the Date column updated_at to be casted into a datetime object when it reaches the end data destination.
 
 We support renaming columns and casting data types between sources and destinations, but will soon be expanding destinations and working on transformations like:
+
 - sums
 - averages
 - sorts
@@ -113,5 +114,3 @@ That's what we've asked ourselves at Pipebird, and it's why we're building open 
 Want to chat with us to learn more? [Choose a time to speak with someone on our team!](https://calendly.com/pipebird)
 
 <!-- markdownlint-restore -->
-
-

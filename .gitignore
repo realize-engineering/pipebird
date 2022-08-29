@@ -5,3 +5,4 @@
 prisma/dev.db
 prisma/dev.db-journal
 *.db*
+.vscode/
