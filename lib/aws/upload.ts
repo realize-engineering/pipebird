@@ -4,6 +4,7 @@ import { randomUUID } from "crypto";
 import { S3 } from "./s3.js";
 import { env } from "../env.js";
 import { Upload } from "@aws-sdk/lib-storage";
+import path from "path";
 
 const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
@@ -23,7 +24,7 @@ export const uploadObject = async ({
     client: S3,
     params: {
       Bucket: bucket,
-      Key: `${pathPrefix ? `${pathPrefix}/${key}` : key}${
+      Key: `${pathPrefix ? `${path.posix.join(pathPrefix, key)}` : key}${
         extension ? `.${extension}` : ""
       }`,
       Body: contents,

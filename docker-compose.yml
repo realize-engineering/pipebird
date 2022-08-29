@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:14.2-alpine
+    restart: unless-stopped
+    container_name: pipebird-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pipebird}
+      POSTGRES_USER: ${POSTGRES_USER:-pipebird}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pipebird}
+      PGDATA: /data/postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - /dev/sdf/data/postgres:/data/postgres
+  redis:
+    image: redis:7.0-alpine
+    restart: unless-stopped
+    container_name: pipebird-redis
+    volumes:
+      - /dev/sdf/data/redis:/data
+    ports:
+      - ${REDIS_PORT}:6379
+  api:
+    build: .
+    ports:
+      - ${PORT}:${PORT}
+    depends_on:
+      - redis
+      - db
+    environment:
+      - REDIS_HOST=redis
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird?connect_timeout=300&schema=public
+      - SECRET_KEY=${SECRET_KEY}
+      - REDIS_PORT=${REDIS_PORT}
+      - PORT=${PORT}
+      - S3_USER_ACCESS_ID=${S3_USER_ACCESS_ID}
+      - S3_USER_SECRET_KEY=${S3_USER_SECRET_KEY}
+      - PROVISIONED_BUCKET_NAME=${PROVISIONED_BUCKET_NAME}
+      - AWS_REGION=${AWS_REGION}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - KMS_KEY_ID=${KMS_KEY_ID}
