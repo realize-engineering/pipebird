@@ -41,7 +41,11 @@ We believe that verified, native product data pipelines offer a more secure and 
 
 Pipebird is designed to be deployed on your own infrastructure so that you keep control of your data.
 
-### [Deploy Pipebird to an EC2 instance within your existing AWS VPC](https://us-east-1.console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/quickcreate?templateURL=https://s3-external-1.amazonaws.com/cf-templates-lglxt2zjl1jo-us-east-1/pipebird_existing_cloud_deploy&stackName=pipebird&param_licenseKey=lk_ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff).
+### [Click here to view our deployment guide.](https://docs.pipebird.com/reference/quickstart)
+
+Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg) if you want to chat with the team, share product ideas, or get help with something!
+
+Email hello@pipebird.com if you want to reach us directly.
 
 ## Sources
 
@@ -83,14 +87,6 @@ We support renaming columns and casting data types between sources and destinati
 - etc.
 
 These can be configured in a declarative format through a YAML config (or a UI can be created).
-
-## Ready to get started?
-
-See [Pipebird docs](https://docs.pipebird.com/reference/welcome-to-pipebird) to learn more about Pipebird functionality.
-
-Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg) if you want to chat with the team, share product ideas, or get help with something!
-
-Email hello@pipebird.com if you want to reach us directly.
 
 ## Open source vs. paid versions
 
