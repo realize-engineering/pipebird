@@ -76,9 +76,9 @@ If there are other destinations that you would like to see, please let us know i
 
 <img src="https://media.giphy.com/media/CRwUOHpwa9Lhe/giphy.gif" width="50%">
 
-After your customers' define where they expect data to reach, they may define some set of transformations to be applied on this data in transit. They may do this by uploading Configurations which define mutations on the schema consumers want. For example, a consumer may want the Date column updated_at to be casted into a datetime object when it reaches the end data destination.
+After consumers define where they expect data to go they may define some set of transformations to be applied on this data by uploading Configurations which define mutations on the source data. For example, a consumer may want the Date column updated_at to be casted into a DateTime object in the destination.
 
-We support renaming columns and casting data types between sources and destinations, but will soon be expanding destinations and working on transformations like:
+We currently support renaming columns and casting data types between sources and destinations and will be expanding destinations and working on transformations like:
 
 - sums
 - averages
