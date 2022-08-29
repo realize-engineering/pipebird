@@ -4,46 +4,79 @@
   "Metadata": {
     "AWS::CloudFormation::Designer": {
       "12d7e160-0a80-41e1-9076-14d9d321b425": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 300, "y": -40 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": -40
+        },
         "z": 1,
         "embeds": [],
         "isassociatedwith": [
           "75ee4d4d-5387-4e64-a6e7-df69e2be9de2",
           "0f44b41f-d758-4479-8a37-4cb92468693d"
         ],
-        "dependson": [
-          "af0c845b-f4f3-4d92-9488-ab4306d11151",
-          "2fdd17ad-0f65-46e0-9597-44875772b447"
-        ]
+        "dependson": ["2fdd17ad-0f65-46e0-9597-44875772b447"]
       },
       "75ee4d4d-5387-4e64-a6e7-df69e2be9de2": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 300, "y": 60 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 300,
+          "y": 60
+        },
         "z": 1,
         "embeds": []
       },
       "0f44b41f-d758-4479-8a37-4cb92468693d": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 150, "y": -80 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 150,
+          "y": -80
+        },
         "z": 1,
         "embeds": []
       },
       "af0c845b-f4f3-4d92-9488-ab4306d11151": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 120, "y": 180 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 120,
+          "y": 180
+        },
         "z": 1,
         "embeds": []
       },
       "9f44a320-98cb-4f48-8843-8c51edd67f0b": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 560, "y": 260 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 560,
+          "y": 260
+        },
         "z": 0,
         "embeds": []
       },
       "2fdd17ad-0f65-46e0-9597-44875772b447": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 330, "y": 250 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 330,
+          "y": 250
+        },
         "z": 0,
         "embeds": [],
         "dependson": [
@@ -52,51 +85,54 @@
         ]
       },
       "a6609656-fabb-487f-a506-84b6271aa1e6": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 610, "y": 120 },
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 610,
+          "y": 120
+        },
         "z": 0,
         "embeds": [],
         "isassociatedwith": ["2fdd17ad-0f65-46e0-9597-44875772b447"]
       },
-      "0b9ef87d-f40a-4249-8df4-369c7870a695": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 20, "y": 10 },
-        "z": 0,
-        "dependson": ["af0c845b-f4f3-4d92-9488-ab4306d11151"]
-      },
-      "52745e6c-9ca0-48b5-90f9-602b05d69ce8": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": -50, "y": 220 },
-        "z": 0,
-        "dependson": [
-          "af0c845b-f4f3-4d92-9488-ab4306d11151",
-          "0b9ef87d-f40a-4249-8df4-369c7870a695"
-        ]
-      },
-      "ad87abca-2f09-4032-8a14-8c87d1d6d2a5": {
-        "source": { "id": "52745e6c-9ca0-48b5-90f9-602b05d69ce8" },
-        "target": { "id": "af0c845b-f4f3-4d92-9488-ab4306d11151" },
-        "z": 11
-      },
-      "f08d9bdd-22a3-4f24-8cb9-5d6f04af2015": {
-        "source": { "id": "0b9ef87d-f40a-4249-8df4-369c7870a695" },
-        "target": { "id": "af0c845b-f4f3-4d92-9488-ab4306d11151" },
-        "z": 12
-      },
-      "ddb56c7b-2352-43e2-b7c1-0027d1cdc1d7": {
-        "source": { "id": "52745e6c-9ca0-48b5-90f9-602b05d69ce8" },
-        "target": { "id": "0b9ef87d-f40a-4249-8df4-369c7870a695" },
-        "z": 13
-      },
       "d7aa9df2-c6ef-4ebb-a91b-877dab996be9": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 444.7415429476021, "y": -121.79635147244073 },
-        "z": 0
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 444.7415429476021,
+          "y": -121.79635147244073
+        },
+        "z": 0,
+        "embeds": []
       },
       "660d2149-d241-47bf-8d7f-9c839ac0cb09": {
-        "size": { "width": 60, "height": 60 },
-        "position": { "x": 585.2059129091086, "y": -73.31749812289424 },
-        "z": 0
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": 585.2059129091086,
+          "y": -73.31749812289424
+        },
+        "z": 0,
+        "embeds": []
+      },
+      "4c417d4a-8863-4ad1-adf3-f705de8cc96d": {
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "position": {
+          "x": -20,
+          "y": -110
+        },
+        "z": 0,
+        "embeds": [],
+        "isassociatedwith": ["2fdd17ad-0f65-46e0-9597-44875772b447"]
       }
     }
   },
@@ -104,7 +140,17 @@
     "PipeBirdSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "VpcId": { "Ref": "VPC" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-security-group-1"
+            }
+          }
+        ],
+        "VpcId": {
+          "Ref": "VPC"
+        },
         "GroupDescription": "Enable the ports pipebird requires (80, 22, 3000)",
         "SecurityGroupIngress": [
           {
@@ -143,10 +189,20 @@
     },
     "PipeBirdStorage": {
       "Type": "AWS::EC2::Volume",
+      "DeletionPolicy": "Snapshot",
+      "UpdateReplacePolicy": "Retain",
       "Properties": {
         "AvailabilityZone": {
           "Ref": "availabilityZone"
         },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-ebs-1"
+            }
+          }
+        ],
         "Size": "10",
         "Encrypted": true
       },
@@ -167,20 +223,26 @@
         "Volumes": [
           {
             "Device": "/dev/sdf",
-            "VolumeId": { "Ref": "PipeBirdStorage" }
+            "VolumeId": {
+              "Ref": "PipeBirdStorage"
+            }
           }
         ],
-        "SubnetId": { "Ref": "subnetId" },
-        "AvailabilityZone": { "Ref": "availabilityZone" },
+        "SubnetId": {
+          "Ref": "subnetId"
+        },
+        "AvailabilityZone": {
+          "Ref": "availabilityZone"
+        },
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
               "\n",
               [
                 "#!/bin/bash -ex",
-                "echo \">>>>>>>>>>>>> USER_DATA_CONFIG <<<<<<<<<<<<<\"",
                 "apt-get update -y",
-                "apt install unzip",
+                "apt install unzip -y",
+                "apt install docker.io -y",
                 "wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip",
                 "unzip main.zip",
                 "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
@@ -189,14 +251,28 @@
                 "echo \"PORT=3000\" >> .env",
                 {
                   "Fn::Sub": [
+                    "echo \"PROVISIONED_BUCKET_NAME=${BUCKET_NAME}\" >> .env",
+                    {
+                      "BUCKET_NAME": {
+                        "Ref": "PipeBirdProvisionedBucket"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
                     "echo \"DATABASE_URL=${DATABASE_URL}\" >> .env",
                     {
                       "DATABASE_URL": {
                         "Fn::Sub": [
                           "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/pipebird",
                           {
-                            "POSTGRES_PASSWORD": { "Ref": "databasePassword" },
-                            "POSTGRES_USER": { "Ref": "databaseUsername" }
+                            "POSTGRES_PASSWORD": {
+                              "Ref": "databasePassword"
+                            },
+                            "POSTGRES_USER": {
+                              "Ref": "databaseUsername"
+                            }
                           }
                         ]
                       }
@@ -205,20 +281,55 @@
                 },
                 {
                   "Fn::Sub": [
+                    "echo \"POSTGRES_USER=${POSTGRES_USER}\" >> .env",
+                    {
+                      "POSTGRES_USER": {
+                        "Ref": "databaseUsername"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
+                    "echo \"POSTGRES_PASSWORD=${POSTGRES_PASSWORD}\" >> .env",
+                    {
+                      "POSTGRES_PASSWORD": {
+                        "Ref": "databasePassword"
+                      }
+                    }
+                  ]
+                },
+                "echo \"POSTGRES_DB=pipebird\" >> .env",
+                {
+                  "Fn::Sub": [
                     "echo \"LICENSE_KEY=${LICENSE_KEY}\" >> .env",
-                    { "LICENSE_KEY": { "Ref": "licenseKey" } }
+                    {
+                      "LICENSE_KEY": {
+                        "Ref": "licenseKey"
+                      }
+                    }
                   ]
                 },
                 "echo \"REDIS_HOST=localhost\" >> .env",
                 "echo \"REDIS_PORT=6379\" >> .env",
-                "echo \"SECRET_KEY=$(openssl rand -hex 32)\" >> .env",
-                "echo \"ENCRYPTION_KEY=$(openssl rand -hex 32)\" >> .env",
+                "echo \"SECRET_KEY=$(openssl rand -hex 64)\" >> .env",
+                "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
+                {
+                  "Fn::Sub": [
+                    "echo \"KMS_KEY_ID=${KMS_KEY_ID}\" >> .env",
+                    {
+                      "KMS_KEY_ID": {
+                        "Fn::GetAtt": ["PipeBirdS3Key", "KeyId"]
+                      }
+                    }
+                  ]
+                },
                 {
                   "Fn::Sub": [
                     "echo \"S3_USER_ACCESS_ID=${ACCESS_ID}\" >> .env",
                     {
                       "ACCESS_ID": {
-                        "Ref": "PipeBirdProvisionedS3UserKeys"
+                        "Ref": "PipeBirdProvisionedUserKeys"
                       }
                     }
                   ]
@@ -229,47 +340,68 @@
                     {
                       "SECRET_KEY": {
                         "Fn::GetAtt": [
-                          "PipeBirdProvisionedS3UserKeys",
+                          "PipeBirdProvisionedUserKeys",
                           "SecretAccessKey"
                         ]
                       }
                     }
                   ]
                 },
-                "echo \"PROVISIONED_BUCKET_NAME=PipeBirdProvisionedBucket\" >> .env",
                 {
                   "Fn::Sub": [
                     "echo \"AWS_REGION=${AWS_REGION}\" >> .env",
-                    { "AWS_REGION": { "Ref": "AWS::Region" } }
+                    {
+                      "AWS_REGION": {
+                        "Ref": "AWS::Region"
+                      }
+                    }
                   ]
                 },
                 "mv .env pipebird-main",
-                "cd pipebird-main && docker-compose up -d",
-                "echo \">>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<\""
+                "cd pipebird-main && docker-compose up -d"
               ]
             ]
           }
         },
-        "KeyName": { "Ref": "ec2KeyPair" },
-        "Tags": [{ "Key": "Name", "Value": "PipeBird" }],
+        "KeyName": {
+          "Ref": "ec2KeyPair"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-pipebird-ec2-1"
+            }
+          }
+        ],
         "ImageId": "ami-052efd3df9dad4825",
         "InstanceType": "t2.medium",
-        "SecurityGroupIds": [{ "Ref": "PipeBirdSecurityGroup" }]
+        "SecurityGroupIds": [
+          {
+            "Ref": "PipeBirdSecurityGroup"
+          }
+        ]
       },
-      "CreationPolicy": { "ResourceSignal": { "Timeout": "PT30M" } },
-      "DependsOn": ["PipeBirdProvisionedBucket", "PipeBirdProvisionedS3User"]
+      "DependsOn": ["PipeBirdProvisionedUser"]
     },
     "PipeBirdProvisionedBucket": {
       "Type": "AWS::S3::Bucket",
       "Properties": {
-        "Tags": [{ "Key": "Name", "Value": "PipeBirdBucket" }],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-pipebird-bucket-1"
+            }
+          }
+        ],
         "BucketEncryption": {
           "ServerSideEncryptionConfiguration": [
             {
               "ServerSideEncryptionByDefault": {
                 "SSEAlgorithm": "aws:kms",
                 "KMSMasterKeyID": {
-                  "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:${s3KeyAlias}"
+                  "Fn::Sub": "arn:aws:kms:${AWS::Region}:${AWS::AccountId}:${PipeBirdS3KeyAlias}"
                 }
               },
               "BucketKeyEnabled": true
@@ -289,18 +421,32 @@
         }
       }
     },
-    "PipeBirdProvisionedS3UserKeys": {
+    "PipeBirdProvisionedUserKeys": {
       "Type": "AWS::IAM::AccessKey",
-      "Properties": { "UserName": { "Ref": "PipeBirdProvisionedS3User" } },
+      "Properties": {
+        "UserName": {
+          "Ref": "PipeBirdProvisionedUser"
+        }
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "9f44a320-98cb-4f48-8843-8c51edd67f0b"
         }
       }
     },
-    "PipeBirdProvisionedS3User": {
+    "PipeBirdProvisionedUser": {
       "Type": "AWS::IAM::User",
-      "Properties": {},
+      "Properties": {
+        "UserName": { "Fn::Sub": "${AWS::StackName}-pipebird-user-1" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-pipebird-user-1"
+            }
+          }
+        ]
+      },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "2fdd17ad-0f65-46e0-9597-44875772b447"
@@ -318,11 +464,29 @@
             {
               "Effect": "Allow",
               "Action": "*",
-              "Resource": { "Fn::GetAtt": ["PipeBirdProvisionedBucket", "Arn"] }
+              "Resource": [
+                {
+                  "Fn::GetAtt": ["PipeBirdProvisionedBucket", "Arn"]
+                },
+                {
+                  "Fn::Sub": [
+                    "${bucketArn}/*",
+                    {
+                      "bucketArn": {
+                        "Fn::GetAtt": ["PipeBirdProvisionedBucket", "Arn"]
+                      }
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },
-        "Users": [{ "Ref": "PipeBirdProvisionedS3User" }]
+        "Users": [
+          {
+            "Ref": "PipeBirdProvisionedUser"
+          }
+        ]
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
@@ -330,9 +494,17 @@
         }
       }
     },
-    "s3Key": {
+    "PipeBirdS3Key": {
       "Type": "AWS::KMS::Key",
       "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Sub": "${AWS::StackName}-pipebird-kms-key-1"
+            }
+          }
+        ],
         "KeyPolicy": {
           "Version": "2012-10-17",
           "Id": "pipebird-key-s3",
@@ -346,7 +518,13 @@
                 "AWS": {
                   "Fn::Join": [
                     "",
-                    ["arn:aws:iam::", { "Ref": "AWS::AccountId" }, ":root"]
+                    [
+                      "arn:aws:iam::",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":root"
+                    ]
                   ]
                 }
               }
@@ -354,7 +532,9 @@
             {
               "Sid": "Give VPC logs permission",
               "Effect": "Allow",
-              "Principal": { "Service": ["delivery.logs.amazonaws.com"] },
+              "Principal": {
+                "Service": ["delivery.logs.amazonaws.com"]
+              },
               "Action": "kms:GenerateDataKey*",
               "Resource": "*"
             }
@@ -368,15 +548,45 @@
         }
       }
     },
-    "s3KeyAlias": {
+    "PipeBirdS3KeyAlias": {
       "Type": "AWS::KMS::Alias",
       "Properties": {
         "AliasName": "alias/s3",
-        "TargetKeyId": { "Ref": "s3Key" }
+        "TargetKeyId": {
+          "Ref": "PipeBirdS3Key"
+        }
       },
       "Metadata": {
         "AWS::CloudFormation::Designer": {
           "id": "660d2149-d241-47bf-8d7f-9c839ac0cb09"
+        }
+      }
+    },
+    "PipeBirdS3UserKMSPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "PipeBirdKMSPolicyFullAccess",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": "*",
+              "Resource": {
+                "Fn::GetAtt": ["PipeBirdS3Key", "Arn"]
+              }
+            }
+          ]
+        },
+        "Users": [
+          {
+            "Ref": "PipeBirdProvisionedUser"
+          }
+        ]
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Designer": {
+          "id": "4c417d4a-8863-4ad1-adf3-f705de8cc96d"
         }
       }
     }
@@ -385,8 +595,8 @@
     "databaseUsername": {
       "Description": "Username for the pipebird instance's local psql database.",
       "Type": "String",
-      "NoEcho": true,
-      "MinLength": 1
+      "MinLength": 1,
+      "Default": "pipebird"
     },
     "databasePassword": {
       "Description": "Password for the pipebird instance's local psql database.",
@@ -425,7 +635,9 @@
           "",
           [
             "http://",
-            { "Fn::GetAtt": ["PipeBirdInstance", "PublicIp"] },
+            {
+              "Fn::GetAtt": ["PipeBirdInstance", "PrivateIp"]
+            },
             ":3000"
           ]
         ]
