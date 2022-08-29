@@ -47,10 +47,10 @@ Pipebird is designed to be deployed on your own infrastructure so that you keep 
 
 Data originates from one of your company's sources, which can be any of:
 
-- S3
-- MySQL
 - Postgres
-- Redshift
+- MySQL [in progress]
+- S3 [in progress]
+- Redshift [in progress]
 - etc.
 
 ## Destinations
@@ -59,13 +59,12 @@ Your customers can define their own destinations, which your team can configure 
 
 Some common destinations include:
 
+- CSV Export
 - Snowflake
-- Amazon Redshift
 - Amazon S3
-- PostgreSQL
-- BigQuery
-- Databricks
-- CSV export
+- Amazon Redshift [in progress]
+- BigQuery [in progress]
+- Databricks [in progress]
 
 If there are other destinations that you would like to see, please let us know in the [Pipebird Slack Community!](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg)
 
