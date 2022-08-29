@@ -5,11 +5,12 @@ import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
 import { testQuery } from "../../../lib/connections.js";
-import { db } from "../../../lib/db.js";
+import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
 import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
+import sql from "sql-template-tag";
 
 type ViewResponse = Prisma.ViewGetPayload<{
   select: {
@@ -120,9 +121,6 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
 
   const { sourceType, host, port, schema, database, username, password } =
     source;
-  const columnSelect = columns
-    .map((col) => `"${col.name.replaceAll('"', "")}"`)
-    .join(", ");
 
   const test = await testQuery({
     dbType: sourceType,
@@ -131,10 +129,9 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     username,
     password,
     database,
-    query: `SELECT ${columnSelect} FROM "${schema.replaceAll(
-      /\W/g,
-      "",
-    )}"."${tableName.replaceAll(/\W/g, "")}" LIMIT 1`,
+    query: sql`SELECT ${quoteIdentifiers(
+      columns.map((column) => column.name),
+    )} FROM ${quoteIdentifier(schema)}.${quoteIdentifier(tableName)} LIMIT 1`,
   });
 
   if (test.error) {

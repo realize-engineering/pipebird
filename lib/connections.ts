@@ -1,9 +1,9 @@
 import { SourceType } from "@prisma/client";
 import { Readable } from "stream";
 import pg from "pg";
-import pgcs from "pg-copy-streams";
 import { logger } from "./logger.js";
 import { Sql } from "sql-template-tag";
+import QueryStream from "pg-query-stream";
 
 type QueryResult = {
   status: "REACHABLE" | "UNREACHABLE";
@@ -30,10 +30,10 @@ export const getConnection = async ({
   | {
       status: "REACHABLE";
       query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
+      queryStream: (sql: Sql) => Readable;
       queryUnsafe: (
         sql: string,
       ) => Promise<{ rows: Record<string, unknown>[] }>;
-      extractToCsvUnsafe: (sql: string) => Readable;
     }
   | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
 > => {
@@ -52,11 +52,9 @@ export const getConnection = async ({
         return {
           status: "REACHABLE",
           query: (sql: Sql) => client.query(sql),
+          queryStream: (sql: Sql) =>
+            client.query(new QueryStream(sql.text, sql.values)),
           queryUnsafe: (sql: string) => client.query(sql),
-          extractToCsvUnsafe: (sql: string) =>
-            client.query(
-              pgcs.to(`COPY (${sql}) TO STDOUT WITH DELIMITER ',' HEADER CSV`),
-            ),
         };
       }
 
@@ -86,7 +84,7 @@ export const testQuery = async ({
   username: string;
   password: string;
   database: string;
-  query: string;
+  query: Sql;
 }): Promise<QueryResult> => {
   try {
     switch (dbType) {
@@ -111,7 +109,7 @@ export const testQuery = async ({
         }
 
         // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await result.queryUnsafe(query);
+        const res = await result.query(query);
 
         return {
           status: result.status,

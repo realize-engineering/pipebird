@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import { logger } from "../../../lib/logger.js";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
-import { db } from "../../../lib/db.js";
+import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
 import { getConnection } from "../../../lib/connections.js";
 import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
 import { env } from "../../../lib/env.js";
@@ -15,8 +15,10 @@ import {
 import zlib from "node:zlib";
 import { z } from "zod";
 import { parseISO } from "date-fns";
+import sql from "sql-template-tag";
+import * as csv from "csv";
 
-const buildTemplatedQuery = ({
+const buildFormattedQuery = ({
   viewColumns,
   resultColumns,
   tableName,
@@ -33,19 +35,13 @@ const buildTemplatedQuery = ({
   lastModifiedColumn: string;
   lastModifiedAt: string;
 }) =>
-  `SELECT ${resultColumns
-    .map(
-      (column) =>
-        `"${column.nameInSource.replaceAll(
-          '"',
-          "",
-        )}" AS "${column.nameInDestination.replaceAll('"', "")}"`,
-    )
-    .join(", ")} FROM (SELECT ${viewColumns
-    .map((column) => `"${column.replaceAll('"', "")}"`)
-    .join(
-      ", ",
-    )} FROM "${tableName}") AS t WHERE "${tenantColumn}" = '${tenantId}' AND "${lastModifiedColumn}" > '${lastModifiedAt}'`;
+  sql`SELECT ${quoteIdentifiers(resultColumns)} FROM (SELECT ${quoteIdentifiers(
+    viewColumns,
+  )} FROM ${quoteIdentifier(tableName)}) AS t WHERE ${quoteIdentifier(
+    tenantColumn,
+  )} = ${tenantId} AND ${quoteIdentifier(
+    lastModifiedColumn,
+  )} > ${lastModifiedAt}`;
 
 const buildLastModifiedQuery = ({
   lastModifiedColumn,
@@ -53,14 +49,10 @@ const buildLastModifiedQuery = ({
 }: {
   lastModifiedColumn: string;
   tableName: string;
-}) => {
-  const lastModifiedColumnEscaped = lastModifiedColumn.replaceAll('"', "");
-
-  return `SELECT "${lastModifiedColumnEscaped}" FROM "${tableName.replaceAll(
-    '"',
-    "",
-  )}" ORDER BY "${lastModifiedColumnEscaped}" DESC LIMIT 1;`;
-};
+}) =>
+  sql`SELECT ${quoteIdentifier(lastModifiedColumn)} FROM ${quoteIdentifier(
+    tableName,
+  )} ORDER BY ${quoteIdentifier(lastModifiedColumn)} DESC LIMIT 1`;
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -182,29 +174,37 @@ export default async function (job: Job<TransferQueueJobData>) {
     const lastModifiedColumn = view.columns.filter(
       (col) => col.isLastModified,
     )[0].name;
-    const queryDataStream = sourceConnection
-      .extractToCsvUnsafe(
-        buildTemplatedQuery({
-          viewColumns: view.columns.map((col) => col.name),
-          resultColumns: configuration.columns,
-          tableName: view.tableName,
-          tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
-            .name,
-          tenantId: destination.tenantId,
-          lastModifiedColumn,
-          lastModifiedAt: destination.lastModifiedAt.toISOString(),
-        }),
-      )
-      .pipe(zlib.createGzip());
-
-    const { rows } = await sourceConnection.queryUnsafe(
-      buildLastModifiedQuery({ lastModifiedColumn, tableName: view.tableName }),
+    const formattedQuery = buildFormattedQuery({
+      viewColumns: view.columns.map((col) => col.name),
+      resultColumns: configuration.columns,
+      tableName: view.tableName,
+      tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0].name,
+      tenantId: destination.tenantId,
+      lastModifiedColumn,
+      lastModifiedAt: destination.lastModifiedAt.toISOString(),
+    });
+    const { rows } = await sourceConnection.query(
+      buildLastModifiedQuery({
+        lastModifiedColumn,
+        tableName: view.tableName,
+      }),
     );
     const newLastModifiedAt = z
       .string()
       .transform((str) => parseISO(str))
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
+
+    const queryDataStream = sourceConnection
+      .queryStream(formattedQuery)
+      .pipe(
+        csv.stringify({
+          delimiter: ",",
+          header: true,
+          bom: true,
+        }),
+      )
+      .pipe(zlib.createGzip());
 
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
