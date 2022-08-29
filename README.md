@@ -1,7 +1,7 @@
 <!-- PIPEBIRD LOGO -->
 <p align="center">
   <a href="https://github.com/pipebird/pipebird">
-    <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/6308eb1fcb6a36779f020c06_readmeimage.svg" width="600" alt="Pipebird Logo">
+    <img src="https://uploads-ssl.webflow.com/6219b67aebd6fd87049d2e0e/630a5bad9da42615ec6a9649_readmeimage.svg" width="600" alt="Pipebird Logo">
   </a>
 
   <p align="center">
