@@ -11,8 +11,8 @@ class DeploymentState(Enum):
         return self.value
 
 parser = argparse.ArgumentParser(description='Notify pipebird that instance is running.')
-parser.add_argument('-d', '--deploymentVersion', type=str, metavar='', required=True, help="Deployment version e.g. 0.1.0")
-parser.add_argument('-t', '--deploymentType', type=DeploymentState, metavar='', required=True, help='"AWS_EXISTING_VPC" | "AWS_DEFAULT_VPC"')
+parser.add_argument('-d', '--deploymentVersion', type=str, metavar='', required=True, help="Deployment version e.g. 0.1.1")
+parser.add_argument('-s', '--strategy', type=DeploymentState, metavar='', required=True, help='"AWS_EXISTING_VPC" | "AWS_DEFAULT_VPC"')
 parser.add_argument('-l', '--licenseKey', type=str, metavar='', required=True, help="Pipebird license key")
 args = parser.parse_args()
 
@@ -20,9 +20,9 @@ class Version(TypedDict):
     version: str
     release_date: str
 
-DeploymentStateLiteral = Literal["AWS_EXISTING_VPC", "AWS_DEFAULT_VPC"]
+StrategyLiteral = Literal["AWS_EXISTING_VPC", "AWS_DEFAULT_VPC"]
 class UpdateDeployment(TypedDict):
-    deploymentState: DeploymentStateLiteral
+    strategy: StrategyLiteral
     deploymentVersion: str # semantic version e.g. "0.1.0"
     agentVersion: str # semantic version e.g. "0.1.0"
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     versions: List[Version] = json.load(open('versions.json'))
     latest_version = versions[0]
     deployment: UpdateDeployment = {
-        "deploymentState": args.deploymentType.value, 
+        "strategy": args.strategy.value, 
         "deploymentVersion": args.deploymentVersion,
         "agentVersion": latest_version["version"]
     }
