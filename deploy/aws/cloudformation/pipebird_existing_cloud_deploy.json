@@ -551,7 +551,7 @@
     "PipeBirdS3KeyAlias": {
       "Type": "AWS::KMS::Alias",
       "Properties": {
-        "AliasName": "alias/s3",
+        "AliasName": { "Fn::Sub": "alias/${AWS::StackName}-s3" },
         "TargetKeyId": {
           "Ref": "PipeBirdS3Key"
         }
