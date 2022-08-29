@@ -319,7 +319,31 @@
                   ]
                 },
                 "mv .env pipebird-main",
-                "cd pipebird-main && docker-compose up -d"
+                "cd pipebird-main && docker-compose up -d",
+                {
+                  "Fn::Sub": [
+                    "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -t ${DEPLOYMENT_TYPE}",
+                    {
+                      "LICENSE_KEY": {
+                        "Ref": "licenseKey"
+                      },
+                      "DEPLOYMENT_TYPE": {
+                        "Fn::FindInMap": [
+                          "DeploymentMapping",
+                          "Details",
+                          "type"
+                        ]
+                      },
+                      "DEPLOYMENT_VERSION": {
+                        "Fn::FindInMap": [
+                          "DeploymentMapping",
+                          "Details",
+                          "version"
+                        ]
+                      }
+                    }
+                  ]
+                }
               ]
             ]
           }
@@ -549,6 +573,14 @@
         "AWS::CloudFormation::Designer": {
           "id": "4c417d4a-8863-4ad1-adf3-f705de8cc96d"
         }
+      }
+    }
+  },
+  "Mappings": {
+    "DeploymentMapping": {
+      "Details": {
+        "version": "0.1.0",
+        "type": "AWS_DEFAULT_VPC"
       }
     }
   },
