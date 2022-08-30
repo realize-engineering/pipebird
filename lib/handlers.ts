@@ -22,6 +22,7 @@ const errorCodeSchema = z.enum([
   "transfer_id_not_found",
   "transfer_not_in_progress",
   "not_implemented",
+  "database_error",
 ]);
 
 export type ErrorApiSchema = {

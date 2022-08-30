@@ -3,14 +3,12 @@ import { logger } from "../../../lib/logger.js";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
-import { getConnection } from "../../../lib/connections.js";
-import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
+import { useConnection } from "../../../lib/connections.js";
 import { env } from "../../../lib/env.js";
 import {
   buildInitiateUpsert,
   getUniqueTableName,
   removeLoadedData,
-  sanitizeQueryParam,
 } from "../../../lib/snowflake/load.js";
 import zlib from "node:zlib";
 import { z } from "zod";
@@ -70,6 +68,7 @@ export default async function (job: Job<TransferQueueJobData>) {
             tenantId: true,
             lastModifiedAt: true,
             host: true,
+            port: true,
             username: true,
             password: true,
             database: true,
@@ -150,13 +149,14 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     const {
       host: destHost,
+      port: destPort,
       username: destUsername,
       password: destPassword,
       database: destDatabase,
       schema: destSchema,
     } = destination;
 
-    const sourceConnection = await getConnection({
+    const sourceConnection = await useConnection({
       dbType: srcDbType,
       host: srcHost,
       port: srcPort,
@@ -165,7 +165,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       database: srcDatabase,
     });
 
-    if (sourceConnection.status !== "REACHABLE") {
+    if (sourceConnection.error) {
       throw new Error(
         `Source with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
       );
@@ -215,6 +215,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       case "SNOWFLAKE": {
         const credentialsExist =
           !!destHost &&
+          !!destPort &&
           !!destUsername &&
           !!destPassword &&
           !!destDatabase &&
@@ -226,15 +227,17 @@ export default async function (job: Job<TransferQueueJobData>) {
           );
         }
 
-        const destConnection = await getSnowflakeConnection({
+        const destConnection = await useConnection({
+          dbType: "SNOWFLAKE",
           host: destHost,
+          port: destPort,
           username: destUsername,
           password: destPassword,
           database: destDatabase,
           schema: destSchema,
         });
 
-        if (destConnection.status !== "REACHABLE") {
+        if (destConnection.error) {
           throw new Error(
             `Destination with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
           );
@@ -252,17 +255,14 @@ export default async function (job: Job<TransferQueueJobData>) {
         }_${new Date().getTime()}`;
 
         const createStageOperation = `
-          create or replace stage "${sanitizeQueryParam(
-            destSchema,
-          )}"."${tempStageName}"
-          url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
-          credentials = (aws_key_id='${
-            env.S3_USER_ACCESS_ID
-          }' aws_secret_key='${env.S3_USER_SECRET_KEY}')
-          encryption = (TYPE='AWS_SSE_KMS' KEY='${env.KMS_KEY_ID}')
-          file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
-        `;
-        await destConnection.client.query(createStageOperation);
+          create or replace stage "${destSchema}"."${tempStageName}"
+            url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
+            credentials = (aws_key_id='${env.S3_USER_ACCESS_ID}' aws_secret_key='${env.S3_USER_SECRET_KEY}')
+            encryption = (TYPE='AWS_SSE_KMS' KEY='${env.KMS_KEY_ID}')
+            file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
+          `;
+
+        await destConnection.queryUnsafe(createStageOperation);
 
         const primaryKeyCol = destination.configuration.view.columns.filter(
           (col) => col.isPrimaryKey,
@@ -279,10 +279,10 @@ export default async function (job: Job<TransferQueueJobData>) {
           tableName,
           primaryKeyCol,
         });
-        await destConnection.client.query(upsertOperation);
+        await destConnection.query(upsertOperation);
 
         await removeLoadedData({
-          client: destConnection.client,
+          query: destConnection.query,
           schema: destSchema,
           tempStageName,
         });

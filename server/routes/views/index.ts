@@ -4,7 +4,7 @@ import { default as validator } from "validator";
 import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
-import { testQuery } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections.js";
 import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
 import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
@@ -122,41 +122,53 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   const { sourceType, host, port, schema, database, username, password } =
     source;
 
-  const test = await testQuery({
+  const conn = await useConnection({
     dbType: sourceType,
     host,
     port,
     username,
     password,
     database,
-    query: sql`SELECT ${quoteIdentifiers(
-      columns.map((column) => column.name),
-    )} FROM ${quoteIdentifier(schema)}.${quoteIdentifier(tableName)} LIMIT 1`,
   });
 
-  if (test.error) {
-    if (test.status === "UNREACHABLE") {
-      await db.source.update({
-        where: {
-          id: sourceId,
-        },
-        data: {
-          status: test.status,
-        },
-      });
+  if (conn.error) {
+    await db.source.update({
+      where: {
+        id: sourceId,
+      },
+      data: {
+        status: "UNREACHABLE",
+      },
+    });
 
-      return res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
-        code: "source_db_unreachable",
-      });
-    }
-
-    return res.status(HttpStatusCode.BAD_REQUEST).json({
-      code: "invalid_table_expression",
-      message:
-        test.message ||
-        "The provided columns could not be queried from the table.",
+    return res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
+      code: "source_db_unreachable",
     });
   }
+
+  // ping DB to ensure valid column names for given schema + pable
+  await conn.query(
+    sql`SELECT ${quoteIdentifiers(
+      columns.map((column) => column.name),
+    )} FROM ${quoteIdentifier(schema)}.${quoteIdentifier(tableName)} LIMIT 1`,
+  );
+
+  const infoResult = await conn.query(
+    sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name=${tableName}`,
+  );
+
+  const viewColumnCreateData = columns.map((col) => {
+    const columnInfo = infoResult.rows.filter(
+      (row) => row.column_name === col.name,
+    )[0];
+
+    return {
+      ...col,
+      dataType: columnInfo?.data_type
+        ? (columnInfo.data_type as string)
+        : "varchar",
+    };
+  });
 
   const view = await db.view.create({
     data: {
@@ -164,7 +176,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
       tableName,
       columns: {
         createMany: {
-          data: columns.map((col) => ({ ...col, dataType: "varchar" })), // todo: select correct data type after updating connections file
+          data: viewColumnCreateData,
         },
       },
     },
