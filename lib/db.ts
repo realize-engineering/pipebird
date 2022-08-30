@@ -26,3 +26,21 @@ export const quoteIdentifiers = (
       )
       .join(","),
   );
+
+export const quoteIdentifierPairs = (
+  value: string[],
+  quoteFirst = true,
+  separator = " ",
+): Sql =>
+  raw(
+    value
+      .map((v) => {
+        const pair = v.split(separator);
+        const test = quoteFirst
+          ? [quoteIdentifier(pair[0]).sql, pair[1]]
+          : [pair[0], quoteIdentifier(pair[1]).sql];
+
+        return test.join(separator);
+      })
+      .join(", "),
+  );
