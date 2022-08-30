@@ -154,7 +154,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   );
 
   const infoResult = await test.query(
-    sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name='${tableName}'`,
+    sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name=${tableName}`,
   );
 
   const viewColumnCreateData = columns.map((col) => {

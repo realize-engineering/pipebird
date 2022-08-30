@@ -13,7 +13,7 @@ import {
 import zlib from "node:zlib";
 import { z } from "zod";
 import { parseISO } from "date-fns";
-import sql from "sql-template-tag";
+import sql, { raw } from "sql-template-tag";
 import * as csv from "csv";
 
 const buildFormattedQuery = ({
@@ -254,17 +254,18 @@ export default async function (job: Job<TransferQueueJobData>) {
           destination.id
         }_${new Date().getTime()}`;
 
-        const createStageOperation = sql`
-          create or replace stage ${quoteIdentifier(
-            destSchema,
-          )}.${quoteIdentifier(tempStageName)}
-          url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
+        const bucketUrl = `s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}`;
+        const createStageOperation = raw(`
+          create or replace stage ${quoteIdentifier(destSchema).text}.${
+          quoteIdentifier(tempStageName).text
+        }
+          url=${quoteIdentifier(bucketUrl).text}
           credentials = (aws_key_id='${
             env.S3_USER_ACCESS_ID
           }' aws_secret_key='${env.S3_USER_SECRET_KEY}')
           encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID='${env.KMS_KEY_ID}')
           file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
-        `;
+        `);
         await destConnection.query(createStageOperation);
 
         const primaryKeyCol = destination.configuration.view.columns.filter(

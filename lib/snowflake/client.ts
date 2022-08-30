@@ -52,7 +52,7 @@ class SnowflakeClient {
   query(sql: Sql): Promise<{ rows: Record<string, unknown>[] }> {
     return new Promise((resolve, reject) => {
       this.connection.execute({
-        sqlText: sql.text,
+        sqlText: sql.sql,
         binds: sql.values as string[],
         complete: (err, _statement, rows) => {
           if (err) {

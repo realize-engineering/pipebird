@@ -140,6 +140,7 @@ destinationRouter.post(
             nickname,
             tenantId,
             host,
+            port,
             schema,
             database,
             username,
