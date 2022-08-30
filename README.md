@@ -35,7 +35,7 @@ Once integrated, Pipebird eliminates the need for your customers to use a third-
 
 We believe that verified, native product data pipelines offer a more secure and efficient way for companies to retrieve data from their vendors and partners. We've already started seeing major companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) invest in building out native data sharing features for their customers.
 
-**Our goal is to make it easy for any company to offer the same powerful data sharing features in just a few of hours, increasing security and decreasing complexity for their customers.**
+**Our goal is to make it easy for any company to offer the same powerful data sharing features, increasing security and decreasing complexity for their customers.**
 
 ## Get started for free
 
@@ -54,7 +54,7 @@ Email hello@pipebird.com if you want to reach us directly.
 Data originates from one of your company's sources, which can be any of:
 
 - Postgres
-- MySQL [in progress]
+- MySQL
 - S3 [in progress]
 - Redshift [in progress]
 - etc.
