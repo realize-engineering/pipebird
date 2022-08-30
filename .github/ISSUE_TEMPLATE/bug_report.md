@@ -1,19 +1,31 @@
-# Let's squash some bugs 🐛
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: ''
+assignees: ''
 
-## Bug description
+---
 
-_Please describe the bug you're experiencing._
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-## Steps to reproduce
-
+**To Reproduce**
+Steps to reproduce the behavior:
 1.
-2.
-3.
+2. 
+3. 
 
-## Environment
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-_Please describe the operating system you're running_
+**Screenshots**
+If applicable, add screenshots or recordings to help explain your problem.
 
-## Any additional context
+**Desktop (please complete the following information):**
+ - OS: [e.g. iOS]
+ - Browser [e.g. chrome, safari]
+ - Version [e.g. 22]
 
-_Please add anything else that may be helpful such as screenshots, code snippets, etc._
+**Additional context**
+Add any other context about the problem here.
