@@ -195,8 +195,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
 
-    const queryDataStream = sourceConnection
-      .queryStream(formattedQuery)
+    const queryDataStream = (await sourceConnection.queryStream(formattedQuery))
       .pipe(
         csv.stringify({
           delimiter: ",",
