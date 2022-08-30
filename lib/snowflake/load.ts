@@ -4,8 +4,6 @@ import { ConnectionQueryOp } from "../connections.js";
 import { db, quoteIdentifier } from "../db.js";
 import { getColumnTypeForDest } from "../transforms/index.js";
 
-export const sanitizeQueryParam = (value: string) => value.replace(/\W/g, "");
-
 export const getUniqueTableName = ({
   nickname,
   tenantId,
@@ -178,7 +176,7 @@ export const removeLoadedData = async ({
   )}.${quoteIdentifier(tempStageName)}`;
   await query(removeFilesOperation);
 
-  const dropStageOperation = sql`DROP STAGE ${sanitizeQueryParam(
+  const dropStageOperation = sql`DROP STAGE ${quoteIdentifier(
     schema,
   )}.${quoteIdentifier(tempStageName)}`;
   await query(dropStageOperation);
