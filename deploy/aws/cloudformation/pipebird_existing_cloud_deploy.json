@@ -243,8 +243,15 @@
                 "apt-get update -y",
                 "apt install unzip -y",
                 "apt install docker.io -y",
-                "wget https://github.com/Realize-Engineering/pipebird/archive/refs/heads/main.zip",
-                "unzip main.zip",
+                {
+                  "Fn::Sub": [
+                    "wget https://github.com/pipebird/pipebird/archive/refs/tags/${AGENT_VERSION}.zip -O pipebird.zip || wget https://github.com/pipebird/pipebird/archive/refs/heads/main.zip -O pipebird.zip",
+                    {
+                      "AGENT_VERSION": { "Ref": "agentVersion" }
+                    }
+                  ]
+                },
+                "unzip pipebird.zip && mv pipebird-* pipebird",
                 "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
                 "chmod +x /usr/local/bin/docker-compose",
                 "touch .env",
@@ -357,8 +364,8 @@
                     }
                   ]
                 },
-                "mv .env pipebird-main",
-                "cd pipebird-main && docker-compose up -d",
+                "mv .env pipebird",
+                "cd pipebird && docker-compose up -d",
                 {
                   "Fn::Sub": [
                     "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -s ${DEPLOYMENT_STRATEGY}",
@@ -618,12 +625,18 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.1.1",
+        "version": "0.2.0",
         "type": "AWS_EXISTING_VPC"
       }
     }
   },
   "Parameters": {
+    "agentVersion": {
+      "Description": "Version of pipebird you wish to deploy. Find more versions on our git repo under tags.",
+      "Type": "String",
+      "MinLength": 5,
+      "AllowedPattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
     "databaseUsername": {
       "Description": "Username for the pipebird instance's local psql database.",
       "Type": "String",
