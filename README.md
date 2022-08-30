@@ -41,6 +41,8 @@ We believe that verified, native product data pipelines offer a more secure and 
 
 Pipebird is designed to be deployed on your own infrastructure so that you keep control of your data.
 
+We'd love for you to deploy Pipebird, star the repo, create issues, or chat with us in our community Slack.
+
 ### [Click here to view our deployment guide.](https://docs.pipebird.com/reference/quickstart)
 
 Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg) if you want to chat with the team, share product ideas, or get help with something!
