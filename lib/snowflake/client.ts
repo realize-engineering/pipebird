@@ -1,4 +1,4 @@
-import snowflake, { SnowflakeError } from "snowflake-sdk";
+import snowflake, { SnowflakeError, Connection } from "snowflake-sdk";
 import { Sql } from "sql-template-tag";
 
 type SnowflakeOptions = {
@@ -21,10 +21,10 @@ export class CustomSnowflakeError extends Error {
 }
 
 class SnowflakeClient {
-  private connection;
+  #connection: Connection;
   constructor(options: SnowflakeOptions) {
     const { host, database, schema, username, password } = options;
-    this.connection = snowflake.createConnection({
+    this.#connection = snowflake.createConnection({
       account: getSnowflakeAccountFromHost(host),
       database,
       schema,
@@ -34,12 +34,12 @@ class SnowflakeClient {
   }
 
   getConnection() {
-    return this.connection;
+    return this.#connection;
   }
 
   connect() {
     return new Promise((resolve, reject) => {
-      this.connection.connect((err, conn) => {
+      this.#connection.connect((err, conn) => {
         if (err) {
           reject(err);
         } else {
@@ -51,7 +51,7 @@ class SnowflakeClient {
 
   query(sql: Sql): Promise<{ rows: Record<string, unknown>[] }> {
     return new Promise((resolve, reject) => {
-      this.connection.execute({
+      this.#connection.execute({
         sqlText: sql.sql,
         binds: sql.values as string[],
         complete: (err, _statement, rows) => {
@@ -67,7 +67,7 @@ class SnowflakeClient {
 
   queryUnsafe(sql: string): Promise<{ rows: Record<string, unknown>[] }> {
     return new Promise((resolve, reject) => {
-      this.connection.execute({
+      this.#connection.execute({
         sqlText: sql,
         complete: (err, _statement, rows) => {
           if (err) {

@@ -122,7 +122,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   const { sourceType, host, port, schema, database, username, password } =
     source;
 
-  const test = await useConnection({
+  const conn = await useConnection({
     dbType: sourceType,
     host,
     port,
@@ -131,7 +131,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     database,
   });
 
-  if (test.error) {
+  if (conn.error) {
     await db.source.update({
       where: {
         id: sourceId,
@@ -147,13 +147,13 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   }
 
   // ping DB to ensure valid column names for given schema + pable
-  await test.query(
+  await conn.query(
     sql`SELECT ${quoteIdentifiers(
       columns.map((column) => column.name),
     )} FROM ${quoteIdentifier(schema)}.${quoteIdentifier(tableName)} LIMIT 1`,
   );
 
-  const infoResult = await test.query(
+  const infoResult = await conn.query(
     sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name=${tableName}`,
   );
 
