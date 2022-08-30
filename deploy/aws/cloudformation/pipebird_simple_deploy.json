@@ -206,7 +206,7 @@
                 "apt install docker.io -y",
                 {
                   "Fn::Sub": [
-                    "wget https://github.com/pipebird/pipebird/archive/refs/tags/${AGENT_VERSION}.zip -O pipebird.zip",
+                    "wget https://github.com/pipebird/pipebird/archive/refs/tags/${AGENT_VERSION}.zip -O pipebird.zip || wget https://github.com/pipebird/pipebird/archive/refs/heads/main.zip -O pipebird.zip",
                     {
                       "AGENT_VERSION": { "Ref": "agentVersion" }
                     }
