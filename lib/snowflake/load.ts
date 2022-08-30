@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
-import { Sequelize } from "sequelize";
-import { db } from "../db.js";
+import sql, { Sql } from "sql-template-tag";
+import { ConnectionQueryOp } from "../connections.js";
+import { db, quoteIdentifier } from "../db.js";
 import { getColumnTypeForDest } from "../transforms/index.js";
 
 export const sanitizeQueryParam = (value: string) => value.replace(/\W/g, "");
@@ -13,22 +14,19 @@ export const getUniqueTableName = ({
   nickname: string;
   tenantId: string;
   destinationId: number;
-}) =>
-  `ShareData_${sanitizeQueryParam(
-    nickname.replaceAll(" ", "_"),
-  )}_${sanitizeQueryParam(tenantId)}_${destinationId}`;
+}) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
 
 /*
  * Creates a new table in Snowflake for each added destination
  * using a consistent naming format.
  */
 export const createDestinationTable = async ({
-  client,
+  query,
   schema,
   database,
   destination,
 }: {
-  client: Sequelize;
+  query: ConnectionQueryOp;
   schema: string;
   database: string;
   destination: Prisma.DestinationGetPayload<{
@@ -65,10 +63,10 @@ export const createDestinationTable = async ({
     throw new Error("Configuration not associated with destination.");
   }
 
-  const schemaCreateOperation = `CREATE SCHEMA IF NOT EXISTS "${sanitizeQueryParam(
+  const schemaCreateOperation = sql`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(
     database,
-  )}"."${sanitizeQueryParam(schema)}" WITH MANAGED ACCESS;`;
-  await client.query(schemaCreateOperation);
+  )}.${quoteIdentifier(schema)} WITH MANAGED ACCESS;`;
+  await query(schemaCreateOperation);
 
   const tableName = getUniqueTableName({
     nickname,
@@ -80,19 +78,19 @@ export const createDestinationTable = async ({
     const columnType = destCol.viewColumn.dataType;
 
     // todo(ianedwards): change this to use additional source and destination types
-    return `"${sanitizeQueryParam(
-      destCol.nameInDestination,
-    )}" ${getColumnTypeForDest({
-      sourceType: "POSTGRES",
-      destinationType: "SNOWFLAKE",
-      columnType,
-    })}`;
+    return `${quoteIdentifier(destCol.nameInDestination)} ${
+      getColumnTypeForDest({
+        sourceType: "POSTGRES",
+        destinationType: "SNOWFLAKE",
+        columnType,
+      }) ?? "varchar"
+    }`;
   });
 
-  const tableCreateOperation = `CREATE TABLE IF NOT EXISTS "${sanitizeQueryParam(
+  const tableCreateOperation = sql`CREATE TABLE IF NOT EXISTS ${quoteIdentifier(
     schema,
-  )}"."${sanitizeQueryParam(tableName)}" ( ${columnsWithType.join(", ")} );`;
-  await client.query(tableCreateOperation);
+  )}.${quoteIdentifier(tableName)} ( ${columnsWithType.join(", ")} );`;
+  await query(tableCreateOperation);
 
   return tableName;
 };
@@ -117,45 +115,45 @@ export const buildInitiateUpsert = ({
   stageName: string;
   tableName: string;
   primaryKeyCol: string;
-}) => {
-  const stageSelect = `
+}): Sql => {
+  const stageSelect = sql`
         SELECT 
           ${columns
             .map(
               (col, idx) =>
-                `$${idx + 1} "${sanitizeQueryParam(col.nameInDestination)}"`,
+                `$${idx + 1} ${quoteIdentifier(col.nameInDestination)}`,
             )
             .join(",\n")}
-        from @"${sanitizeQueryParam(schema)}"."${sanitizeQueryParam(stageName)}"
+        from @${quoteIdentifier(schema)}.${quoteIdentifier(stageName)}
     `;
 
-  const SCHEMA_WITH_TABLE_NAME = `"${sanitizeQueryParam(
-    schema,
-  )}"."${sanitizeQueryParam(tableName)}"`;
-  const initiateUpsertOperation = `
+  const SCHEMA_WITH_TABLE_NAME = `${quoteIdentifier(schema)}.${quoteIdentifier(
+    tableName,
+  )}`;
+  const initiateUpsertOperation = sql`
       MERGE INTO ${SCHEMA_WITH_TABLE_NAME} USING (${stageSelect}) newData 
-      ON ${SCHEMA_WITH_TABLE_NAME}."${primaryKeyCol}" = newData."${primaryKeyCol}"
+      ON ${SCHEMA_WITH_TABLE_NAME}.${quoteIdentifier(
+    primaryKeyCol,
+  )} = newData.${quoteIdentifier(primaryKeyCol)}
       WHEN MATCHED THEN UPDATE SET
         ${columns
           .filter((col) => col.nameInDestination !== primaryKeyCol)
           .map(
             (col) =>
-              `"${sanitizeQueryParam(
+              `${quoteIdentifier(
                 col.nameInDestination,
-              )}" = newData."${sanitizeQueryParam(col.nameInDestination)}"`,
+              )} = newData.${quoteIdentifier(col.nameInDestination)}`,
           )
           .join(",\n")}
       WHEN NOT MATCHED THEN
         INSERT (
           ${columns
-            .map((col) => `"${sanitizeQueryParam(col.nameInDestination)}"`)
+            .map((col) => `${quoteIdentifier(col.nameInDestination)}`)
             .join(",\n")}
         )
         VALUES (
           ${columns
-            .map(
-              (col) => `newData."${sanitizeQueryParam(col.nameInDestination)}"`,
-            )
+            .map((col) => `newData.${quoteIdentifier(col.nameInDestination)}`)
             .join(",\n")}
         )
     `;
@@ -167,21 +165,21 @@ export const buildInitiateUpsert = ({
  * Deletes a stage and its files in S3
  */
 export const removeLoadedData = async ({
-  client,
+  query,
   schema,
   tempStageName,
 }: {
-  client: Sequelize;
+  query: ConnectionQueryOp;
   schema: string;
   tempStageName: string;
 }) => {
-  const removeFilesOperation = `REMOVE @"${sanitizeQueryParam(
+  const removeFilesOperation = sql`REMOVE @${quoteIdentifier(
     schema,
-  )}"."${sanitizeQueryParam(tempStageName)}"`;
-  await client.query(removeFilesOperation);
+  )}.${quoteIdentifier(tempStageName)}`;
+  await query(removeFilesOperation);
 
-  const dropStageOperation = `DROP STAGE "${sanitizeQueryParam(
+  const dropStageOperation = sql`DROP STAGE ${sanitizeQueryParam(
     schema,
-  )}"."${sanitizeQueryParam(tempStageName)}"`;
-  await client.query(dropStageOperation);
+  )}.${quoteIdentifier(tempStageName)}`;
+  await query(dropStageOperation);
 };

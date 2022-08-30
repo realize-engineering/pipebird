@@ -4,38 +4,45 @@ import pg from "pg";
 import { logger } from "./logger.js";
 import { Sql } from "sql-template-tag";
 import QueryStream from "pg-query-stream";
+import SnowflakeClient from "./snowflake/client.js";
 
-type QueryResult = {
-  status: "REACHABLE" | "UNREACHABLE";
-  error: boolean;
-  columns?: string[];
-  message?: string;
-};
+export type ConnectionQueryOp = (
+  sql: Sql,
+) => Promise<{ rows: Record<string, unknown>[] }>;
+export type ConnectionStreamOp = (sql: Sql) => Readable;
+export type ConnectionQueryUnsafeOp = (
+  sql: string,
+) => Promise<{ rows: Record<string, unknown>[] }>;
 
-export const getConnection = async ({
+export const useConnection = async ({
   dbType,
   host,
   port,
   username,
   password,
   database,
+  schema,
 }: {
   dbType: SourceType;
   host: string;
   port: number;
+  database: string;
   username: string;
   password?: string;
-  database: string;
+  schema?: string;
 }): Promise<
   | {
-      status: "REACHABLE";
-      query: (sql: Sql) => Promise<{ rows: Record<string, unknown>[] }>;
-      queryStream: (sql: Sql) => Readable;
-      queryUnsafe: (
-        sql: string,
-      ) => Promise<{ rows: Record<string, unknown>[] }>;
+      error: true;
+      code: "not_implemented" | "connection_refused";
+      message: string;
     }
-  | { status: "UNREACHABLE"; error: "not_implemented" | "connection_refused" }
+  | {
+      error: false;
+      code: "connection_reachable";
+      query: ConnectionQueryOp;
+      queryStream: ConnectionStreamOp;
+      queryUnsafe: ConnectionQueryUnsafeOp;
+    }
 > => {
   try {
     switch (dbType) {
@@ -50,86 +57,60 @@ export const getConnection = async ({
         await client.connect();
 
         return {
-          status: "REACHABLE",
+          error: false,
+          code: "connection_reachable",
           query: (sql: Sql) => client.query(sql),
           queryStream: (sql: Sql) =>
             client.query(new QueryStream(sql.text, sql.values)),
           queryUnsafe: (sql: string) => client.query(sql),
         };
       }
+      case "SNOWFLAKE": {
+        const client = new SnowflakeClient({
+          host,
+          database,
+          schema,
+          username,
+          password,
+        });
+
+        await client.connect();
+
+        return {
+          error: false,
+          code: "connection_reachable",
+          query: (sql: Sql) => client.query(sql),
+          queryStream: (sql: Sql) =>
+            client
+              .getConnection()
+              .execute({
+                sqlText: sql.text,
+                binds: sql.values as string[],
+              })
+              .streamRows(),
+          queryUnsafe: (sql: string) => client.queryUnsafe(sql),
+        };
+      }
 
       default: {
-        return { status: "UNREACHABLE", error: "not_implemented" };
+        return {
+          error: true,
+          code: "not_implemented",
+          message: `Database type ${dbType} has not yet been implemented.`,
+        };
       }
     }
   } catch (error) {
-    logger.error(error);
+    logger.info({ connectionError: error });
 
-    return { status: "UNREACHABLE", error: "connection_refused" };
-  }
-};
+    const message =
+      error instanceof pg.DatabaseError
+        ? error.message
+        : "Something went wrong when connecting to the database";
 
-export const testQuery = async ({
-  dbType,
-  host,
-  port,
-  username,
-  password,
-  database,
-  query,
-}: {
-  dbType: SourceType;
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  database: string;
-  query: Sql;
-}): Promise<QueryResult> => {
-  try {
-    switch (dbType) {
-      case "POSTGRES":
-      case "REDSHIFT":
-      case "MYSQL": {
-        const result = await getConnection({
-          dbType,
-          host,
-          port,
-          username,
-          password,
-          database,
-        });
-
-        if (result.status !== "REACHABLE") {
-          return {
-            status: result.status,
-            error: true,
-            message: "Cannot connect to the database.",
-          };
-        }
-
-        // todo(ianedwards): Explore safe method for limiting results to speed up test time
-        const res = await result.query(query);
-
-        return {
-          status: result.status,
-          error: false,
-          columns: Object.keys(res.rows[0]),
-        };
-      }
-      default: {
-        return {
-          status: "UNREACHABLE",
-          error: true,
-          message: "Database type is not currently supported.",
-        };
-      }
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
     return {
-      status: "REACHABLE",
       error: true,
+      code: "connection_refused",
       message,
     };
   }
