@@ -4,9 +4,9 @@ import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
 import { useConnection } from "../../../lib/connections.js";
-import { env } from "../../../lib/env.js";
 import {
   buildInitiateUpsert,
+  createStage,
   getUniqueTableName,
   removeLoadedData,
 } from "../../../lib/snowflake/load.js";
@@ -228,7 +228,7 @@ export default async function (job: Job<TransferQueueJobData>) {
           );
         }
 
-        const pathPrefix = `snowflake/${destination.tenantId}/${destination.id}`;
+        const pathPrefix = `snowflake/${destination.id}`;
         await uploadObject({
           contents: queryDataStream,
           pathPrefix,
@@ -239,15 +239,12 @@ export default async function (job: Job<TransferQueueJobData>) {
           destination.id
         }_${new Date().getTime()}`;
 
-        const createStageOperation = `
-          create or replace stage "${destSchema}"."${tempStageName}"
-            url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
-            credentials = (aws_key_id='${env.S3_USER_ACCESS_ID}' aws_secret_key='${env.S3_USER_SECRET_KEY}')
-            encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID='${env.KMS_KEY_ID}')
-            file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
-          `;
-
-        await destConnection.queryUnsafe(createStageOperation);
+        await createStage({
+          queryUnsafe: destConnection.queryUnsafe,
+          schema: destSchema,
+          tempStageName,
+          pathPrefix,
+        });
 
         const primaryKeyCol = destination.configuration.view.columns.filter(
           (col) => col.isPrimaryKey,

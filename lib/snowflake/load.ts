@@ -2,8 +2,9 @@ import { Prisma } from "@prisma/client";
 import { default as knex, Knex } from "knex";
 
 import { db } from "../db.js";
-import { ConnectionQueryOp } from "../connections.js";
+import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
 import { getColumnTypeForDest } from "../transforms/index.js";
+import { env } from "../env.js";
 
 // todo(ianedwards): look into support snowflake dialect directly with knex
 // this will serve our purposes for building safe raw statements for the time being
@@ -161,6 +162,40 @@ export const buildInitiateUpsert = ({
     .toNative();
 
   return upsertCommand;
+};
+
+export const createStage = async ({
+  queryUnsafe,
+  schema,
+  tempStageName,
+  pathPrefix,
+}: {
+  queryUnsafe: ConnectionQueryUnsafeOp;
+  schema: string;
+  tempStageName: string;
+  pathPrefix: string;
+}) => {
+  const stageFullPath = `${schema}.${tempStageName}`;
+  const createStageOperation = knexBuilder
+    .raw(
+      `
+      create or replace stage ??
+        url=?
+        credentials = (aws_key_id=? aws_secret_key=?)
+        encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID=?)
+        file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
+    `,
+      [
+        stageFullPath,
+        `s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}`,
+        `${env.S3_USER_ACCESS_ID}`,
+        `${env.S3_USER_SECRET_KEY}`,
+        `${env.KMS_KEY_ID}`,
+      ],
+    )
+    .toString();
+
+  await queryUnsafe(createStageOperation);
 };
 
 /*
