@@ -5,6 +5,7 @@ import { S3 } from "./s3.js";
 import { env } from "../env.js";
 import { Upload } from "@aws-sdk/lib-storage";
 import path from "path";
+import { logger } from "../logger.js";
 
 const BUCKET = env.PROVISIONED_BUCKET_NAME;
 
@@ -29,6 +30,9 @@ export const uploadObject = async ({
       }`,
       Body: contents,
     },
+  });
+  upload.on("httpUploadProgress", (progress) => {
+    logger.trace(progress, "httpUploadProgress");
   });
 
   return { result: await upload.done(), key };
