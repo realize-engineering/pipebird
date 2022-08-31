@@ -54,12 +54,11 @@ const finalizeTransfer = async ({
   });
 
   const webhooks = await db.webhook.findMany();
-  webhooks.forEach(
-    async (wh) =>
-      await webhookQueue.add(queueNames.SEND_WEBHOOK, {
-        webhook: { id: wh.id },
-        transfer: { id: transferId },
-      }),
+  webhooks.forEach((wh) =>
+    webhookQueue.add(queueNames.SEND_WEBHOOK, {
+      webhook: { id: wh.id },
+      transfer: { id: transferId },
+    }),
   );
 };
 
