@@ -17,6 +17,8 @@ import * as csv from "csv";
 import { default as knex } from "knex";
 import { TransferStatus } from "@prisma/client";
 import { getPresignedURL } from "../../../lib/aws/signer.js";
+import { webhookQueue } from "../webhook/scheduler.js";
+import { queueNames } from "../../../lib/queues.js";
 
 const finalizeTransfer = async ({
   transferId,
@@ -50,6 +52,15 @@ const finalizeTransfer = async ({
       objectUrl,
     },
   });
+
+  const webhooks = await db.webhook.findMany();
+  webhooks.forEach(
+    async (wh) =>
+      await webhookQueue.add(queueNames.SEND_WEBHOOK, {
+        webhook: { id: wh.id },
+        transfer: { id: transferId },
+      }),
+  );
 };
 
 export default async function (job: Job<TransferQueueJobData>) {

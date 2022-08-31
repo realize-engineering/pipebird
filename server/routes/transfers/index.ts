@@ -103,8 +103,8 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       status: "STARTED",
     },
     select: {
-      status: true,
       id: true,
+      status: true,
       destinationId: true,
       result: {
         select: {
