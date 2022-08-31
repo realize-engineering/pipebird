@@ -127,14 +127,24 @@ enum TransferStatus {
 }
 
 model Transfer {
-  id          Int            @id @default(autoincrement())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  finalizedAt DateTime?
-  status      TransferStatus
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  status    TransferStatus
 
-  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  result        TransferResult?
+  destination   Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   destinationId Int
+}
+
+model TransferResult {
+  finalizedAt DateTime
+  objectUrl   String?
+
+  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  transferId Int      @unique
+
+  @@id([transferId, finalizedAt])
 }
 
 enum LogDomain {

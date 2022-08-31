@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, TransferStatus } from "@prisma/client";
 import { Router } from "express";
 import { db } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
@@ -7,33 +7,67 @@ import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
 import { transferQueue } from "../../queues/transfer/scheduler.js";
+import { cursorPaginationValidator } from "../../../lib/pagination.js";
 
 const transferRouter = Router();
 
 type TransferResponse = Prisma.TransferGetPayload<{
   select: {
-    id: true;
     status: true;
+    id: true;
     destinationId: true;
-    finalizedAt: true;
+    result: {
+      select: {
+        finalizedAt: true;
+        objectUrl: true;
+      };
+    };
   };
 }>;
 
 // List transfers
-transferRouter.get(
-  "/",
-  async (_req, res: ListApiResponse<TransferResponse>) => {
-    const transfers = await db.transfer.findMany({
-      select: {
-        status: true,
-        id: true,
-        destinationId: true,
-        finalizedAt: true,
-      },
+transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
+  const queryParams = z
+    .object({
+      status: z
+        .preprocess(
+          (val) => String(val).toUpperCase(),
+          z.enum([
+            Object.values(TransferStatus)[0],
+            ...Object.values(TransferStatus),
+          ]),
+        )
+        .nullish(),
+    })
+    .merge(cursorPaginationValidator)
+    .safeParse(req.query);
+
+  if (!queryParams.success) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "query_validation_error",
+      validationIssues: queryParams.error.issues,
     });
-    return res.status(HttpStatusCode.OK).json({ content: transfers });
-  },
-);
+  }
+  const { cursor, take, status } = queryParams.data;
+
+  const transfers = await db.transfer.findMany({
+    ...(status && { where: { status } }),
+    select: {
+      status: true,
+      id: true,
+      destinationId: true,
+      result: {
+        select: {
+          finalizedAt: true,
+          objectUrl: true,
+        },
+      },
+    },
+    ...(cursor && { cursor: { id: cursor }, skip: 1 }),
+    take,
+  });
+  return res.status(HttpStatusCode.OK).json({ content: transfers });
+});
 
 // Create transfer
 transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
@@ -69,10 +103,15 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       status: "STARTED",
     },
     select: {
-      id: true,
       status: true,
-      finalizedAt: true,
+      id: true,
       destinationId: true,
+      result: {
+        select: {
+          finalizedAt: true,
+          objectUrl: true,
+        },
+      },
     },
   });
   await transferQueue.add("start_transfer", transfer);
@@ -80,7 +119,7 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
     id: transfer.id,
     status: transfer.status,
     destinationId: transfer.destinationId,
-    finalizedAt: transfer.finalizedAt,
+    result: null,
   });
 });
 
@@ -110,6 +149,17 @@ transferRouter.get(
     const transfer = await db.transfer.findUnique({
       where: {
         id: queryParams.data.transferId,
+      },
+      select: {
+        status: true,
+        id: true,
+        destinationId: true,
+        result: {
+          select: {
+            finalizedAt: true,
+            objectUrl: true,
+          },
+        },
       },
     });
     if (!transfer) {
@@ -149,10 +199,6 @@ transferRouter.delete(
         where: {
           id: queryParams.data.transferId,
         },
-        select: {
-          status: true,
-          id: true,
-        },
       });
 
       if (!transfer) {
@@ -168,6 +214,17 @@ transferRouter.delete(
             },
             data: {
               status: "CANCELLED",
+            },
+            select: {
+              status: true,
+              id: true,
+              destinationId: true,
+              result: {
+                select: {
+                  finalizedAt: true,
+                  objectUrl: true,
+                },
+              },
             },
           });
           await LogModel.create(
