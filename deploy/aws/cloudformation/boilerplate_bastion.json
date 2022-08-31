@@ -372,14 +372,7 @@
     "TestPrivateSubnet1": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            0,
-            {
-              "Fn::GetAZs": { "Ref": "AWS::Region" }
-            }
-          ]
-        },
+        "AvailabilityZone": "us-east-1a",
         "VpcId": {
           "Ref": "TestVPC"
         },
@@ -402,14 +395,7 @@
     "TestPublicSubnet": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            0,
-            {
-              "Fn::GetAZs": { "Ref": "AWS::Region" }
-            }
-          ]
-        },
+        "AvailabilityZone": "us-east-1a",
         "VpcId": {
           "Ref": "TestVPC"
         },
@@ -432,14 +418,7 @@
     "TestPrivateSubnet2": {
       "Type": "AWS::EC2::Subnet",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            1,
-            {
-              "Fn::GetAZs": { "Ref": "AWS::Region" }
-            }
-          ]
-        },
+        "AvailabilityZone": "us-east-1b",
         "VpcId": {
           "Ref": "TestVPC"
         },
@@ -474,14 +453,7 @@
           }
         ],
         "ImageId": "ami-052efd3df9dad4825",
-        "AvailabilityZone": {
-          "Fn::Select": [
-            "0",
-            {
-              "Fn::GetAZs": { "Ref": "AWS::Region" }
-            }
-          ]
-        },
+        "AvailabilityZone": "us-east-1a",
         "InstanceType": "t2.micro",
         "NetworkInterfaces": [
           {
@@ -676,14 +648,7 @@
       "DeletionPolicy": "Delete",
       "UpdateReplacePolicy": "Delete",
       "Properties": {
-        "AvailabilityZone": {
-          "Fn::Select": [
-            0,
-            {
-              "Fn::GetAZs": { "Ref": "AWS::Region" }
-            }
-          ]
-        },
+        "AvailabilityZone": "us-east-1a",
         "AllocatedStorage": 5,
         "BackupRetentionPeriod": 0,
         "DBInstanceClass": "db.t3.micro",
