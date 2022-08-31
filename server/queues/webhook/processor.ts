@@ -53,7 +53,7 @@ export default async function (job: Job<WebhookQueueJobData>) {
       headers: {
         "Content-Type": "application/json",
         "X-Pipebird-Signature": crypto
-          .createHmac("sha1", webhook.secretKey)
+          .createHmac("sha256", webhook.secretKey)
           .update(body)
           .digest("hex"),
       },

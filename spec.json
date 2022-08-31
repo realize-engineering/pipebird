@@ -700,7 +700,7 @@
             }
           }
         },
-        "description": "Replaces any existing webhooks. A HMAC-SHA1 hash will be included in the X-Pipebird-Signature header with all webhook requests and can be verified with the webhook secret returned from this endpoint. You must store the secret because you will not be able to read it later.",
+        "description": "Replaces any existing webhooks. An HMAC-SHA256 hash will be included in the X-Pipebird-Signature header with all webhook requests and can be verified with the webhook secret returned from this endpoint. You must store the secret because you will not be able to read it later.",
         "requestBody": {
           "content": {
             "application/json": {
