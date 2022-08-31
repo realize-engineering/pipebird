@@ -1,13 +1,16 @@
 import { Prisma } from "@prisma/client";
-import sql, { Sql, raw } from "sql-template-tag";
+import { default as knex, Knex } from "knex";
+
+import { db } from "../db.js";
 import { ConnectionQueryOp } from "../connections.js";
-import {
-  db,
-  quoteIdentifier,
-  quoteIdentifierPairs,
-  quoteIdentifiers,
-} from "../db.js";
 import { getColumnTypeForDest } from "../transforms/index.js";
+
+// todo(ianedwards): look into support snowflake dialect directly with knex
+// this will serve our purposes for building safe raw statements for the time being
+// using postgres as it will double quote identifiers
+const knexBuilder = knex({
+  client: "postgres",
+});
 
 export const getUniqueTableName = ({
   nickname,
@@ -66,9 +69,13 @@ export const createDestinationTable = async ({
     throw new Error("Configuration not associated with destination.");
   }
 
-  const schemaCreateOperation = sql`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(
-    database,
-  )}.${quoteIdentifier(schema)} WITH MANAGED ACCESS;`;
+  const schemaCreateOperation = knexBuilder
+    .raw("CREATE SCHEMA IF NOT EXISTS ?? WITH MANAGED ACCESS", [
+      `${database}.${schema}`,
+    ])
+    .toSQL()
+    .toNative();
+
   await query(schemaCreateOperation);
 
   const tableName = getUniqueTableName({
@@ -81,7 +88,7 @@ export const createDestinationTable = async ({
     const columnType = destCol.viewColumn.dataType;
 
     // todo(ianedwards): change this to use additional source and destination types
-    return `${destCol.nameInDestination} ${
+    return `?? ${
       getColumnTypeForDest({
         sourceType: "POSTGRES",
         destinationType: "SNOWFLAKE",
@@ -90,12 +97,13 @@ export const createDestinationTable = async ({
     }`;
   });
 
-  const tableCreateOperation = sql`CREATE TABLE IF NOT EXISTS ${quoteIdentifier(
-    schema,
-  )}.${quoteIdentifier(tableName)} ( ${quoteIdentifierPairs(
-    columnsWithType,
-    true,
-  )} );`;
+  const tableCreateOperation = knexBuilder
+    .raw(`CREATE TABLE IF NOT EXISTS ?? ( ${columnsWithType.join(", ")} );`, [
+      `${schema}.${tableName}`,
+      ...configuration.columns.map((col) => col.nameInDestination),
+    ])
+    .toSQL()
+    .toNative();
 
   await query(tableCreateOperation);
 
@@ -122,54 +130,37 @@ export const buildInitiateUpsert = ({
   stageName: string;
   tableName: string;
   primaryKeyCol: string;
-}): Sql => {
-  const stageSelect = sql`
-        SELECT 
-          ${quoteIdentifierPairs(
-            columns.map((col, idx) => `$${idx + 1} ${col.nameInDestination}`),
-            false,
-          )}
-        from @${quoteIdentifier(schema)}.${quoteIdentifier(stageName)}
-    `;
+}): Knex.SqlNative => {
+  const names = columns.map((col) => col.nameInDestination);
+  const namesWithoutKey = names.filter((n) => n !== primaryKeyCol);
 
-  const initiateUpsertOperation = sql`
-      MERGE INTO ${quoteIdentifier(schema)}.${quoteIdentifier(
-    tableName,
-  )} USING (${stageSelect}) newData 
-      ON ${quoteIdentifier(schema)}.${quoteIdentifier(
-    tableName,
-  )}.${quoteIdentifier(primaryKeyCol)} = newData.${quoteIdentifier(
-    primaryKeyCol,
-  )}
+  const upsertCommand = knexBuilder
+    .raw(
+      `MERGE INTO ?? USING ( SELECT ${names
+        .map((_, i) => `$${i + 1} ??`)
+        .join(", ")} FROM @?? ) newData ON ?? = newData.??
       WHEN MATCHED THEN UPDATE SET
-        ${raw(
-          columns
-            .filter((col) => col.nameInDestination !== primaryKeyCol)
-            .map(
-              (col) =>
-                `${quoteIdentifier(col.nameInDestination).text} = newData.${
-                  quoteIdentifier(col.nameInDestination).text
-                }`,
-            )
-            .join(", "),
-        )}
-      WHEN NOT MATCHED THEN
-        INSERT (
-          ${quoteIdentifiers(columns.map((col) => col.nameInDestination))}
-        )
-        VALUES (
-          ${raw(
-            columns
-              .map(
-                (col) =>
-                  `newData.${quoteIdentifier(col.nameInDestination).text}`,
-              )
-              .join(", "),
-          )}
-        )
-    `;
+        ${"?? = newData.??, ".repeat(namesWithoutKey.length).slice(0, -2)}
+      WHEN NOT MATCHED THEN INSERT ( ${"??, "
+        .repeat(names.length)
+        .slice(0, -2)} ) VALUES
+        ( ${"newData.??, ".repeat(names.length).slice(0, -2)})
+      `,
+      [
+        `${schema}.${tableName}`,
+        ...names,
+        `${schema}.${stageName}`,
+        `${schema}.${tableName}.${primaryKeyCol}`,
+        primaryKeyCol,
+        ...namesWithoutKey.flatMap((n) => [n, n]),
+        ...names,
+        ...names,
+      ],
+    )
+    .toSQL()
+    .toNative();
 
-  return initiateUpsertOperation;
+  return upsertCommand;
 };
 
 /*
@@ -184,13 +175,16 @@ export const removeLoadedData = async ({
   schema: string;
   tempStageName: string;
 }) => {
-  const removeFilesOperation = sql`REMOVE @${quoteIdentifier(
-    schema,
-  )}.${quoteIdentifier(tempStageName)}`;
+  const stageFullPath = `${schema}.${tempStageName}`;
+  const removeFilesOperation = knexBuilder
+    .raw("REMOVE @??", [stageFullPath])
+    .toSQL()
+    .toNative();
   await query(removeFilesOperation);
 
-  const dropStageOperation = sql`DROP STAGE ${quoteIdentifier(
-    schema,
-  )}.${quoteIdentifier(tempStageName)}`;
+  const dropStageOperation = knexBuilder
+    .raw("DROP STAGE ??", [stageFullPath])
+    .toSQL()
+    .toNative();
   await query(dropStageOperation);
 };

@@ -1,5 +1,5 @@
+import { Knex } from "knex";
 import snowflake, { SnowflakeError, Connection } from "snowflake-sdk";
-import { Sql } from "sql-template-tag";
 
 type SnowflakeOptions = {
   host: string;
@@ -49,11 +49,11 @@ class SnowflakeClient {
     });
   }
 
-  query(sql: Sql): Promise<{ rows: Record<string, unknown>[] }> {
+  query(sql: Knex.SqlNative): Promise<{ rows: Record<string, unknown>[] }> {
     return new Promise((resolve, reject) => {
       this.#connection.execute({
         sqlText: sql.sql,
-        binds: sql.values as string[],
+        binds: sql.bindings as (string | number)[],
         complete: (err, _statement, rows) => {
           if (err) {
             reject(new CustomSnowflakeError(err));

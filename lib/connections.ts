@@ -2,7 +2,6 @@ import { SourceType } from "@prisma/client";
 import { Readable } from "stream";
 import pg from "pg";
 import { logger } from "./logger.js";
-import { Sql } from "sql-template-tag";
 import QueryStream from "pg-query-stream";
 import SnowflakeClient from "./snowflake/client.js";
 import crypto from "crypto";
@@ -152,13 +151,13 @@ export const useConnection = async ({
           return {
             error: false,
             code: "connection_reachable",
-            query: (sql: Sql) => client.query(sql),
-            queryStream: (sql: Sql) =>
+            query: (sql: Knex.SqlNative) => client.query(sql),
+            queryStream: (sql: Knex.SqlNative) =>
               client
                 .getConnection()
                 .execute({
-                  sqlText: sql.text,
-                  binds: sql.values as string[],
+                  sqlText: sql.sql,
+                  binds: sql.bindings as (string | number)[],
                 })
                 .streamRows(),
             queryUnsafe: (sql: string) => client.queryUnsafe(sql),
