@@ -9,7 +9,7 @@ http.createServer(app).listen(env.PORT, () => {
 });
 
 process.on("uncaughtException", (error) => {
-  logger.error(error);
+  logger.fatal(error);
   process.exit(1);
 });
 
