@@ -86,6 +86,8 @@ export const useConnection = async ({
             },
           );
 
+          await pool.query("SELECT 1=1");
+
           existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>
               pool.query(sql.sql, [...sql.bindings]),
@@ -115,6 +117,8 @@ export const useConnection = async ({
                 logger.trace("SET SESSION TRANSACTION READ ONLY"),
               );
             });
+
+          await pool.promise().query("SELECT 1=1");
 
           existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>

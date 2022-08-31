@@ -1,4 +1,4 @@
-import { Prisma, TransferStatus } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { db } from "../../../lib/db.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
@@ -32,10 +32,7 @@ transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
       status: z
         .preprocess(
           (val) => String(val).toUpperCase(),
-          z.enum([
-            Object.values(TransferStatus)[0],
-            ...Object.values(TransferStatus),
-          ]),
+          z.enum(["STARTED", "PENDING", "COMPLETE", "FAILED", "CANCELLED"]),
         )
         .nullish(),
     })
