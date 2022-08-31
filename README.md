@@ -33,19 +33,20 @@ Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/s
 Data originates from one of your company's sources, which can be any of:
 
 - Postgres
+- Redshift
+- CockroachDB
 - MySQL
-- S3 [in progress]
-- Redshift [in progress]
+- MariaDB
 - etc.
 
 ### Destinations
 Your customers can define their own destinations, which your team can configure through our Destinations API.
-- CSV Export
 - Snowflake
 - Amazon S3
-- Amazon Redshift [in progress]
+- Amazon Redshift
 - BigQuery [in progress]
 - Databricks [in progress]
+- CSV Export
 
 ## Data transformers
 
@@ -65,6 +66,10 @@ We currently support renaming columns between sources and destinations and will 
 We believe that creating a data pipeline should be made as simple as pressing a button from a vendor's dashboard. 
 
 Native, customer-facing data pipelines offer a more secure and efficient way for organizations to share data with one another. Companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already invested in building out native data sharing features for their customers. **Pipebird is designed to help developers at any company quickly offer the same powerful data sharing features, increasing security and decreasing complexity for their customers.**
+
+We'd love to work with you to grow Pipebird. Feel free to message us in the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg).
+
+You can show some early support by starring this repo 🌟
 
 ## Open source vs. paid versions
 
