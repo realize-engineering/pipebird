@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "lib": ["esnext"],
-    "sourceMap": true
+    "sourceMap": true,
+    "noUncheckedIndexedAccess": true
   },
   "exclude": ["tests", "node_modules", "prisma"]
 }

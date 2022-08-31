@@ -65,9 +65,12 @@ export const useConnection = async ({
       .createHash("sha256")
       .update(Object.values({ ...connectionOptions, dbType }).join("|"))
       .digest("hex");
+    let existingPool = pools[poolFingerprint];
 
-    if (!pools[poolFingerprint]) {
+    if (!existingPool) {
       switch (dbType) {
+        case "COCKROACHDB":
+        case "REDSHIFT":
         case "POSTGRES": {
           const pool = new pg.Pool(connectionOptions).on(
             "connect",
@@ -75,7 +78,7 @@ export const useConnection = async ({
               client.query(
                 "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
                 () => {
-                  logger.info(
+                  logger.trace(
                     "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
                   );
                 },
@@ -83,7 +86,7 @@ export const useConnection = async ({
             },
           );
 
-          pools[poolFingerprint] = {
+          existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>
               pool.query(sql.sql, [...sql.bindings]),
             queryStream: async (sql: Knex.SqlNative) => {
@@ -100,19 +103,20 @@ export const useConnection = async ({
           break;
         }
 
+        case "MARIADB":
         case "MYSQL": {
           const pool = mysql2
             .createPool(connectionOptions)
             .on("connection", (connection) => {
               connection.query("SET SESSION sql_mode='ANSI_QUOTES'", () =>
-                logger.info("SET SESSION sql_mode='ANSI_QUOTES'"),
+                logger.trace("SET SESSION sql_mode='ANSI_QUOTES'"),
               );
               connection.query("SET SESSION TRANSACTION READ ONLY", () =>
-                logger.info("SET SESSION TRANSACTION READ ONLY"),
+                logger.trace("SET SESSION TRANSACTION READ ONLY"),
               );
             });
 
-          pools[poolFingerprint] = {
+          existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>
               pool
                 .promise()
@@ -172,12 +176,20 @@ export const useConnection = async ({
           };
         }
       }
+
+      logger.trace(
+        `Added ${dbType} pool with fingerprint '${poolFingerprint}' to pool cache`,
+      );
     }
+
+    logger.trace(
+      `Using ${dbType} pool with fingerprint '${poolFingerprint}' from pool cache`,
+    );
 
     return {
       error: false,
       code: "connection_reachable",
-      ...pools[poolFingerprint],
+      ...existingPool,
     };
   } catch (error) {
     logger.error({ connectionError: error });

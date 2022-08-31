@@ -1,16 +1,54 @@
-interface DTConversions {
-  [key: string]: {
-    [key: string]: {
-      [key: string]: string;
-    };
-  };
-}
+import { z } from "zod";
 
 /*
  * Table for determining conversions between types across DBs
  * Usage example: dataTypeConversions[src.sourceType][dest.destinationType][srcColumnType]
  */
-export const dataTypeConversions: DTConversions = {
+const dataTypeConversionSchema = z.object({
+  SNOWFLAKE: z.object({
+    POSTGRES: z.object({
+      smallint: z.literal("smallint"),
+      bigint: z.literal("bigint"),
+      integer: z.literal("integer"),
+      decimal: z.literal("decimal"),
+      real: z.literal("real"),
+      "double precision": z.literal("double precision"),
+      boolean: z.literal("boolean"),
+      varchar: z.literal("varchar"),
+      text: z.literal("text"),
+      binary: z.literal("bytea"),
+      timestamp: z.literal("timestamp"),
+      timestamptz: z.literal("timestamp with time zone"),
+      date: z.literal("date"),
+      time: z.literal("time"),
+      object: z.literal("jsonb"),
+    }),
+  }),
+  POSTGRES: z.object({
+    SNOWFLAKE: z.object({
+      smallint: z.literal("smallint"),
+      bigint: z.literal("bigint"),
+      integer: z.literal("integer"),
+      decimal: z.literal("decimal"),
+      real: z.literal("real"),
+      "double precision": z.literal("double precision"),
+      boolean: z.literal("boolean"),
+      varchar: z.literal("varchar"),
+      text: z.literal("text"),
+      bytea: z.literal("binary"),
+      timestamp: z.literal("timestamp"),
+      "timestamp without time zone": z.literal("timestamp"),
+      "timestamp with time zone": z.literal("timestamptz"),
+      date: z.literal("date"),
+      time: z.literal("time"),
+      jsonb: z.literal("variant"),
+      "USER-DEFINED": z.literal("varchar"),
+    }),
+  }),
+});
+export const dataTypeConversions: Readonly<
+  z.infer<typeof dataTypeConversionSchema>
+> = Object.freeze({
   SNOWFLAKE: {
     POSTGRES: {
       smallint: "smallint",
@@ -51,7 +89,7 @@ export const dataTypeConversions: DTConversions = {
       "USER-DEFINED": "varchar",
     },
   },
-};
+});
 
 export const getColumnTypeForDest = ({
   sourceType,
@@ -76,5 +114,9 @@ export const getColumnTypeForDest = ({
     return null;
   }
 
-  return srcConversionToDest[columnType];
+  return srcConversionToDest[
+    dataTypeConversionSchema.shape[sourceType].shape[destinationType]
+      .keyof()
+      .parse(columnType)
+  ];
 };
