@@ -14,6 +14,7 @@ export const dataTypeConversions: DTConversions = {
   SNOWFLAKE: {
     POSTGRES: {
       smallint: "smallint",
+      bigint: "bigint",
       integer: "integer",
       decimal: "decimal",
       real: "real",
@@ -23,7 +24,7 @@ export const dataTypeConversions: DTConversions = {
       text: "text",
       binary: "bytea",
       timestamp: "timestamp",
-      timestamptz: "timestamptz",
+      timestamptz: "timestamp with time zone",
       date: "date",
       time: "time",
       object: "jsonb",
@@ -32,6 +33,7 @@ export const dataTypeConversions: DTConversions = {
   POSTGRES: {
     SNOWFLAKE: {
       smallint: "smallint",
+      bigint: "bigint",
       integer: "integer",
       decimal: "decimal",
       real: "real",
@@ -41,10 +43,12 @@ export const dataTypeConversions: DTConversions = {
       text: "text",
       bytea: "binary",
       timestamp: "timestamp",
-      timestamptz: "timestamptz",
+      "timestamp without time zone": "timestamp",
+      "timestamp with time zone": "timestamptz",
       date: "date",
       time: "time",
       jsonb: "variant",
+      "USER-DEFINED": "varchar",
     },
   },
 };

@@ -3,64 +3,18 @@ import { logger } from "../../../lib/logger.js";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
-import { getConnection } from "../../../lib/connections.js";
-import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
-import { env } from "../../../lib/env.js";
+import { useConnection } from "../../../lib/connections.js";
 import {
   buildInitiateUpsert,
+  createStage,
   getUniqueTableName,
   removeLoadedData,
-  sanitizeQueryParam,
 } from "../../../lib/snowflake/load.js";
 import zlib from "node:zlib";
 import { z } from "zod";
 import { parseISO } from "date-fns";
-
-const buildTemplatedQuery = ({
-  viewColumns,
-  resultColumns,
-  tableName,
-  tenantColumn,
-  tenantId,
-  lastModifiedColumn,
-  lastModifiedAt,
-}: {
-  viewColumns: string[];
-  resultColumns: { nameInSource: string; nameInDestination: string }[];
-  tableName: string;
-  tenantColumn: string;
-  tenantId: string;
-  lastModifiedColumn: string;
-  lastModifiedAt: string;
-}) =>
-  `SELECT ${resultColumns
-    .map(
-      (column) =>
-        `"${column.nameInSource.replaceAll(
-          '"',
-          "",
-        )}" AS "${column.nameInDestination.replaceAll('"', "")}"`,
-    )
-    .join(", ")} FROM (SELECT ${viewColumns
-    .map((column) => `"${column.replaceAll('"', "")}"`)
-    .join(
-      ", ",
-    )} FROM "${tableName}") AS t WHERE "${tenantColumn}" = '${tenantId}' AND "${lastModifiedColumn}" > '${lastModifiedAt}'`;
-
-const buildLastModifiedQuery = ({
-  lastModifiedColumn,
-  tableName,
-}: {
-  lastModifiedColumn: string;
-  tableName: string;
-}) => {
-  const lastModifiedColumnEscaped = lastModifiedColumn.replaceAll('"', "");
-
-  return `SELECT "${lastModifiedColumnEscaped}" FROM "${tableName.replaceAll(
-    '"',
-    "",
-  )}" ORDER BY "${lastModifiedColumnEscaped}" DESC LIMIT 1;`;
-};
+import * as csv from "csv";
+import { default as knex } from "knex";
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -78,6 +32,7 @@ export default async function (job: Job<TransferQueueJobData>) {
             tenantId: true,
             lastModifiedAt: true,
             host: true,
+            port: true,
             username: true,
             password: true,
             database: true,
@@ -158,13 +113,14 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     const {
       host: destHost,
+      port: destPort,
       username: destUsername,
       password: destPassword,
       database: destDatabase,
       schema: destSchema,
     } = destination;
 
-    const sourceConnection = await getConnection({
+    const sourceConnection = await useConnection({
       dbType: srcDbType,
       host: srcHost,
       port: srcPort,
@@ -173,38 +129,67 @@ export default async function (job: Job<TransferQueueJobData>) {
       database: srcDatabase,
     });
 
-    if (sourceConnection.status !== "REACHABLE") {
+    if (sourceConnection.error) {
       throw new Error(
         `Source with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
       );
     }
 
+    const qb = knex({ client: source.sourceType.toLowerCase() });
     const lastModifiedColumn = view.columns.filter(
       (col) => col.isLastModified,
     )[0].name;
-    const queryDataStream = sourceConnection
-      .extractToCsvUnsafe(
-        buildTemplatedQuery({
-          viewColumns: view.columns.map((col) => col.name),
-          resultColumns: configuration.columns,
-          tableName: view.tableName,
-          tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0]
-            .name,
-          tenantId: destination.tenantId,
-          lastModifiedColumn,
-          lastModifiedAt: destination.lastModifiedAt.toISOString(),
-        }),
-      )
-      .pipe(zlib.createGzip());
-
-    const { rows } = await sourceConnection.queryUnsafe(
-      buildLastModifiedQuery({ lastModifiedColumn, tableName: view.tableName }),
+    const { rows } = await sourceConnection.query(
+      qb
+        .select(lastModifiedColumn)
+        .from(view.tableName)
+        .orderBy(lastModifiedColumn, "desc")
+        .limit(1)
+        .toSQL()
+        .toNative(),
     );
     const newLastModifiedAt = z
       .string()
       .transform((str) => parseISO(str))
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
+
+    const queryDataStream = (
+      await sourceConnection.queryStream(
+        qb
+          .select(
+            configuration.columns.map(
+              (col) => `${col.nameInSource} as ${col.nameInDestination}`,
+            ),
+          )
+          .from(
+            qb
+              .select(view.columns.map((col) => col.name))
+              .from(view.tableName)
+              .as("t"),
+          )
+          .where(
+            view.columns.filter((col) => col.isTenantColumn)[0].name,
+            "=",
+            destination.tenantId,
+          )
+          .where(
+            lastModifiedColumn,
+            ">",
+            destination.lastModifiedAt.toISOString(),
+          )
+          .toSQL()
+          .toNative(),
+      )
+    )
+      .pipe(
+        csv.stringify({
+          delimiter: ",",
+          header: true,
+          bom: true,
+        }),
+      )
+      .pipe(zlib.createGzip());
 
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
@@ -215,6 +200,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       case "SNOWFLAKE": {
         const credentialsExist =
           !!destHost &&
+          !!destPort &&
           !!destUsername &&
           !!destPassword &&
           !!destDatabase &&
@@ -226,21 +212,23 @@ export default async function (job: Job<TransferQueueJobData>) {
           );
         }
 
-        const destConnection = await getSnowflakeConnection({
+        const destConnection = await useConnection({
+          dbType: "SNOWFLAKE",
           host: destHost,
+          port: destPort,
           username: destUsername,
           password: destPassword,
           database: destDatabase,
           schema: destSchema,
         });
 
-        if (destConnection.status !== "REACHABLE") {
+        if (destConnection.error) {
           throw new Error(
             `Destination with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
           );
         }
 
-        const pathPrefix = `snowflake/${destination.tenantId}/${destination.id}`;
+        const pathPrefix = `snowflake/${destination.id}`;
         await uploadObject({
           contents: queryDataStream,
           pathPrefix,
@@ -251,18 +239,12 @@ export default async function (job: Job<TransferQueueJobData>) {
           destination.id
         }_${new Date().getTime()}`;
 
-        const createStageOperation = `
-          create or replace stage "${sanitizeQueryParam(
-            destSchema,
-          )}"."${tempStageName}"
-          url='s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}'
-          credentials = (aws_key_id='${
-            env.S3_USER_ACCESS_ID
-          }' aws_secret_key='${env.S3_USER_SECRET_KEY}')
-          encryption = (TYPE='AWS_SSE_KMS' KEY='${env.KMS_KEY_ID}')
-          file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
-        `;
-        await destConnection.client.query(createStageOperation);
+        await createStage({
+          queryUnsafe: destConnection.queryUnsafe,
+          schema: destSchema,
+          tempStageName,
+          pathPrefix,
+        });
 
         const primaryKeyCol = destination.configuration.view.columns.filter(
           (col) => col.isPrimaryKey,
@@ -279,10 +261,10 @@ export default async function (job: Job<TransferQueueJobData>) {
           tableName,
           primaryKeyCol,
         });
-        await destConnection.client.query(upsertOperation);
+        await destConnection.query(upsertOperation);
 
         await removeLoadedData({
-          client: destConnection.client,
+          query: destConnection.query,
           schema: destSchema,
           tempStageName,
         });

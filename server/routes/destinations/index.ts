@@ -9,8 +9,8 @@ import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
-import { getSnowflakeConnection } from "../../../lib/snowflake/connection.js";
 import { createDestinationTable } from "../../../lib/snowflake/load.js";
+import { useConnection } from "../../../lib/connections.js";
 const destinationRouter = Router();
 
 type DestinationResponse = Prisma.DestinationGetPayload<{
@@ -110,21 +110,24 @@ destinationRouter.post(
           configurationId,
           tenantId,
           host,
+          port,
           schema,
           database,
           username,
           password,
         } = body.data;
 
-        const connection = await getSnowflakeConnection({
+        const connection = await useConnection({
+          dbType: "SNOWFLAKE",
           host,
+          port,
           username,
           password,
           database,
           schema,
         });
 
-        if (connection.status === "UNREACHABLE") {
+        if (connection.error) {
           return res
             .status(HttpStatusCode.SERVICE_UNAVAILABLE)
             .json({ code: "source_db_unreachable" });
@@ -137,6 +140,7 @@ destinationRouter.post(
             nickname,
             tenantId,
             host,
+            port,
             schema,
             database,
             username,
@@ -153,7 +157,7 @@ destinationRouter.post(
         });
 
         await createDestinationTable({
-          client: connection.client,
+          query: connection.query,
           schema,
           database,
           destination,

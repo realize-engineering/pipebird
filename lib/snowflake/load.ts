@@ -1,9 +1,17 @@
 import { Prisma } from "@prisma/client";
-import { Sequelize } from "sequelize";
-import { db } from "../db.js";
-import { getColumnTypeForDest } from "../transforms/index.js";
+import { default as knex, Knex } from "knex";
 
-export const sanitizeQueryParam = (value: string) => value.replace(/\W/g, "");
+import { db } from "../db.js";
+import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
+import { getColumnTypeForDest } from "../transforms/index.js";
+import { env } from "../env.js";
+
+// todo(ianedwards): look into support snowflake dialect directly with knex
+// this will serve our purposes for building safe raw statements for the time being
+// using postgres as it will double quote identifiers
+const knexBuilder = knex({
+  client: "postgres",
+});
 
 export const getUniqueTableName = ({
   nickname,
@@ -13,22 +21,19 @@ export const getUniqueTableName = ({
   nickname: string;
   tenantId: string;
   destinationId: number;
-}) =>
-  `ShareData_${sanitizeQueryParam(
-    nickname.replaceAll(" ", "_"),
-  )}_${sanitizeQueryParam(tenantId)}_${destinationId}`;
+}) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
 
 /*
  * Creates a new table in Snowflake for each added destination
  * using a consistent naming format.
  */
 export const createDestinationTable = async ({
-  client,
+  query,
   schema,
   database,
   destination,
 }: {
-  client: Sequelize;
+  query: ConnectionQueryOp;
   schema: string;
   database: string;
   destination: Prisma.DestinationGetPayload<{
@@ -65,10 +70,14 @@ export const createDestinationTable = async ({
     throw new Error("Configuration not associated with destination.");
   }
 
-  const schemaCreateOperation = `CREATE SCHEMA IF NOT EXISTS "${sanitizeQueryParam(
-    database,
-  )}"."${sanitizeQueryParam(schema)}" WITH MANAGED ACCESS;`;
-  await client.query(schemaCreateOperation);
+  const schemaCreateOperation = knexBuilder
+    .raw("CREATE SCHEMA IF NOT EXISTS ?? WITH MANAGED ACCESS", [
+      `${database}.${schema}`,
+    ])
+    .toSQL()
+    .toNative();
+
+  await query(schemaCreateOperation);
 
   const tableName = getUniqueTableName({
     nickname,
@@ -80,19 +89,24 @@ export const createDestinationTable = async ({
     const columnType = destCol.viewColumn.dataType;
 
     // todo(ianedwards): change this to use additional source and destination types
-    return `"${sanitizeQueryParam(
-      destCol.nameInDestination,
-    )}" ${getColumnTypeForDest({
-      sourceType: "POSTGRES",
-      destinationType: "SNOWFLAKE",
-      columnType,
-    })}`;
+    return `?? ${
+      getColumnTypeForDest({
+        sourceType: "POSTGRES",
+        destinationType: "SNOWFLAKE",
+        columnType,
+      }) ?? "varchar"
+    }`;
   });
 
-  const tableCreateOperation = `CREATE TABLE IF NOT EXISTS "${sanitizeQueryParam(
-    schema,
-  )}"."${sanitizeQueryParam(tableName)}" ( ${columnsWithType.join(", ")} );`;
-  await client.query(tableCreateOperation);
+  const tableCreateOperation = knexBuilder
+    .raw(`CREATE TABLE IF NOT EXISTS ?? ( ${columnsWithType.join(", ")} );`, [
+      `${schema}.${tableName}`,
+      ...configuration.columns.map((col) => col.nameInDestination),
+    ])
+    .toSQL()
+    .toNative();
+
+  await query(tableCreateOperation);
 
   return tableName;
 };
@@ -117,71 +131,95 @@ export const buildInitiateUpsert = ({
   stageName: string;
   tableName: string;
   primaryKeyCol: string;
-}) => {
-  const stageSelect = `
-        SELECT 
-          ${columns
-            .map(
-              (col, idx) =>
-                `$${idx + 1} "${sanitizeQueryParam(col.nameInDestination)}"`,
-            )
-            .join(",\n")}
-        from @"${sanitizeQueryParam(schema)}"."${sanitizeQueryParam(stageName)}"
-    `;
+}): Knex.SqlNative => {
+  const names = columns.map((col) => col.nameInDestination);
+  const namesWithoutKey = names.filter((n) => n !== primaryKeyCol);
 
-  const SCHEMA_WITH_TABLE_NAME = `"${sanitizeQueryParam(
-    schema,
-  )}"."${sanitizeQueryParam(tableName)}"`;
-  const initiateUpsertOperation = `
-      MERGE INTO ${SCHEMA_WITH_TABLE_NAME} USING (${stageSelect}) newData 
-      ON ${SCHEMA_WITH_TABLE_NAME}."${primaryKeyCol}" = newData."${primaryKeyCol}"
+  const upsertCommand = knexBuilder
+    .raw(
+      `MERGE INTO ?? USING ( SELECT ${names
+        .map((_, i) => `$${i + 1} ??`)
+        .join(", ")} FROM @?? ) newData ON ?? = newData.??
       WHEN MATCHED THEN UPDATE SET
-        ${columns
-          .filter((col) => col.nameInDestination !== primaryKeyCol)
-          .map(
-            (col) =>
-              `"${sanitizeQueryParam(
-                col.nameInDestination,
-              )}" = newData."${sanitizeQueryParam(col.nameInDestination)}"`,
-          )
-          .join(",\n")}
-      WHEN NOT MATCHED THEN
-        INSERT (
-          ${columns
-            .map((col) => `"${sanitizeQueryParam(col.nameInDestination)}"`)
-            .join(",\n")}
-        )
-        VALUES (
-          ${columns
-            .map(
-              (col) => `newData."${sanitizeQueryParam(col.nameInDestination)}"`,
-            )
-            .join(",\n")}
-        )
-    `;
+        ${"?? = newData.??, ".repeat(namesWithoutKey.length).slice(0, -2)}
+      WHEN NOT MATCHED THEN INSERT ( ${"??, "
+        .repeat(names.length)
+        .slice(0, -2)} ) VALUES
+        ( ${"newData.??, ".repeat(names.length).slice(0, -2)})
+      `,
+      [
+        `${schema}.${tableName}`,
+        ...names,
+        `${schema}.${stageName}`,
+        `${schema}.${tableName}.${primaryKeyCol}`,
+        primaryKeyCol,
+        ...namesWithoutKey.flatMap((n) => [n, n]),
+        ...names,
+        ...names,
+      ],
+    )
+    .toSQL()
+    .toNative();
 
-  return initiateUpsertOperation;
+  return upsertCommand;
+};
+
+export const createStage = async ({
+  queryUnsafe,
+  schema,
+  tempStageName,
+  pathPrefix,
+}: {
+  queryUnsafe: ConnectionQueryUnsafeOp;
+  schema: string;
+  tempStageName: string;
+  pathPrefix: string;
+}) => {
+  const stageFullPath = `${schema}.${tempStageName}`;
+  const createStageOperation = knexBuilder
+    .raw(
+      `
+      create or replace stage ??
+        url=?
+        credentials = (aws_key_id=? aws_secret_key=?)
+        encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID=?)
+        file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
+    `,
+      [
+        stageFullPath,
+        `s3://${env.PROVISIONED_BUCKET_NAME}/${pathPrefix}`,
+        `${env.S3_USER_ACCESS_ID}`,
+        `${env.S3_USER_SECRET_KEY}`,
+        `${env.KMS_KEY_ID}`,
+      ],
+    )
+    .toString();
+
+  await queryUnsafe(createStageOperation);
 };
 
 /*
  * Deletes a stage and its files in S3
  */
 export const removeLoadedData = async ({
-  client,
+  query,
   schema,
   tempStageName,
 }: {
-  client: Sequelize;
+  query: ConnectionQueryOp;
   schema: string;
   tempStageName: string;
 }) => {
-  const removeFilesOperation = `REMOVE @"${sanitizeQueryParam(
-    schema,
-  )}"."${sanitizeQueryParam(tempStageName)}"`;
-  await client.query(removeFilesOperation);
+  const stageFullPath = `${schema}.${tempStageName}`;
+  const removeFilesOperation = knexBuilder
+    .raw("REMOVE @??", [stageFullPath])
+    .toSQL()
+    .toNative();
+  await query(removeFilesOperation);
 
-  const dropStageOperation = `DROP STAGE "${sanitizeQueryParam(
-    schema,
-  )}"."${sanitizeQueryParam(tempStageName)}"`;
-  await client.query(dropStageOperation);
+  const dropStageOperation = knexBuilder
+    .raw("DROP STAGE ??", [stageFullPath])
+    .toSQL()
+    .toNative();
+  await query(dropStageOperation);
 };
