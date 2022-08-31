@@ -376,7 +376,7 @@
           "Fn::Select": [
             0,
             {
-              "Fn::GetAZs": "us-east-1"
+              "Fn::GetAZs": { "Ref": "AWS::Region" }
             }
           ]
         },
@@ -406,7 +406,7 @@
           "Fn::Select": [
             0,
             {
-              "Fn::GetAZs": "us-east-1"
+              "Fn::GetAZs": { "Ref": "AWS::Region" }
             }
           ]
         },
@@ -436,7 +436,7 @@
           "Fn::Select": [
             1,
             {
-              "Fn::GetAZs": "us-east-1"
+              "Fn::GetAZs": { "Ref": "AWS::Region" }
             }
           ]
         },
@@ -478,7 +478,7 @@
           "Fn::Select": [
             "0",
             {
-              "Fn::GetAZs": ""
+              "Fn::GetAZs": { "Ref": "AWS::Region" }
             }
           ]
         },
@@ -680,7 +680,7 @@
           "Fn::Select": [
             0,
             {
-              "Fn::GetAZs": "us-east-1"
+              "Fn::GetAZs": { "Ref": "AWS::Region" }
             }
           ]
         },
