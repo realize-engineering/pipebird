@@ -60,22 +60,16 @@ webhookRouter.post(
       });
     }
     const { url } = bodyParams.data;
-    const webhook = await db.$transaction(async (prisma) => {
-      // In the future we may decide to have multiple webhooks. For now
-      // we assert only one webhook is assignable at a time.
-      await prisma.webhook.deleteMany({});
-      const webhook = await prisma.webhook.create({
-        data: {
-          url,
-          secretKey: await id128("whk"),
-        },
-        select: {
-          id: true,
-          secretKey: true,
-          url: true,
-        },
-      });
-      return webhook;
+    const webhook = await db.webhook.create({
+      data: {
+        url,
+        secretKey: await id128("whk"),
+      },
+      select: {
+        id: true,
+        secretKey: true,
+        url: true,
+      },
     });
     return res.status(HttpStatusCode.CREATED).json(webhook);
   },

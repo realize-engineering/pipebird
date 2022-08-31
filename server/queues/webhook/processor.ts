@@ -44,20 +44,19 @@ export default async function (job: Job<WebhookQueueJobData>) {
     }
 
     // todo(ianedwards): increase event type specificity as needed
-    const body = JSON.stringify({
+    const body = {
       type: "transfer.finalized",
       object: transfer,
-    });
+    };
 
     await got.post(webhook.url, {
       headers: {
-        "Content-Type": "application/json",
         "X-Pipebird-Signature": crypto
           .createHmac("sha256", webhook.secretKey)
-          .update(body)
+          .update(JSON.stringify(body))
           .digest("hex"),
       },
-      body,
+      json: body,
     });
   } catch (error) {
     logger.error(error);

@@ -30,14 +30,14 @@ const worker = new Worker(queueNames.SEND_WEBHOOK, processor, {
 });
 
 worker.on("completed", (job) =>
-  logger.info(`Completed job ${job.id} successfully.`),
+  logger.trace(`Completed job ${job.id} successfully.`),
 );
 worker.on("failed", (job, err) =>
-  logger.info(`Failed job ${job.id} with ${err}`),
+  logger.error(`Failed job ${job.id} with ${err}`),
 );
 
 worker.on("progress", (job, progress) =>
-  logger.info(`Progress for job ${job.id}=${progress}`),
+  logger.trace(`Progress for job ${job.id}=${progress}`),
 );
 
 export { webhookQueue };
