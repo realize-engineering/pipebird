@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import { logger } from "../../../lib/logger.js";
 import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
-import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
+import { db } from "../../../lib/db.js";
 import { useConnection } from "../../../lib/connections.js";
 import { env } from "../../../lib/env.js";
 import {
@@ -13,44 +13,8 @@ import {
 import zlib from "node:zlib";
 import { z } from "zod";
 import { parseISO } from "date-fns";
-import sql from "sql-template-tag";
 import * as csv from "csv";
-
-const buildFormattedQuery = ({
-  viewColumns,
-  resultColumns,
-  tableName,
-  tenantColumn,
-  tenantId,
-  lastModifiedColumn,
-  lastModifiedAt,
-}: {
-  viewColumns: string[];
-  resultColumns: { nameInSource: string; nameInDestination: string }[];
-  tableName: string;
-  tenantColumn: string;
-  tenantId: string;
-  lastModifiedColumn: string;
-  lastModifiedAt: string;
-}) =>
-  sql`SELECT ${quoteIdentifiers(resultColumns)} FROM (SELECT ${quoteIdentifiers(
-    viewColumns,
-  )} FROM ${quoteIdentifier(tableName)}) AS t WHERE ${quoteIdentifier(
-    tenantColumn,
-  )} = ${tenantId} AND ${quoteIdentifier(
-    lastModifiedColumn,
-  )} > ${lastModifiedAt}`;
-
-const buildLastModifiedQuery = ({
-  lastModifiedColumn,
-  tableName,
-}: {
-  lastModifiedColumn: string;
-  tableName: string;
-}) =>
-  sql`SELECT ${quoteIdentifier(lastModifiedColumn)} FROM ${quoteIdentifier(
-    tableName,
-  )} ORDER BY ${quoteIdentifier(lastModifiedColumn)} DESC LIMIT 1`;
+import { default as knex } from "knex";
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -171,23 +135,18 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
+    const qb = knex({ client: source.sourceType.toLowerCase() });
     const lastModifiedColumn = view.columns.filter(
       (col) => col.isLastModified,
     )[0].name;
-    const formattedQuery = buildFormattedQuery({
-      viewColumns: view.columns.map((col) => col.name),
-      resultColumns: configuration.columns,
-      tableName: view.tableName,
-      tenantColumn: view.columns.filter((col) => col.isTenantColumn)[0].name,
-      tenantId: destination.tenantId,
-      lastModifiedColumn,
-      lastModifiedAt: destination.lastModifiedAt.toISOString(),
-    });
     const { rows } = await sourceConnection.query(
-      buildLastModifiedQuery({
-        lastModifiedColumn,
-        tableName: view.tableName,
-      }),
+      qb
+        .select(lastModifiedColumn)
+        .from(view.tableName)
+        .orderBy(lastModifiedColumn, "desc")
+        .limit(1)
+        .toSQL()
+        .toNative(),
     );
     const newLastModifiedAt = z
       .string()
@@ -195,7 +154,34 @@ export default async function (job: Job<TransferQueueJobData>) {
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
 
-    const queryDataStream = (await sourceConnection.queryStream(formattedQuery))
+    const queryDataStream = (
+      await sourceConnection.queryStream(
+        qb
+          .select(
+            configuration.columns.map(
+              (col) => `${col.nameInSource} as ${col.nameInDestination}`,
+            ),
+          )
+          .from(
+            qb
+              .select(view.columns.map((col) => col.name))
+              .from(view.tableName)
+              .as("t"),
+          )
+          .where(
+            view.columns.filter((col) => col.isTenantColumn)[0].name,
+            "=",
+            destination.tenantId,
+          )
+          .where(
+            lastModifiedColumn,
+            ">",
+            destination.lastModifiedAt.toISOString(),
+          )
+          .toSQL()
+          .toNative(),
+      )
+    )
       .pipe(
         csv.stringify({
           delimiter: ",",

@@ -5,12 +5,12 @@ import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
 import { useConnection } from "../../../lib/connections.js";
-import { db, quoteIdentifier, quoteIdentifiers } from "../../../lib/db.js";
+import { db } from "../../../lib/db.js";
 import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
-import sql from "sql-template-tag";
+import { default as knex } from "knex";
 
 type ViewResponse = Prisma.ViewGetPayload<{
   select: {
@@ -146,15 +146,24 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
-  // ping DB to ensure valid column names for given schema + pable
-  await conn.query(
-    sql`SELECT ${quoteIdentifiers(
-      columns.map((column) => column.name),
-    )} FROM ${quoteIdentifier(schema)}.${quoteIdentifier(tableName)} LIMIT 1`,
-  );
+  const qb = knex({ client: sourceType.toLowerCase() });
 
+  // ping DB to ensure valid column names for given schema + table
+  await conn.query(
+    qb
+      .select(columns.map((column) => column.name))
+      .from(`${schema}.${tableName}`)
+      .limit(1)
+      .toSQL()
+      .toNative(),
+  );
   const infoResult = await conn.query(
-    sql`SELECT column_name, data_type FROM information_schema.columns WHERE table_name=${tableName}`,
+    qb
+      .select("column_name", "data_type")
+      .from("information_schema.columns")
+      .where("table_name", "=", tableName)
+      .toSQL()
+      .toNative(),
   );
 
   const viewColumnCreateData = columns.map((col) => {

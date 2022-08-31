@@ -7,11 +7,14 @@ import QueryStream from "pg-query-stream";
 import SnowflakeClient from "./snowflake/client.js";
 import crypto from "crypto";
 import mysql2 from "mysql2";
+import { Knex } from "knex";
 
 export type ConnectionQueryOp = (
-  sql: Sql,
+  sql: Knex.SqlNative,
 ) => Promise<{ rows: Record<string, unknown>[] }>;
-export type ConnectionStreamOp = (sql: Sql) => Promise<Readable> | Readable;
+export type ConnectionStreamOp = (
+  sql: Knex.SqlNative,
+) => Promise<Readable> | Readable;
 export type ConnectionQueryUnsafeOp = (
   sql: string,
 ) => Promise<{ rows: Record<string, unknown>[] }>;
@@ -82,11 +85,12 @@ export const useConnection = async ({
           );
 
           pools[poolFingerprint] = {
-            query: (sql: Sql) => pool.query(sql),
-            queryStream: async (sql: Sql) => {
+            query: (sql: Knex.SqlNative) =>
+              pool.query(sql.sql, [...sql.bindings]),
+            queryStream: async (sql: Knex.SqlNative) => {
               const client = await pool.connect();
               const stream = client.query(
-                new QueryStream(sql.text, sql.values),
+                new QueryStream(sql.sql, [...sql.bindings]),
               );
               stream.on("end", client.release);
               return stream;
@@ -110,17 +114,17 @@ export const useConnection = async ({
             });
 
           pools[poolFingerprint] = {
-            query: (sql: Sql) =>
+            query: (sql: Knex.SqlNative) =>
               pool
                 .promise()
-                .query(sql)
+                .query(sql.sql, sql.bindings)
                 .then(([rows]) => ({
                   rows: Array.isArray(rows)
                     ? rows.flatMap((row) => row)
                     : [rows],
                 })),
-            queryStream: (sql: Sql) =>
-              pool.query(sql).stream({ objectMode: true }),
+            queryStream: (sql: Knex.SqlNative) =>
+              pool.query(sql.sql, sql.bindings).stream({ objectMode: true }),
             queryUnsafe: async (sql: string) =>
               pool
                 .promise()
