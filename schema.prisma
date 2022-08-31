@@ -15,10 +15,13 @@ enum ConnectorStatus {
 
 enum SourceType {
   MYSQL
+  MARIADB
   POSTGRES
+  COCKROACHDB
   REDSHIFT
   SNOWFLAKE
   BIGQUERY
+  MSSQL
 }
 
 model Source {

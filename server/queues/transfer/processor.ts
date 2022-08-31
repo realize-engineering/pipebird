@@ -47,6 +47,7 @@ export default async function (job: Job<TransferQueueJobData>) {
                 },
                 view: {
                   select: {
+                    id: true,
                     tableName: true,
                     columns: true,
                     source: {
@@ -138,16 +139,43 @@ export default async function (job: Job<TransferQueueJobData>) {
     const qb = knex({ client: source.sourceType.toLowerCase() });
     const lastModifiedColumn = view.columns.filter(
       (col) => col.isLastModified,
-    )[0].name;
-    const { rows } = await sourceConnection.query(
-      qb
-        .select(lastModifiedColumn)
-        .from(view.tableName)
-        .orderBy(lastModifiedColumn, "desc")
-        .limit(1)
-        .toSQL()
-        .toNative(),
-    );
+    )[0]?.name;
+
+    if (!lastModifiedColumn) {
+      throw new Error(
+        `Missing lastModified column for configuration ${view.id}`,
+      );
+    }
+
+    const tenantColumn = view.columns.filter((col) => col.isTenantColumn)[0]
+      ?.name;
+
+    if (!tenantColumn) {
+      throw new Error(`Missing lastModified column for view ${view.id}`);
+    }
+
+    const lastModifiedQuery = qb
+      .select(lastModifiedColumn)
+      .from(view.tableName)
+      .where(tenantColumn, "=", destination.tenantId)
+      .orderBy(lastModifiedColumn, "desc")
+      .limit(1)
+      .toSQL()
+      .toNative();
+    const { rows } = await sourceConnection.query(lastModifiedQuery);
+
+    if (!rows[0]) {
+      logger.warn(
+        lastModifiedQuery,
+        "Zero rows returned by lastModified query",
+      );
+
+      return db.transfer.update({
+        where: { id: transfer.id },
+        data: { status: "CANCELLED" },
+      });
+    }
+
     const newLastModifiedAt = z
       .string()
       .transform((str) => parseISO(str))
@@ -168,11 +196,7 @@ export default async function (job: Job<TransferQueueJobData>) {
               .from(view.tableName)
               .as("t"),
           )
-          .where(
-            view.columns.filter((col) => col.isTenantColumn)[0].name,
-            "=",
-            destination.tenantId,
-          )
+          .where(tenantColumn, "=", destination.tenantId)
           .where(
             lastModifiedColumn,
             ">",
@@ -182,6 +206,9 @@ export default async function (job: Job<TransferQueueJobData>) {
           .toNative(),
       )
     )
+      .on("data", (chunk) => {
+        logger.trace(chunk, "Got row object");
+      })
       .pipe(
         csv.stringify({
           delimiter: ",",
@@ -246,16 +273,20 @@ export default async function (job: Job<TransferQueueJobData>) {
           pathPrefix,
         });
 
-        const primaryKeyCol = destination.configuration.view.columns.filter(
-          (col) => col.isPrimaryKey,
-        )[0].name;
+        const primaryKeyCol = view.columns.filter((col) => col.isPrimaryKey)[0]
+          ?.name;
+
+        if (!primaryKeyCol) {
+          throw new Error(`Missing primary key column for view ${view.id}`);
+        }
+
         const tableName = getUniqueTableName({
           nickname: destination.nickname,
           destinationId: destination.id,
           tenantId: destination.tenantId,
         });
         const upsertOperation = buildInitiateUpsert({
-          columns: destination.configuration.columns,
+          columns: configuration.columns,
           schema: destSchema,
           stageName: tempStageName,
           tableName,
