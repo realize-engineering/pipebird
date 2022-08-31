@@ -15,6 +15,52 @@ import { z } from "zod";
 import { parseISO } from "date-fns";
 import * as csv from "csv";
 import { default as knex } from "knex";
+import { TransferStatus } from "@prisma/client";
+import { getPresignedURL } from "../../../lib/aws/signer.js";
+import { webhookQueue } from "../webhook/scheduler.js";
+import { queueNames } from "../../../lib/queues.js";
+
+const finalizeTransfer = async ({
+  transferId,
+  status,
+  objectUrl,
+}: {
+  transferId: number;
+  status: TransferStatus;
+  objectUrl?: string;
+}) => {
+  await db.transfer.update({
+    where: {
+      id: transferId,
+    },
+    data: {
+      status,
+    },
+  });
+
+  await db.transferResult.upsert({
+    where: {
+      transferId,
+    },
+    update: {
+      finalizedAt: new Date(),
+      objectUrl,
+    },
+    create: {
+      transferId,
+      finalizedAt: new Date(),
+      objectUrl,
+    },
+  });
+
+  const webhooks = await db.webhook.findMany();
+  webhooks.forEach((wh) =>
+    webhookQueue.add(queueNames.SEND_WEBHOOK, {
+      webhook: { id: wh.id },
+      transfer: { id: transferId },
+    }),
+  );
+};
 
 export default async function (job: Job<TransferQueueJobData>) {
   try {
@@ -23,7 +69,6 @@ export default async function (job: Job<TransferQueueJobData>) {
       select: {
         id: true,
         status: true,
-        finalizedAt: true,
         destination: {
           select: {
             id: true,
@@ -220,7 +265,19 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     switch (destination.destinationType) {
       case "PROVISIONED_S3": {
-        await uploadObject({ contents: queryDataStream, extension: "gz" });
+        const { key } = await uploadObject({
+          contents: queryDataStream,
+          extension: "gz",
+        });
+
+        const objectUrl = await getPresignedURL({ key, extension: "gz" });
+
+        await finalizeTransfer({
+          transferId: transfer.id,
+          status: "COMPLETE",
+          objectUrl,
+        });
+
         break;
       }
 
@@ -300,19 +357,14 @@ export default async function (job: Job<TransferQueueJobData>) {
           tempStageName,
         });
 
+        await finalizeTransfer({
+          transferId: transfer.id,
+          status: "COMPLETE",
+        });
+
         break;
       }
     }
-
-    await db.transfer.update({
-      where: {
-        id: transfer.id,
-      },
-      data: {
-        status: "COMPLETE",
-        finalizedAt: new Date(),
-      },
-    });
 
     await db.destination.update({
       where: { id: destination.id },
@@ -323,14 +375,9 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     // todo(ianedwards): perform any necessary rollbacks on external stages on failure
 
-    await db.transfer.update({
-      where: {
-        id: job.data.id,
-      },
-      data: {
-        status: "FAILED",
-        finalizedAt: new Date(),
-      },
+    await finalizeTransfer({
+      transferId: job.data.id,
+      status: "FAILED",
     });
   }
 }

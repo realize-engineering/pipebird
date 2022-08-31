@@ -167,9 +167,9 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   );
 
   const viewColumnCreateData = columns.map((col) => {
-    const columnInfo = infoResult.rows.filter(
+    const columnInfo = infoResult.rows.find(
       (row) => row.column_name === col.name,
-    )[0];
+    );
 
     return {
       ...col,
