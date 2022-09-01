@@ -67,15 +67,14 @@ configurationRouter.post(
         viewId: z.number().nonnegative(),
         columns: z
           .object({
-            nameInSource: z.string().min(1).refine(validator.isAlphanumeric, {
-              message: "Source column name must be alphanumeric",
-            }),
+            nameInSource: z
+              .string()
+              .min(1)
+              .regex(/^[a-zA-Z0-9_]*$/g),
             nameInDestination: z
               .string()
               .min(1)
-              .refine(validator.isAlphanumeric, {
-                message: "Destination column name must be alphanumeric",
-              }),
+              .regex(/^[a-zA-Z0-9_]*$/g),
           })
           .array(),
       })

@@ -36,15 +36,15 @@ model Source {
   id         Int             @id @default(autoincrement())
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
-  nickname   String
+  nickname   String?
   status     ConnectorStatus
   sourceType SourceType
   host       String
   port       Int
-  schema     String
+  schema     String?
   database   String
   username   String
-  password   String
+  password   String?
 
   views View[]
 }

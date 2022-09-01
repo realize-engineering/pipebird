@@ -127,7 +127,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     host,
     port,
     username,
-    password,
+    password: password || undefined,
     database,
   });
 
