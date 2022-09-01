@@ -4,12 +4,6 @@ import { uploadObject } from "../../../lib/aws/upload.js";
 import { TransferQueueJobData } from "./scheduler.js";
 import { db } from "../../../lib/db.js";
 import { useConnection } from "../../../lib/connections.js";
-import {
-  buildInitiateUpsert,
-  createStage,
-  getUniqueTableName,
-  removeLoadedData,
-} from "../../../lib/snowflake/load.js";
 import zlib from "node:zlib";
 import { z } from "zod";
 import { parseISO } from "date-fns";
@@ -19,6 +13,9 @@ import { TransferStatus } from "@prisma/client";
 import { getPresignedURL } from "../../../lib/aws/signer.js";
 import { webhookQueue } from "../webhook/scheduler.js";
 import { queueNames } from "../../../lib/queues.js";
+
+import RedshiftLoader from "../../../lib/redshift/load.js";
+import SnowflakeLoader from "../../../lib/snowflake/load.js";
 
 const finalizeTransfer = async ({
   transferId,
@@ -82,12 +79,14 @@ export default async function (job: Job<TransferQueueJobData>) {
             password: true,
             database: true,
             schema: true,
+            configurationId: true,
             configuration: {
               select: {
                 columns: {
                   select: {
                     nameInSource: true,
                     nameInDestination: true,
+                    viewColumn: true,
                   },
                 },
                 view: {
@@ -311,51 +310,71 @@ export default async function (job: Job<TransferQueueJobData>) {
           );
         }
 
-        const pathPrefix = `snowflake/${destination.id}`;
-        await uploadObject({
-          contents: queryDataStream,
-          pathPrefix,
-          extension: "gz",
-        });
+        const loader = new SnowflakeLoader(
+          destConnection.query,
+          destination,
+          destConnection.queryUnsafe,
+        );
 
-        const tempStageName = `SharedData_TempStage_${
-          destination.id
-        }_${new Date().getTime()}`;
-
-        await createStage({
-          queryUnsafe: destConnection.queryUnsafe,
+        await loader.createTable({
           schema: destSchema,
-          tempStageName,
-          pathPrefix,
+          database: destDatabase,
+        });
+        await loader.stage(queryDataStream, destSchema);
+        await loader.upsert(destSchema);
+        await loader.tearDown(destSchema);
+
+        await finalizeTransfer({
+          transferId: transfer.id,
+          status: "COMPLETE",
         });
 
-        const primaryKeyCol = view.columns.find(
-          (col) => col.isPrimaryKey,
-        )?.name;
+        break;
+      }
+      case "REDSHIFT": {
+        const credentialsExist =
+          !!destHost &&
+          !!destPort &&
+          !!destUsername &&
+          !!destPassword &&
+          !!destDatabase &&
+          !!destSchema;
 
-        if (!primaryKeyCol) {
-          throw new Error(`Missing primary key column for view ${view.id}`);
+        if (!credentialsExist) {
+          throw new Error(
+            `Incomplete credentials for destination with ID ${destination.id}, aborting transfer ${transfer.id}`,
+          );
         }
 
-        const tableName = getUniqueTableName({
-          nickname: destination.nickname,
-          destinationId: destination.id,
-          tenantId: destination.tenantId,
-        });
-        const upsertOperation = buildInitiateUpsert({
-          columns: configuration.columns,
+        const destConnection = await useConnection({
+          dbType: "REDSHIFT",
+          host: destHost,
+          port: destPort,
+          username: destUsername,
+          password: destPassword,
+          database: destDatabase,
           schema: destSchema,
-          stageName: tempStageName,
-          tableName,
-          primaryKeyCol,
         });
-        await destConnection.query(upsertOperation);
 
-        await removeLoadedData({
-          query: destConnection.query,
+        if (destConnection.error) {
+          throw new Error(
+            `Destination with ID ${source.id} is unreachable, aborting transfer ${transfer.id}`,
+          );
+        }
+
+        const loader = new RedshiftLoader(
+          destConnection.query,
+          destination,
+          destConnection.queryUnsafe,
+        );
+
+        await loader.createTable({
           schema: destSchema,
-          tempStageName,
+          database: destDatabase,
         });
+        await loader.stage(queryDataStream);
+        await loader.upsert();
+        await loader.tearDown();
 
         await finalizeTransfer({
           transferId: transfer.id,

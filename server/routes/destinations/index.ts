@@ -9,7 +9,6 @@ import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
-import { createDestinationTable } from "../../../lib/snowflake/load.js";
 import { useConnection } from "../../../lib/connections.js";
 const destinationRouter = Router();
 
@@ -64,7 +63,7 @@ destinationRouter.post(
         }),
         z.object({
           nickname: z.string().min(1),
-          destinationType: z.enum(["SNOWFLAKE", "POSTGRES"]),
+          destinationType: z.enum(["SNOWFLAKE", "POSTGRES", "REDSHIFT"]),
           configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
           host: z.string(),
@@ -103,7 +102,8 @@ destinationRouter.post(
         return res.status(HttpStatusCode.CREATED).json(destination);
       }
 
-      case "SNOWFLAKE": {
+      case "SNOWFLAKE":
+      case "REDSHIFT": {
         const {
           nickname,
           destinationType,
@@ -118,7 +118,7 @@ destinationRouter.post(
         } = body.data;
 
         const connection = await useConnection({
-          dbType: "SNOWFLAKE",
+          dbType: destinationType,
           host,
           port,
           username,
@@ -154,13 +154,6 @@ destinationRouter.post(
             configurationId: true,
             destinationType: true,
           },
-        });
-
-        await createDestinationTable({
-          query: connection.query,
-          schema,
-          database,
-          destination,
         });
 
         return res.status(HttpStatusCode.CREATED).json(destination);

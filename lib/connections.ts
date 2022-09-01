@@ -1,4 +1,4 @@
-import { SourceType } from "@prisma/client";
+import { DestinationType, SourceType } from "@prisma/client";
 import { Readable } from "stream";
 import pg from "pg";
 import { logger } from "./logger.js";
@@ -35,7 +35,7 @@ export const useConnection = async ({
   database,
   schema,
 }: {
-  dbType: SourceType;
+  dbType: SourceType | DestinationType;
   host: string;
   port: number;
   database: string;
@@ -70,7 +70,6 @@ export const useConnection = async ({
     if (!existingPool) {
       switch (dbType) {
         case "COCKROACHDB":
-        case "REDSHIFT":
         case "POSTGRES": {
           const pool = new pg.Pool(connectionOptions).on(
             "connect",
@@ -87,6 +86,26 @@ export const useConnection = async ({
           );
 
           await pool.query("SELECT 1=1");
+
+          existingPool = pools[poolFingerprint] = {
+            query: (sql: Knex.SqlNative) =>
+              pool.query(sql.sql, [...sql.bindings]),
+            queryStream: async (sql: Knex.SqlNative) => {
+              const client = await pool.connect();
+              const stream = client.query(
+                new QueryStream(sql.sql, [...sql.bindings]),
+              );
+              stream.on("end", client.release);
+              return stream;
+            },
+            queryUnsafe: (sql: string) => pool.query(sql),
+          };
+
+          break;
+        }
+
+        case "REDSHIFT": {
+          const pool = new pg.Pool(connectionOptions);
 
           existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>
