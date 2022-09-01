@@ -152,7 +152,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   await conn.query(
     qb
       .select(columns.map((column) => column.name))
-      .from(`${schema}.${tableName}`)
+      .from(schema ? `${schema}.${tableName}` : `${tableName}`)
       .limit(1)
       .toSQL()
       .toNative(),

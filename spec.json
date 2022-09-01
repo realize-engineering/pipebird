@@ -1020,7 +1020,7 @@
               }
             },
             "required": [
-              "name",
+              "nickname",
               "destinationType",
               "configurationId",
               "tenantId"
@@ -1077,7 +1077,7 @@
             }
           }
         },
-        "required": ["tableExpression", "tenantColumn", "sourceId"]
+        "required": ["tableName", "sourceId"]
       },
       "Log": {
         "title": "Log",
