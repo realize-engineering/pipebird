@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Source" ALTER COLUMN "password" DROP NOT NULL,
+ALTER COLUMN "schema" DROP NOT NULL,
+ALTER COLUMN "nickname" DROP NOT NULL;

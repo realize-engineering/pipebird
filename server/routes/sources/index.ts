@@ -41,7 +41,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
 sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
   const body = z
     .object({
-      nickname: z.string(), // TODO(timothygoltser): This should be optional
+      nickname: z.string().optional(),
       sourceType: z.enum([
         "MYSQL",
         "POSTGRES",
@@ -51,10 +51,10 @@ sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
       ]),
       host: z.string(),
       port: z.number().int().nonnegative(),
-      schema: z.string(),
+      schema: z.string().optional(),
       database: z.string(),
       username: z.string(),
-      password: z.string(), // TODO(timothygoltser): This should be optional
+      password: z.string().optional(),
     })
     .safeParse(req.body);
 

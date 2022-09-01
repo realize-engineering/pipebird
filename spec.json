@@ -948,14 +948,7 @@
             "type": "string"
           }
         },
-        "required": [
-          "name",
-          "sourceType",
-          "host",
-          "port",
-          "username",
-          "password"
-        ]
+        "required": ["sourceType", "host", "port", "username", "database"]
       },
       "CreateDestination": {
         "title": "CreateDestination",

@@ -171,7 +171,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       host: srcHost,
       port: srcPort,
       username: srcUsername,
-      password: srcPassword,
+      password: srcPassword || undefined,
       database: srcDatabase,
     });
 
@@ -182,9 +182,9 @@ export default async function (job: Job<TransferQueueJobData>) {
     }
 
     const qb = knex({ client: source.sourceType.toLowerCase() });
-    const lastModifiedColumn = view.columns.filter(
+    const lastModifiedColumn = view.columns.find(
       (col) => col.isLastModified,
-    )[0]?.name;
+    )?.name;
 
     if (!lastModifiedColumn) {
       throw new Error(
@@ -192,8 +192,7 @@ export default async function (job: Job<TransferQueueJobData>) {
       );
     }
 
-    const tenantColumn = view.columns.filter((col) => col.isTenantColumn)[0]
-      ?.name;
+    const tenantColumn = view.columns.find((col) => col.isTenantColumn)?.name;
 
     if (!tenantColumn) {
       throw new Error(`Missing lastModified column for view ${view.id}`);
@@ -330,8 +329,9 @@ export default async function (job: Job<TransferQueueJobData>) {
           pathPrefix,
         });
 
-        const primaryKeyCol = view.columns.filter((col) => col.isPrimaryKey)[0]
-          ?.name;
+        const primaryKeyCol = view.columns.find(
+          (col) => col.isPrimaryKey,
+        )?.name;
 
         if (!primaryKeyCol) {
           throw new Error(`Missing primary key column for view ${view.id}`);
