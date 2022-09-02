@@ -450,7 +450,7 @@
                 "type": "object",
                 "properties": {
                   "configurationId": {
-                    "type": "string"
+                    "type": "number"
                   },
                   "name": {
                     "type": "string"
