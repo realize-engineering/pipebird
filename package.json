@@ -9,7 +9,7 @@
     "prepare": "husky install",
     "test": "NODE_ENV=\"test\" ava tests/*",
     "typecheck": "tsc --noEmit",
-    "lint": "prettier --write . && eslint --fix . --ext .ts"
+    "lint": "prettier --check . && eslint . --ext .ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.154.0",
