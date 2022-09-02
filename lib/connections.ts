@@ -1,4 +1,4 @@
-import { SourceType } from "@prisma/client";
+import { DestinationType, SourceType } from "@prisma/client";
 import { Readable } from "stream";
 import pg from "pg";
 import { logger } from "./logger.js";
@@ -35,7 +35,7 @@ export const useConnection = async ({
   database,
   schema,
 }: {
-  dbType: SourceType;
+  dbType: SourceType | DestinationType;
   host: string;
   port: number;
   database: string;
@@ -75,14 +75,16 @@ export const useConnection = async ({
           const pool = new pg.Pool(connectionOptions).on(
             "connect",
             (client) => {
-              client.query(
-                "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
-                () => {
-                  logger.trace(
-                    "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
-                  );
-                },
-              );
+              if (dbType === "POSTGRES") {
+                client.query(
+                  "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+                  () => {
+                    logger.trace(
+                      "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+                    );
+                  },
+                );
+              }
             },
           );
 

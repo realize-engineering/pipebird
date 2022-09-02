@@ -7,7 +7,7 @@ import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
 import { LoadDestination, Loader, LoadingActions } from "../load/index.js";
 
-class SnowflakeLoader extends Loader implements LoadingActions {
+class RedshiftLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
@@ -21,15 +21,12 @@ class SnowflakeLoader extends Loader implements LoadingActions {
 
   public createTable = async ({
     schema,
-    database,
   }: {
     schema: string;
     database: string;
   }) => {
     const schemaCreateOperation = this.qb
-      .raw("create schema if not exists ?? with managed access", [
-        `${database}.${schema}`,
-      ])
+      .raw("create schema if not exists ??", [schema])
       .toSQL()
       .toNative();
 
@@ -51,8 +48,8 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     });
 
     const tableCreateOperation = this.qb
-      .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} );`, [
-        `${schema}.${this.tableName}`,
+      .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} )`, [
+        this.tableName,
         ...configuration.columns.map((col) => col.nameInDestination),
       ])
       .toSQL()
@@ -61,8 +58,18 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     await this.query(tableCreateOperation);
   };
 
-  stage = async (contents: Gzip, schema = "public") => {
-    const pathPrefix = `snowflake/${this.destination.id}`;
+  stage = async (contents: Gzip) => {
+    const createStageOperation = this.qb
+      .raw(`create temp table if not exists ?? (like ??);`, [
+        this.stageName,
+        this.tableName,
+      ])
+      .toSQL()
+      .toNative();
+
+    await this.query(createStageOperation);
+
+    const pathPrefix = `redshift/${this.destination.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -78,18 +85,13 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     const loadStageOperation = this.qb
       .raw(
         `
-        create or replace stage ??
-          url=?
-          credentials = (aws_key_id=? aws_secret_key=?)
-          encryption = (TYPE='AWS_SSE_KMS' KMS_KEY_ID=?)
-          file_format = (TYPE='CSV' FIELD_DELIMITER=',' SKIP_HEADER=1);
-      `,
+        copy ?? from ?
+        credentials ? csv gzip timeformat as 'epochmillisecs' IGNOREHEADER 1
+        `,
         [
-          `${schema}.${this.stageName}`,
+          this.stageName,
           `s3://${filePath}`,
-          `${env.S3_USER_ACCESS_ID}`,
-          `${env.S3_USER_SECRET_KEY}`,
-          `${env.KMS_KEY_ID}`,
+          `aws_access_key_id=${env.S3_USER_ACCESS_ID};aws_secret_access_key=${env.S3_USER_SECRET_KEY}`,
         ],
       )
       .toString();
@@ -97,7 +99,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     await this.#queryUnsafe(loadStageOperation);
   };
 
-  upsert = async (schema = "public") => {
+  upsert = async () => {
     const { configuration } = this.destination;
     const { tableName, stageName } = this;
 
@@ -114,52 +116,55 @@ class SnowflakeLoader extends Loader implements LoadingActions {
 
     const namesWithoutKey = names.filter((n) => n !== primaryKeyCol.name);
 
-    const upsertCommand = this.qb
+    const updateCommand = this.qb
       .raw(
-        `merge into ?? using ( 
-          select 
-            ${names.map((_, i) => `$${i + 1} ??`).join(", ")} 
-          from @?? ) newData 
-        on ?? = newData.??
-        when matched then update set
-          ${"?? = newData.??, ".repeat(namesWithoutKey.length).slice(0, -2)}
-        when not matched then insert ( 
-          ${"??, ".repeat(names.length).slice(0, -2)} 
-        ) values (
-          ${"newData.??, ".repeat(names.length).slice(0, -2)}
-        )
-        `,
+        `update ?? set
+        ${"?? = newData.??, ".repeat(namesWithoutKey.length).slice(0, -2)}
+        from ?? as newData
+        where ?? = newData.??
+      `,
         [
-          `${schema}.${tableName}`,
-          ...names,
-          `${schema}.${stageName}`,
-          `${schema}.${tableName}.${primaryKeyCol.name}`,
-          primaryKeyCol.name,
+          tableName,
           ...namesWithoutKey.flatMap((n) => [n, n]),
-          ...names,
-          ...names,
+          stageName,
+          `${tableName}.${primaryKeyCol.name}`,
+          primaryKeyCol.name,
         ],
       )
       .toSQL()
       .toNative();
 
-    await this.query(upsertCommand);
-  };
+    await this.query(updateCommand);
 
-  tearDown = async (schema = "public") => {
-    const stageFullPath = `${schema}.${this.stageName}`;
-    const removeFilesOperation = this.qb
-      .raw("remove @??", [stageFullPath])
+    const removeCommand = this.qb
+      .raw(`delete from ?? using ?? where ?? = ??`, [
+        stageName,
+        tableName,
+        `${stageName}.${primaryKeyCol.name}`,
+        `${tableName}.${primaryKeyCol.name}`,
+      ])
       .toSQL()
       .toNative();
-    await this.query(removeFilesOperation);
+
+    await this.query(removeCommand);
+
+    const insertCommand = this.qb
+      .raw("insert into ?? select * from ??", [tableName, stageName])
+      .toSQL()
+      .toNative();
+
+    await this.query(insertCommand);
+  };
+
+  tearDown = async () => {
+    // todo(ianedwards): ensure file is deleted from S3
 
     const dropStageOperation = this.qb
-      .raw("drop stage ??", [stageFullPath])
+      .raw("drop table ??", [this.tableName])
       .toSQL()
       .toNative();
     await this.query(dropStageOperation);
   };
 }
 
-export default SnowflakeLoader;
+export default RedshiftLoader;

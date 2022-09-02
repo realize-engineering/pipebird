@@ -23,6 +23,22 @@ const dataTypeConversionSchema = z.object({
       time: z.literal("time"),
       object: z.literal("jsonb"),
     }),
+    REDSHIFT: z.object({
+      smallint: z.literal("smallint"),
+      bigint: z.literal("bigint"),
+      integer: z.literal("integer"),
+      decimal: z.literal("decimal"),
+      real: z.literal("real"),
+      "double precision": z.literal("double precision"),
+      boolean: z.literal("boolean"),
+      varchar: z.literal("varchar"),
+      text: z.literal("text"),
+      binary: z.literal("bytea"),
+      timestamp: z.literal("timestamp"),
+      timestamptz: z.literal("timestamp with time zone"),
+      date: z.literal("date"),
+      time: z.literal("time"),
+    }),
   }),
   POSTGRES: z.object({
     SNOWFLAKE: z.object({
@@ -44,6 +60,25 @@ const dataTypeConversionSchema = z.object({
       jsonb: z.literal("variant"),
       "USER-DEFINED": z.literal("varchar"),
     }),
+    REDSHIFT: z.object({
+      smallint: z.literal("smallint"),
+      bigint: z.literal("bigint"),
+      integer: z.literal("integer"),
+      decimal: z.literal("decimal"),
+      real: z.literal("real"),
+      "double precision": z.literal("double precision"),
+      boolean: z.literal("boolean"),
+      text: z.literal("text"),
+      bytea: z.literal("binary"),
+      varchar: z.literal("varchar"),
+      timestamp: z.literal("timestamp"),
+      "timestamp without time zone": z.literal("timestamp"),
+      "timestamp with time zone": z.literal("timestamptz"),
+      date: z.literal("date"),
+      time: z.literal("time"),
+      jsonb: z.literal("varchar"),
+      "USER-DEFINED": z.literal("varchar"),
+    }),
   }),
 });
 export const dataTypeConversions: Readonly<
@@ -51,6 +86,23 @@ export const dataTypeConversions: Readonly<
 > = Object.freeze({
   SNOWFLAKE: {
     POSTGRES: {
+      smallint: "smallint",
+      bigint: "bigint",
+      integer: "integer",
+      decimal: "decimal",
+      real: "real",
+      "double precision": "double precision",
+      boolean: "boolean",
+      varchar: "varchar",
+      text: "text",
+      binary: "bytea",
+      timestamp: "timestamp",
+      timestamptz: "timestamp with time zone",
+      date: "date",
+      time: "time",
+      object: "jsonb",
+    },
+    REDSHIFT: {
       smallint: "smallint",
       bigint: "bigint",
       integer: "integer",
@@ -88,6 +140,25 @@ export const dataTypeConversions: Readonly<
       jsonb: "variant",
       "USER-DEFINED": "varchar",
     },
+    REDSHIFT: {
+      smallint: "smallint",
+      bigint: "bigint",
+      integer: "integer",
+      decimal: "decimal",
+      real: "real",
+      "double precision": "double precision",
+      boolean: "boolean",
+      varchar: "varchar",
+      text: "text",
+      bytea: "binary",
+      timestamp: "timestamp",
+      "timestamp without time zone": "timestamp",
+      "timestamp with time zone": "timestamptz",
+      date: "date",
+      time: "time",
+      jsonb: "varchar",
+      "USER-DEFINED": "varchar",
+    },
   },
 });
 
@@ -97,7 +168,7 @@ export const getColumnTypeForDest = ({
   columnType,
 }: {
   sourceType: "POSTGRES";
-  destinationType: "SNOWFLAKE";
+  destinationType: "SNOWFLAKE" | "REDSHIFT";
   columnType: string;
 }) => {
   if (!Object.hasOwn(dataTypeConversions, sourceType)) {

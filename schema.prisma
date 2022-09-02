@@ -106,6 +106,7 @@ enum DestinationType {
   POSTGRES
   PROVISIONED_S3
   SNOWFLAKE
+  REDSHIFT
 }
 
 model Destination {
