@@ -70,42 +70,25 @@ export const useConnection = async ({
     if (!existingPool) {
       switch (dbType) {
         case "COCKROACHDB":
+        case "REDSHIFT":
         case "POSTGRES": {
           const pool = new pg.Pool(connectionOptions).on(
             "connect",
             (client) => {
-              client.query(
-                "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
-                () => {
-                  logger.trace(
-                    "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
-                  );
-                },
-              );
+              if (dbType === "POSTGRES") {
+                client.query(
+                  "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+                  () => {
+                    logger.trace(
+                      "SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+                    );
+                  },
+                );
+              }
             },
           );
 
           await pool.query("SELECT 1=1");
-
-          existingPool = pools[poolFingerprint] = {
-            query: (sql: Knex.SqlNative) =>
-              pool.query(sql.sql, [...sql.bindings]),
-            queryStream: async (sql: Knex.SqlNative) => {
-              const client = await pool.connect();
-              const stream = client.query(
-                new QueryStream(sql.sql, [...sql.bindings]),
-              );
-              stream.on("end", client.release);
-              return stream;
-            },
-            queryUnsafe: (sql: string) => pool.query(sql),
-          };
-
-          break;
-        }
-
-        case "REDSHIFT": {
-          const pool = new pg.Pool(connectionOptions);
 
           existingPool = pools[poolFingerprint] = {
             query: (sql: Knex.SqlNative) =>
