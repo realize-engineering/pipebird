@@ -325,6 +325,34 @@
                     }
                   ]
                 },
+                {
+                  "Fn::Sub": [
+                    "echo \"AWS_REGION=${DEPLOYMENT_VERSION}\" >> .env",
+                    {
+                      "DEPLOYMENT_VERSION": {
+                        "Fn::FindInMap": [
+                          "DeploymentMapping",
+                          "Details",
+                          "version"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "Fn::Sub": [
+                    "echo \"AWS_REGION=${DEPLOYMENT_STRATEGY}\" >> .env",
+                    {
+                      "DEPLOYMENT_STRATEGY": {
+                        "Fn::FindInMap": [
+                          "DeploymentMapping",
+                          "Details",
+                          "type"
+                        ]
+                      }
+                    }
+                  ]
+                },
                 "mv .env pipebird",
                 "cd pipebird && docker-compose up -d",
                 {
@@ -586,7 +614,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.0",
+        "version": "0.2.1",
         "type": "AWS_DEFAULT_VPC"
       }
     }
