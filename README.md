@@ -5,11 +5,13 @@
 Pipebird is the **open source API used for deploying customer-facing data pipelines**. Pipebird requires minimal engineering effort to begin offering customers secure data pushes to their warehouses, directly from your product.
 
 With Pipebird you can:
+
 - select sources to push data from (such as PostgreSQL).
 - let customers configure pipelines and apply transformations (such as type casting).
 - periodically sync data directly to customers' warehouses (such as Snowflake).
 
 Pipebird is for companies that want to share data directly, securely, and cost efficiently.
+
 - **Minimize security and compliance risks** created by involving third-party ETL providers. Pipebird enables direct data sharing from your source to a customer's data warehouse. Your data never hits our servers.
 - **Eliminate pipeline complexity for customers and partners.** Customers can trust verified pipelines offered directly from your product. It takes minutes to activate customer-defined pipelines using a declarative configuration language.
 - **Internalize revenue previously captured by third-party ETL providers.** Rather than contracting a third-party, customers pay you for higher-quality data, ease of use, and security enhancements.
@@ -30,6 +32,7 @@ Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/s
 ## Product features
 
 ### Sources
+
 Data originates from one of your company's sources, which can be any of:
 
 - Postgres
@@ -40,7 +43,9 @@ Data originates from one of your company's sources, which can be any of:
 - etc.
 
 ### Destinations
+
 Your customers can define their own destinations, which your team can configure through our Destinations API.
+
 - Snowflake
 - Amazon S3
 - Amazon Redshift
@@ -63,7 +68,7 @@ We currently support renaming columns between sources and destinations and will 
 
 ## Our goal for Pipebird
 
-We believe that creating a data pipeline should be made as simple as pressing a button from a vendor's dashboard. 
+We believe that creating a data pipeline should be made as simple as pressing a button from a vendor's dashboard.
 
 Native, customer-facing data pipelines offer a more secure and efficient way for organizations to share data with one another. Companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already invested in building out native data sharing features for their customers. **Pipebird is designed to help developers at any company quickly offer the same powerful data sharing features, increasing security and decreasing complexity for their customers.**
 
