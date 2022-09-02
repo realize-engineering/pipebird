@@ -21,7 +21,7 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npx lint-staged
+        run: npm run lint
 
   typecheck:
     runs-on: ubuntu-latest
