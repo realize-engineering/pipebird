@@ -63,7 +63,7 @@ destinationRouter.post(
         }),
         z.object({
           nickname: z.string().min(1),
-          destinationType: z.enum(["SNOWFLAKE", "POSTGRES", "REDSHIFT"]),
+          destinationType: z.enum(["SNOWFLAKE", "REDSHIFT"]),
           configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
           host: z.string(),
@@ -162,7 +162,7 @@ destinationRouter.post(
       default: {
         return res.status(HttpStatusCode.NOT_IMPLEMENTED).json({
           code: "destination_not_currently_supported",
-          message: `We are currently working on supporting ${body.data.destinationType}`,
+          message: `The specified destination type is not currently supported`,
         });
       }
     }

@@ -834,7 +834,7 @@
           },
           "destinationType": {
             "type": "string",
-            "enum": ["POSTGRES", "PROVISIONED_S3"]
+            "enum": ["POSTGRES", "PROVISIONED_S3", "REDSHIFT"]
           },
           "configurationId": {
             "type": "number"
