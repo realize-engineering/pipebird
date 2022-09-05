@@ -62,4 +62,4 @@ if __name__ == '__main__':
             envfile.write(f"\nPUBLIC_KEY={payload['deployment']['publicKey']}")
     except Exception as e:
         print(e)
-        print(f"Failed to reach localhost:3000 servers.")
+        print(f"Failed to reach my.pipebird.com servers.")
