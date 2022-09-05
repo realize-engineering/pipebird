@@ -52,7 +52,7 @@ if __name__ == '__main__':
     try:
         print(deployment, args.licenseKey)
         resp = requests.post(
-            'http://localhost:3000/api/deployment', 
+            'http://my.pipebird.com/api/deployment', 
             json=deployment, 
             headers={'Authorization': f'Bearer {args.licenseKey}'},
             timeout=10
