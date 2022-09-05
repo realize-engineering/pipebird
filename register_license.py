@@ -50,14 +50,16 @@ if __name__ == '__main__':
         "agentVersion": latest_version["version"]
     }
     try:
+        print(deployment, args.licenseKey)
         resp = requests.post(
-            'https://my.pipebird.com/api/deployment', 
+            'http://localhost:3000/api/deployment', 
             json=deployment, 
             headers={'Authorization': f'Bearer {args.licenseKey}'},
             timeout=10
         )
         payload: RegisterResponse = resp.json()
         with open('.env', 'a') as envfile:
-            envfile.write(f"PUBLIC_KEY={payload['deployment']['publicKey']}")
-    except:
-        print(f"Failed to reach my.pipebird.com servers.")
+            envfile.write(f"\nPUBLIC_KEY={payload['deployment']['publicKey']}")
+    except Exception as e:
+        print(e)
+        print(f"Failed to reach localhost:3000 servers.")

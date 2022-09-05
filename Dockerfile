@@ -9,11 +9,12 @@ FROM node:16-slim
 WORKDIR /app
 RUN apt-get update
 RUN apt-get install -y openssl
-COPY ./start.sh ./start.sh
+COPY ./migrate.sh ./migrate.sh
 COPY package.json ./package.json
 COPY schema.prisma ./schema.prisma
 COPY migrations ./migrations
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-RUN chmod +x ./start.sh
-CMD ["./start.sh"]
+COPY --from=build /app/.env ./.env
+RUN chmod +x ./migrate.sh && ./migrate.sh
+CMD ["node", "dist/server/index.js"]
