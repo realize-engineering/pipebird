@@ -6,8 +6,8 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
-import { transferQueue } from "../../queues/transfer/scheduler.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
+import { startTransfer } from "../../../lib/temporal/client.js";
 
 const transferRouter = Router();
 
@@ -111,7 +111,7 @@ transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
       },
     },
   });
-  await transferQueue.add("start_transfer", transfer);
+  await startTransfer({ id: transfer.id });
   return res.status(HttpStatusCode.CREATED).json({
     id: transfer.id,
     status: transfer.status,
