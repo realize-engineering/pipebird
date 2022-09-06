@@ -15,7 +15,5 @@ COPY schema.prisma ./schema.prisma
 COPY migrations ./migrations
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-ARG DATABASE_URL 
-ENV DATABASE_URL $DATABASE_URL
 RUN chmod +x ./start.sh
 ENTRYPOINT ["./start.sh"]

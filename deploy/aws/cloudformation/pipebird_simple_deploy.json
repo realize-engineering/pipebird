@@ -620,7 +620,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.1",
+        "version": "0.2.2",
         "type": "AWS_DEFAULT_VPC"
       }
     }
