@@ -15,6 +15,7 @@ COPY schema.prisma ./schema.prisma
 COPY migrations ./migrations
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/.env ./.env
-RUN chmod +x ./migrate.sh && ./migrate.sh
-CMD ["node", "dist/server/index.js"]
+ARG DATABASE_URL 
+ENV DATABASE_URL $DATABASE_URL
+RUN chmod +x ./migrate.sh
+ENTRYPOINT ["./migrate.sh"]

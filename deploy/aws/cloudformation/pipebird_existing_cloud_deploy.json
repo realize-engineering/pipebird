@@ -704,7 +704,7 @@
       "MinLength": 1
     },
     "licenseKey": {
-      "Description": "License Key for your pipebird deployment. Get yours at localhost:3000",
+      "Description": "License Key for your pipebird deployment. Get yours at https://my.pipebird.com/",
       "Type": "String",
       "MinLength": 67
     }

@@ -23,7 +23,7 @@ process.on("SIGTERM", async (reason) => {
   await transferQueue.close();
   try {
     logger.info("Shutting down gracefully pending");
-    await got.delete("http://my.pipebird.com/api/deployment", {
+    await got.delete("https://my.pipebird.com/api/deployment", {
       headers: {
         Authorization: `Bearer ${env.LICENSE_KEY}`,
         "x-pipebird-public-key": process.env.PUBLIC_KEY || "",

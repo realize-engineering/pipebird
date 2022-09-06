@@ -46,3 +46,4 @@ services:
       - KMS_KEY_ID=${KMS_KEY_ID}
       - LICENSE_KEY=${LICENSE_KEY}
       - NODE_ENV=production
+      - PUBLIC_KEY=${PUBLIC_KEY} # Set by register_license.py
