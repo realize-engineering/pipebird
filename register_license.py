@@ -8,7 +8,7 @@ from enum import Enum
 StrategyLiteral = Literal["AWS_EXISTING_VPC", "AWS_DEFAULT_VPC"]
 
 
-class DeploymentState(Enum):
+class DeploymentStrategy(Enum):
     AWS_EXISTING_VPC = "AWS_EXISTING_VPC"
     AWS_DEFAULT_VPC = "AWS_DEFAULT_VPC"
     def __str__(self):
@@ -17,7 +17,7 @@ class DeploymentState(Enum):
 
 parser = argparse.ArgumentParser(description='Notify pipebird that instance is running.')
 parser.add_argument('-d', '--deploymentVersion', type=str, metavar='', required=True, help="Deployment version e.g. 0.1.1")
-parser.add_argument('-s', '--strategy', type=DeploymentState, metavar='', required=True, help='"AWS_EXISTING_VPC" | "AWS_DEFAULT_VPC"')
+parser.add_argument('-s', '--strategy', type=DeploymentStrategy, metavar='', required=True, help='"AWS_EXISTING_VPC" | "AWS_DEFAULT_VPC"')
 parser.add_argument('-l', '--licenseKey', type=str, metavar='', required=True, help="Pipebird license key")
 args = parser.parse_args()
 
@@ -58,6 +58,6 @@ if __name__ == '__main__':
         )
         payload: RegisterResponse = resp.json()
         with open('.env', 'a') as envfile:
-            envfile.write(f"\nPUBLIC_KEY={payload['deployment']['publicKey']}")
+            envfile.write(f"\nPIPEBIRD_MONITOR_SECRET_KEY={payload['deployment']['publicKey']}")
     except Exception as e:
         print(f"Failed to reach my.pipebird.com servers.")

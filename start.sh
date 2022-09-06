@@ -5,8 +5,8 @@ then
     # Prisma expects a local .env file
     echo "DATABASE_URL=$(printenv DATABASE_URL)" > .env
     # TODO(cumason) refactor register_license.py -> register_license.ts and run as dockerfile build step
-    # PUBLIC_KEY is set by register_license.py
-    echo "PUBLIC_KEY=$(printenv PUBLIC_KEY)" >> .env 
+    # PIPEBIRD_MONITOR_SECRET_KEY is set by register_license.py
+    echo "PIPEBIRD_MONITOR_SECRET_KEY=$(printenv PIPEBIRD_MONITOR_SECRET_KEY)" >> .env 
 
 fi
 

@@ -45,4 +45,4 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - KMS_KEY_ID=${KMS_KEY_ID}
       - LICENSE_KEY=${LICENSE_KEY}
-      - PUBLIC_KEY=${PUBLIC_KEY} # loaded from register_license.py
+      - PIPEBIRD_MONITOR_SECRET_KEY=${PIPEBIRD_MONITOR_SECRET_KEY} # loaded from register_license.py
