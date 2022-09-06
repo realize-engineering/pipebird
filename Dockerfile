@@ -16,4 +16,4 @@ COPY migrations ./migrations
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 RUN chmod +x ./start.sh
-ENTRYPOINT ["./start.sh"]
+CMD ["./start.sh"]
