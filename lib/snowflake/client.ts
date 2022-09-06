@@ -30,6 +30,7 @@ class SnowflakeClient {
       schema,
       username,
       password,
+      role: "accountadmin", // accountadmin enforced to perform necessary grants on created share
     });
   }
 

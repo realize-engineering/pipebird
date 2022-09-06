@@ -1,24 +1,24 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { pendingTransferTypes } from "../../../lib/transfer.js";
-import { db } from "../../../lib/db.js";
-import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
-import { cursorPaginationValidator } from "../../../lib/pagination.js";
-import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
-import { LogModel } from "../../../lib/models/log.js";
+
+import { db } from "../../../lib/db.js";
 import { logger } from "../../../lib/logger.js";
+import { LogModel } from "../../../lib/models/log.js";
+import { pendingTransferTypes } from "../../../lib/transfer.js";
+import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
+import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { useConnection } from "../../../lib/connections.js";
+import { HttpStatusCode } from "../../../utils/http.js";
+
 const destinationRouter = Router();
 
 type DestinationResponse = Prisma.DestinationGetPayload<{
   select: {
     id: true;
-    tenantId: true;
-    configurationId: true;
-    destinationType: true;
     nickname: true;
+    destinationType: true;
   };
 }>;
 
@@ -37,10 +37,8 @@ destinationRouter.get(
     const destinations = await db.destination.findMany({
       select: {
         id: true,
-        tenantId: true,
-        configurationId: true,
-        destinationType: true,
         nickname: true,
+        destinationType: true,
       },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       take,
@@ -61,13 +59,11 @@ destinationRouter.post(
         z.object({
           nickname: z.string().min(1),
           destinationType: z.enum(["PROVISIONED_S3"]),
-          configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
         }),
         z.object({
           nickname: z.string().min(1),
           destinationType: z.enum(["SNOWFLAKE", "REDSHIFT"]),
-          configurationId: z.number().nonnegative(),
           tenantId: z.string().min(1),
           host: z.string(),
           port: z.number().nonnegative(),
@@ -88,17 +84,13 @@ destinationRouter.post(
       case "PROVISIONED_S3": {
         const destination = await db.destination.create({
           data: {
-            configurationId: body.data.configurationId,
             destinationType: body.data.destinationType,
             nickname: body.data.nickname,
-            tenantId: body.data.tenantId,
             status: "REACHABLE",
           },
           select: {
             id: true,
-            tenantId: true,
             nickname: true,
-            configurationId: true,
             destinationType: true,
           },
         });
@@ -110,8 +102,6 @@ destinationRouter.post(
         const {
           nickname,
           destinationType,
-          configurationId,
-          tenantId,
           host,
           port,
           schema,
@@ -138,10 +128,8 @@ destinationRouter.post(
 
         const destination = await db.destination.create({
           data: {
-            configurationId,
             destinationType,
             nickname,
-            tenantId,
             host,
             port,
             schema,
@@ -152,9 +140,7 @@ destinationRouter.post(
           },
           select: {
             id: true,
-            tenantId: true,
             nickname: true,
-            configurationId: true,
             destinationType: true,
           },
         });
@@ -182,7 +168,7 @@ destinationRouter.patch(
           .string()
           .min(1)
           .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
-            message: "The configurationId query param must be an integer.",
+            message: "The destinationId query param must be an integer.",
           })
           .transform((s) => parseInt(s)),
       })
@@ -195,11 +181,6 @@ destinationRouter.patch(
     }
     const bodyParams = z
       .object({
-        configurationId: z
-          .string()
-          .refine(validator.isNumeric, "configurationId must be a number.")
-          .transform((s) => parseInt(s))
-          .optional(),
         name: z.string().min(1).optional(),
       })
       .safeParse(req.body);
@@ -267,9 +248,7 @@ destinationRouter.get(
       },
       select: {
         id: true,
-        tenantId: true,
         nickname: true,
-        configurationId: true,
         destinationType: true,
       },
     });
@@ -311,20 +290,17 @@ destinationRouter.delete(
         .json({ code: "destination_id_not_found" });
     }
     const results = await db.$transaction(async (prisma) => {
-      const destinationWithNoPendingTransfers =
-        await prisma.destination.findFirst({
-          where: {
-            id: queryParams.data.destinationId,
-            transfers: {
-              every: {
-                status: {
-                  notIn: pendingTransferTypes.slice(),
-                },
-              },
-            },
+      const hasPendingTransfer = await prisma.transfer.findFirst({
+        where: {
+          share: {
+            destinationId: queryParams.data.destinationId,
           },
-        });
-      if (!destinationWithNoPendingTransfers) {
+          status: {
+            in: pendingTransferTypes.slice(),
+          },
+        },
+      });
+      if (hasPendingTransfer) {
         logger.warn({
           error: `Attempted to delete destination ${queryParams.data.destinationId} where transfer is pending.`,
         });

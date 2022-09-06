@@ -15,7 +15,7 @@ type TransferResponse = Prisma.TransferGetPayload<{
   select: {
     status: true;
     id: true;
-    destinationId: true;
+    shareId: true;
     result: {
       select: {
         finalizedAt: true;
@@ -52,7 +52,7 @@ transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
     select: {
       status: true,
       id: true,
-      destinationId: true,
+      shareId: true,
       result: {
         select: {
           finalizedAt: true,
@@ -70,58 +70,63 @@ transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
 });
 
 // Create transfer
-transferRouter.post("/", async (req, res: ApiResponse<TransferResponse>) => {
-  const bodyParams = z
-    .object({
-      destinationId: z.number().nonnegative(),
-    })
-    .safeParse(req.body);
-  if (!bodyParams.success) {
-    return res.status(HttpStatusCode.BAD_REQUEST).json({
-      code: "body_validation_error",
-      validationIssues: bodyParams.error.issues,
-    });
-  }
+transferRouter.post(
+  "/",
+  async (req, res: ListApiResponse<TransferResponse>) => {
+    const bodyParams = z
+      .object({
+        shareIds: z.number().nonnegative().array().optional(),
+      })
+      .safeParse(req.body);
 
-  const destination = await db.destination.findUnique({
-    where: {
-      id: bodyParams.data.destinationId,
-    },
-  });
-  if (!destination) {
-    return res
-      .status(HttpStatusCode.NOT_FOUND)
-      .json({ code: "destination_id_not_found" });
-  }
-  const transfer = await db.transfer.create({
-    data: {
-      destination: {
-        connect: {
-          id: bodyParams.data.destinationId,
+    if (!bodyParams.success) {
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        validationIssues: bodyParams.error.issues,
+      });
+    }
+
+    const relevantShares = await db.share.findMany({
+      ...(bodyParams.data.shareIds && {
+        where: {
+          id: { in: bodyParams.data.shareIds },
         },
-      },
-      status: "STARTED",
-    },
-    select: {
-      id: true,
-      status: true,
-      destinationId: true,
-      result: {
-        select: {
-          finalizedAt: true,
-          objectUrl: true,
-        },
-      },
-    },
-  });
-  await startTransfer({ id: transfer.id });
-  return res.status(HttpStatusCode.CREATED).json({
-    id: transfer.id,
-    status: transfer.status,
-    destinationId: transfer.destinationId,
-    result: null,
-  });
-});
+      }),
+    });
+
+    if (!relevantShares) {
+      return res
+        .status(HttpStatusCode.NOT_FOUND)
+        .json({ code: "share_id_not_found" });
+    }
+
+    const transfers = await db.$transaction(
+      relevantShares.map((share) => {
+        return db.transfer.create({
+          data: {
+            status: "STARTED",
+            shareId: share.id,
+          },
+          select: {
+            id: true,
+            status: true,
+            shareId: true,
+            result: {
+              select: {
+                finalizedAt: true,
+                objectUrl: true,
+              },
+            },
+          },
+        });
+      }),
+    );
+
+    await Promise.all(transfers.map((t) => startTransfer({ id: t.id })));
+
+    return res.status(HttpStatusCode.CREATED).json({ content: transfers });
+  },
+);
 
 // Get transfer
 transferRouter.get(
@@ -153,7 +158,7 @@ transferRouter.get(
       select: {
         status: true,
         id: true,
-        destinationId: true,
+        shareId: true,
         result: {
           select: {
             finalizedAt: true,
@@ -216,9 +221,9 @@ transferRouter.delete(
               status: "CANCELLED",
             },
             select: {
-              status: true,
               id: true,
-              destinationId: true,
+              status: true,
+              shareId: true,
               result: {
                 select: {
                   finalizedAt: true,

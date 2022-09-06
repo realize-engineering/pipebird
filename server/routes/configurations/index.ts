@@ -257,23 +257,18 @@ configurationRouter.delete(
     }
 
     const results = await db.$transaction(async (prisma) => {
-      const configurationNoWithPendingTransfers =
-        await prisma.configuration.findFirst({
-          where: {
-            id: queryParams.data.configurationId,
-            destinations: {
-              every: {
-                transfers: {
-                  every: {
-                    status: { notIn: pendingTransferTypes.slice() },
-                  },
-                },
-              },
-            },
+      const hasPendingTransfer = await prisma.transfer.findFirst({
+        where: {
+          share: {
+            configurationId: queryParams.data.configurationId,
           },
-        });
+          status: {
+            in: pendingTransferTypes.slice(),
+          },
+        },
+      });
 
-      if (!configurationNoWithPendingTransfers) {
+      if (hasPendingTransfer) {
         // TODO(cumason) make log + log create atomic functions
         logger.warn({
           error: `Attempted to delete configuration ${queryParams.data.configurationId} where transfer is pending.`,
@@ -298,7 +293,7 @@ configurationRouter.delete(
         },
         select: {
           id: true,
-          destinations: {
+          shares: {
             select: {
               id: true,
             },
@@ -312,8 +307,8 @@ configurationRouter.delete(
           action: "DELETE",
           domainId: configuration.id,
           meta: {
-            message: `Deleted configuration attached to destination ids: ${JSON.stringify(
-              configuration.destinations,
+            message: `Deleted configuration attached to share ids: ${JSON.stringify(
+              configuration.shares,
             )}`,
           },
         },

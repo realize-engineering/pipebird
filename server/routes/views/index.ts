@@ -292,27 +292,19 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
       .json({ code: "view_id_not_found" });
   }
   const results = await db.$transaction(async (prisma) => {
-    const viewWithNoPendingTransfers = await prisma.view.findFirst({
+    const hasPendingTransfer = await prisma.transfer.findFirst({
       where: {
-        id: view.id,
-        configurations: {
-          every: {
-            destinations: {
-              every: {
-                transfers: {
-                  every: {
-                    status: {
-                      notIn: pendingTransferTypes.slice(),
-                    },
-                  },
-                },
-              },
-            },
+        share: {
+          configuration: {
+            viewId: queryParams.data.viewId,
           },
+        },
+        status: {
+          in: pendingTransferTypes.slice(),
         },
       },
     });
-    if (!viewWithNoPendingTransfers) {
+    if (hasPendingTransfer) {
       await LogModel.create(
         {
           action: "DELETE",
