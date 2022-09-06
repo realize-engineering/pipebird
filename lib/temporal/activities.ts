@@ -62,22 +62,28 @@ export async function processTransfer({ id }: { id: number }) {
       select: {
         id: true,
         status: true,
-        destination: {
+        share: {
           select: {
             id: true,
-            nickname: true,
-            destinationType: true,
             tenantId: true,
+            warehouseAccountId: true,
             lastModifiedAt: true,
-            host: true,
-            port: true,
-            username: true,
-            password: true,
-            database: true,
-            schema: true,
-            configurationId: true,
+            destination: {
+              select: {
+                id: true,
+                nickname: true,
+                destinationType: true,
+                host: true,
+                port: true,
+                username: true,
+                password: true,
+                database: true,
+                schema: true,
+              },
+            },
             configuration: {
               select: {
+                id: true,
                 columns: {
                   select: {
                     nameInSource: true,
@@ -129,8 +135,8 @@ export async function processTransfer({ id }: { id: number }) {
       },
     });
 
-    const destination = transfer.destination;
-    const configuration = destination.configuration;
+    const share = transfer.share;
+    const { destination, configuration } = share;
 
     if (!configuration) {
       throw new Error(
@@ -194,7 +200,7 @@ export async function processTransfer({ id }: { id: number }) {
     const lastModifiedQuery = qb
       .select(lastModifiedColumn)
       .from(view.tableName)
-      .where(tenantColumn, "=", destination.tenantId)
+      .where(tenantColumn, "=", share.tenantId)
       .orderBy(lastModifiedColumn, "desc")
       .limit(1)
       .toSQL()
@@ -233,11 +239,11 @@ export async function processTransfer({ id }: { id: number }) {
               .from(view.tableName)
               .as("t"),
           )
-          .where(tenantColumn, "=", destination.tenantId)
+          .where(tenantColumn, "=", share.tenantId)
           .where(
             lastModifiedColumn,
             ">",
-            destination.lastModifiedAt.toISOString(),
+            share.lastModifiedAt.toISOString(),
           )
           .toSQL()
           .toNative(),
@@ -303,7 +309,7 @@ export async function processTransfer({ id }: { id: number }) {
 
         const loader = new SnowflakeLoader(
           destConnection.query,
-          destination,
+          share,
           destConnection.queryUnsafe,
         );
 
@@ -355,7 +361,7 @@ export async function processTransfer({ id }: { id: number }) {
 
         const loader = new RedshiftLoader(
           destConnection.query,
-          destination,
+          share,
           destConnection.queryUnsafe,
         );
 
@@ -376,8 +382,8 @@ export async function processTransfer({ id }: { id: number }) {
       }
     }
 
-    await db.destination.update({
-      where: { id: destination.id },
+    await db.share.update({
+      where: { id: share.id },
       data: { lastModifiedAt: newLastModifiedAt },
     });
   } catch (error) {

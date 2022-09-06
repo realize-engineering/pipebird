@@ -5,19 +5,29 @@ import { env } from "../env.js";
 import { uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
-import { LoadDestination, Loader, LoadingActions } from "../load/index.js";
+import { LoadShare, Loader, LoadingActions } from "../load/index.js";
 
 class RedshiftLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
     query: ConnectionQueryOp,
-    destination: LoadDestination,
+    destination: LoadShare,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
     super(query, destination);
     this.#queryUnsafe = queryUnsafe;
   }
+
+  createShare = async ({
+    schema,
+    database,
+  }: {
+    schema: string;
+    database: string;
+  }) => {
+    return;
+  };
 
   public createTable = async ({
     schema,
@@ -32,7 +42,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     await this.query(schemaCreateOperation);
 
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
 
     const columnsWithType = configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
@@ -69,7 +79,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     await this.query(createStageOperation);
 
-    const pathPrefix = `redshift/${this.destination.id}`;
+    const pathPrefix = `redshift/${this.share.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -100,7 +110,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   upsert = async () => {
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
     const { tableName, stageName } = this;
 
     const names = configuration.columns.map((col) => col.nameInDestination);
@@ -110,7 +120,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     if (!primaryKeyCol) {
       throw new Error(
-        `View used by configuration ID = ${this.destination.configurationId} does not have a primary key col`,
+        `View used by configuration ID = ${this.share.configuration.id} does not have a primary key col`,
       );
     }
 

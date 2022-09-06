@@ -4,15 +4,20 @@ import { Gzip } from "zlib";
 
 import { ConnectionQueryOp } from "../connections.js";
 
-export type LoadDestination = Prisma.DestinationGetPayload<{
+export type LoadShare = Prisma.ShareGetPayload<{
   select: {
     id: true;
     tenantId: true;
-    configurationId: true;
-    destinationType: true;
-    nickname: true;
+    warehouseAccountId: true;
+    destination: {
+      select: {
+        nickname: true;
+        destinationType: true;
+      };
+    };
     configuration: {
       select: {
+        id: true;
         columns: {
           select: {
             nameInSource: true;
@@ -32,16 +37,22 @@ export type LoadDestination = Prisma.DestinationGetPayload<{
 
 const getUniqueTableName = ({
   nickname,
-  tenantId,
-  destinationId,
+  warehouseAccountId,
 }: {
   nickname: string;
-  tenantId: string;
-  destinationId: number;
-}) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
+  warehouseAccountId: string;
+}) => `SharedData_${nickname.replaceAll(" ", "_")}_${warehouseAccountId}`;
 
-const getTempStageName = (destinationId: number) =>
-  `SharedData_TempStage_${destinationId}_${new Date().getTime()}`;
+const getUniqueShareName = ({
+  nickname,
+  warehouseAccountId,
+}: {
+  nickname: string;
+  warehouseAccountId: string;
+}) => `Share_${nickname.replaceAll(" ", "_")}_${warehouseAccountId}`;
+
+const getTempStageName = (warehouseAccountId: string) =>
+  `SharedData_TempStage_${warehouseAccountId}_${new Date().getTime()}`;
 
 const getDialectFromDestination = (type: DestinationType) => {
   if (type === "POSTGRES" || type === "REDSHIFT" || type === "SNOWFLAKE") {
@@ -54,27 +65,32 @@ const getDialectFromDestination = (type: DestinationType) => {
 class Loader {
   protected query: ConnectionQueryOp;
   protected qb: Knex<any, unknown[]>;
-  protected destination: LoadDestination;
-  protected tableName: string;
+  protected share: LoadShare;
   protected stageName: string;
+  protected tableName: string;
+  protected shareName: string;
 
-  constructor(query: ConnectionQueryOp, destination: LoadDestination) {
+  constructor(query: ConnectionQueryOp, share: LoadShare) {
     this.query = query;
-    this.destination = destination;
+    this.share = share;
 
     this.qb = knex({
-      client: getDialectFromDestination(destination.destinationType),
+      client: getDialectFromDestination(share.destination.destinationType),
     });
+    this.stageName = getTempStageName(share.warehouseAccountId);
     this.tableName = getUniqueTableName({
-      nickname: destination.nickname,
-      tenantId: destination.tenantId,
-      destinationId: destination.id,
+      nickname: share.destination.nickname,
+      warehouseAccountId: share.warehouseAccountId,
     });
-    this.stageName = getTempStageName(destination.id);
+    this.shareName = getUniqueShareName({
+      nickname: share.destination.nickname,
+      warehouseAccountId: share.warehouseAccountId,
+    });
   }
 }
 
 interface LoadingActions extends Loader {
+  createShare: (params: { schema: string; database: string }) => Promise<void>;
   createTable: (params: { schema: string; database: string }) => Promise<void>;
   stage: (contents: Gzip) => Promise<void>;
   upsert: (schema?: string) => Promise<void>;
