@@ -23,15 +23,12 @@ process.on("SIGTERM", async (reason) => {
   await transferQueue.close();
   try {
     logger.info("Graceful shutdown pending");
-    await got.delete(
-      "http://e495-2603-7000-3800-32d6-2c32-d549-6c56-f55c.ngrok.io/api/deployment",
-      {
-        headers: {
-          Authorization: `Bearer ${env.LICENSE_KEY}`,
-          "x-pipebird-public-key": process.env.PUBLIC_KEY || "",
-        },
+    await got.delete("https://my.pipebird.com/api/deployment", {
+      headers: {
+        Authorization: `Bearer ${env.LICENSE_KEY}`,
+        "x-pipebird-public-key": process.env.PUBLIC_KEY || "",
       },
-    );
+    });
     logger.info("Graceful shutdown complete");
   } catch (e) {
     logger.error(e);
