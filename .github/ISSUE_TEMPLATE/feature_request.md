@@ -1,10 +1,9 @@
 ---
 name: Feature request
 about: Suggest an idea, destination, or data source for this project
-title: ''
-labels: ''
-assignees: ''
-
+title: ""
+labels: "enhancement"
+assignees: ""
 ---
 
 **Is your feature request related to a problem? Please describe.**
