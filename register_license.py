@@ -34,7 +34,7 @@ class RegisterRequest(TypedDict):
 
 
 class Deployment(TypedDict):
-    publicKey: str
+    monitorSecretKey: str
 
 
 class RegisterResponse(TypedDict):
@@ -58,6 +58,7 @@ if __name__ == '__main__':
         )
         payload: RegisterResponse = resp.json()
         with open('.env', 'a') as envfile:
-            envfile.write(f"\nPIPEBIRD_MONITOR_SECRET_KEY={payload['deployment']['publicKey']}")
+            envfile.write(f"\nPIPEBIRD_MONITOR_SECRET_KEY={payload['deployment']['monitorSecretKey']}")
     except Exception as e:
-        print(f"Failed to reach my.pipebird.com servers.")
+        print(e)
+        print(f"Failed to reach https://my.pipebird.com servers.")

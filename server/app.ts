@@ -4,7 +4,6 @@ import express, {
   Request,
   Response,
 } from "express";
-import got from "got";
 import pg from "pg";
 
 import { env } from "../lib/env.js";
@@ -65,18 +64,5 @@ const errorHandler: ErrorRequestHandler = (
 };
 
 app.use(errorHandler);
-
-got
-  .patch("https://my.pipebird.com/api/deployment", {
-    headers: {
-      "x-pipebird-monitor-secret-key": process.env.PIPEBIRD_MONITOR_SECRET_KEY,
-      "Content-Type": "application/json",
-    },
-    body: { state: "RUNNING" },
-  })
-  .catch((e) => logger.warn(e))
-  .then(() =>
-    logger.info("Notified Pipebird monitor that instance is running."),
-  );
 
 export { app };

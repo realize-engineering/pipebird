@@ -9,12 +9,12 @@ const gracefulShutdown = async () => {
   await transferQueue.close();
   try {
     logger.info("Graceful shutdown pending");
-    await got.post("https://my.pipebird.com/api/deployment", {
+    await got.patch("https://my.pipebird.com/api/deployment", {
       headers: {
         "x-pipebird-monitor-secret-key":
           process.env.PIPEBIRD_MONITOR_SECRET_KEY || "",
       },
-      body: {
+      json: {
         state: "GRACEFUL_SHUTDOWN_COMPLETED",
       },
     });
@@ -26,6 +26,25 @@ const gracefulShutdown = async () => {
 
 http.createServer(app).listen(env.PORT, () => {
   logger.info(`Server listening on :${env.PORT}`);
+
+  got
+    .patch("https://my.pipebird.com/api/deployment", {
+      headers: {
+        "x-pipebird-monitor-secret-key":
+          process.env.PIPEBIRD_MONITOR_SECRET_KEY || "",
+      },
+      json: { state: "RUNNING" },
+    })
+    .catch((e) =>
+      logger.warn({
+        monitorError: e,
+        message:
+          "Failed to notify Pipebird monitor that instance started running.",
+      }),
+    )
+    .then(() =>
+      logger.info("Notified Pipebird monitor that instance is running."),
+    );
 });
 
 process.on("uncaughtException", async (error) => {
