@@ -6,3 +6,8 @@ prisma/dev.db
 prisma/dev.db-journal
 *.db*
 .vscode/
+venv
+env/
+__pycache__
+.mypy_cache 
+
