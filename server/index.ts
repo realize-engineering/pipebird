@@ -26,7 +26,7 @@ process.on("SIGTERM", async (reason) => {
     await got.delete("https://my.pipebird.com/api/deployment", {
       headers: {
         Authorization: `Bearer ${env.LICENSE_KEY}`,
-        "x-pipebird-public-key": process.env.PUBLIC_KEY || "",
+        "x-pipebird-monitor-secret-key": process.env.PUBLIC_KEY || "",
       },
     });
     logger.info("Graceful shutdown complete");
