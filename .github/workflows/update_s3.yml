@@ -20,5 +20,5 @@ jobs:
         env:
           S3_USER_ACCESS_ID: ${{secrets.S3_USER_ACCESS_ID}}
           S3_USER_SECRET_KEY: ${{secrets.S3_USER_SECRET_KEY}}
-          PROVISIONED_BUCKET_NAME: ${{PROVISIONED_BUCKET_NAME}}
+          PROVISIONED_BUCKET_NAME: ${{secrets.PROVISIONED_BUCKET_NAME}}
         run: python deploy/scripts/update_s3
