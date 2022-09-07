@@ -1,16 +1,19 @@
+import { Prisma, TransferStatus } from "@prisma/client";
 import { parseISO } from "date-fns";
 import { default as knex } from "knex";
+import zlib from "node:zlib";
+import crypto from "crypto";
+import got from "got";
+import * as csv from "csv";
 import { z } from "zod";
+
 import { useConnection } from "../connections.js";
 import { db } from "../db.js";
 import { logger } from "../logger.js";
-import * as csv from "csv";
 import { uploadObject } from "../aws/upload.js";
 import { getPresignedURL } from "../aws/signer.js";
-import zlib from "node:zlib";
 import SnowflakeLoader from "../snowflake/load.js";
 import RedshiftLoader from "../redshift/load.js";
-import { TransferStatus } from "@prisma/client";
 
 const finalizeTransfer = async ({
   transferId,
@@ -44,15 +47,6 @@ const finalizeTransfer = async ({
       objectUrl,
     },
   });
-
-  // TODO: implement separate activity
-  // const webhooks = await db.webhook.findMany();
-  // webhooks.forEach((wh) =>
-  //   webhookQueue.add(queueNames.SEND_WEBHOOK, {
-  //     webhook: { id: wh.id },
-  //     transfer: { id: transferId },
-  //   }),
-  // );
 };
 
 export async function processTransfer({ id }: { id: number }) {
@@ -391,5 +385,62 @@ export async function processTransfer({ id }: { id: number }) {
       transferId: id,
       status: "FAILED",
     });
+  }
+}
+
+export async function getWebhooks() {
+  return db.webhook.findMany({
+    select: { id: true, url: true, secretKey: true },
+  });
+}
+
+export async function processWebhook({
+  transferId,
+  webhook,
+}: {
+  transferId: number;
+  webhook: Prisma.WebhookGetPayload<{
+    select: { id: true; url: true; secretKey: true };
+  }>;
+}) {
+  try {
+    const transfer = await db.transfer.findUnique({
+      where: {
+        id: transferId,
+      },
+      select: {
+        id: true,
+        status: true,
+        shareId: true,
+        result: {
+          select: {
+            finalizedAt: true,
+            objectUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!transfer) {
+      throw new Error(`Transfer id not found for Transfer=${transferId}`);
+    }
+
+    // todo(ianedwards): increase event type specificity as needed
+    const body = {
+      type: "transfer.finalized",
+      object: transfer,
+    };
+
+    await got.post(webhook.url, {
+      headers: {
+        "X-Pipebird-Signature": crypto
+          .createHmac("sha256", webhook.secretKey)
+          .update(JSON.stringify(body))
+          .digest("hex"),
+      },
+      json: body,
+    });
+  } catch (error) {
+    logger.error(error);
   }
 }
