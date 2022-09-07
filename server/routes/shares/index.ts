@@ -18,7 +18,7 @@ type ShareResponse = Prisma.ShareGetPayload<{
   select: {
     id: true;
     tenantId: true;
-    warehouseAccountId: true;
+    warehouseId: true;
     nickname: true;
     configuration: {
       select: {
@@ -53,7 +53,7 @@ shareRouter.get("/", async (req, res: ListApiResponse<ShareResponse>) => {
     select: {
       id: true,
       tenantId: true,
-      warehouseAccountId: true,
+      warehouseId: true,
       nickname: true,
       configuration: {
         select: {
@@ -86,7 +86,7 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
       tenantId: z.string().min(1),
       destinationId: z.number().nonnegative(),
       configurationId: z.number().nonnegative(),
-      warehouseAccountId: z.string().min(1),
+      warehouseId: z.string().min(1),
     })
     .safeParse(req.body);
   if (!body.success) {
@@ -96,80 +96,67 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
     });
   }
 
-  try {
-    const {
+  const { nickname, tenantId, destinationId, configurationId, warehouseId } =
+    body.data;
+
+  const configuration = await db.configuration.findUnique({
+    where: { id: configurationId },
+  });
+
+  if (!configuration) {
+    return res.status(HttpStatusCode.NOT_FOUND).json({
+      code: "configuration_id_not_found",
+    });
+  }
+
+  const destination = await db.destination.findUnique({
+    where: { id: destinationId },
+  });
+
+  if (!destination) {
+    return res.status(HttpStatusCode.NOT_FOUND).json({
+      code: "destination_id_not_found",
+    });
+  }
+
+  const share = await db.share.create({
+    data: {
       nickname,
       tenantId,
       destinationId,
       configurationId,
-      warehouseAccountId,
-    } = body.data;
-
-    const configuration = await db.configuration.findUnique({
-      where: { id: configurationId },
-    });
-
-    if (!configuration) {
-      return res.status(HttpStatusCode.NOT_FOUND).json({
-        code: "configuration_id_not_found",
-      });
-    }
-
-    const destination = await db.destination.findUnique({
-      where: { id: destinationId },
-    });
-
-    if (!destination) {
-      return res.status(HttpStatusCode.NOT_FOUND).json({
-        code: "destination_id_not_found",
-      });
-    }
-
-    const share = await db.share.create({
-      data: {
-        nickname,
-        tenantId,
-        destinationId,
-        configurationId,
-        warehouseAccountId,
-      },
-      select: {
-        id: true,
-        tenantId: true,
-        warehouseAccountId: true,
-        nickname: true,
-        configuration: {
-          select: {
-            view: {
-              select: {
-                id: true,
-                tableName: true,
-              },
+      warehouseId,
+    },
+    select: {
+      id: true,
+      tenantId: true,
+      warehouseId: true,
+      nickname: true,
+      configuration: {
+        select: {
+          view: {
+            select: {
+              id: true,
+              tableName: true,
             },
           },
         },
-        destination: {
-          select: {
-            id: true,
-            destinationType: true,
-          },
+      },
+      destination: {
+        select: {
+          id: true,
+          destinationType: true,
         },
       },
-    });
+    },
+  });
 
-    // todo(ianedwards): look into wrapping this in a transaction with above
-    // reading the uncommitted share would require separate selects as the share return type does
-    // not specify all the fields needed to initiate the share in the WH
-    await initiateNewShare({ shareId: share.id });
+  // todo(ianedwards): look into wrapping this in a transaction with above
+  // reading the uncommitted share would require separate selects as the share return type does
+  // not specify all the fields needed to initiate the share in the WH
+  await initiateNewShare({ shareId: share.id });
 
-    return res.status(HttpStatusCode.CREATED).json(share);
-  } catch (error) {
-    logger.error(error);
-    return res.status(HttpStatusCode.NOT_FOUND).json({
-      code: "view_id_not_found",
-      message: `Failed to create share. Verify destination id=${body.data.destinationId} and configuration id=${body.data.configurationId} exists.`,
-    });
-  }
+  return res.status(HttpStatusCode.CREATED).json(share);
 });
 
 // Update destination
@@ -197,7 +184,7 @@ shareRouter.patch("/:shareId", async (req, res: ApiResponse<null>) => {
       tenantId: z.string().min(1).optional(),
       destinationId: z.number().nonnegative().optional(),
       configurationId: z.number().nonnegative().optional(),
-      warehouseAccountId: z.string().min(1).optional(),
+      warehouseId: z.string().min(1).optional(),
     })
     .safeParse(req.body);
 
@@ -275,7 +262,7 @@ shareRouter.get("/:shareId", async (req, res: ApiResponse<ShareResponse>) => {
     select: {
       id: true,
       tenantId: true,
-      warehouseAccountId: true,
+      warehouseId: true,
       nickname: true,
       configuration: {
         select: {

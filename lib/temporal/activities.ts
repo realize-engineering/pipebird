@@ -66,7 +66,7 @@ export async function processTransfer({ id }: { id: number }) {
           select: {
             id: true,
             tenantId: true,
-            warehouseAccountId: true,
+            warehouseId: true,
             lastModifiedAt: true,
             destination: {
               select: {
@@ -240,11 +240,7 @@ export async function processTransfer({ id }: { id: number }) {
               .as("t"),
           )
           .where(tenantColumn, "=", share.tenantId)
-          .where(
-            lastModifiedColumn,
-            ">",
-            share.lastModifiedAt.toISOString(),
-          )
+          .where(lastModifiedColumn, ">", share.lastModifiedAt.toISOString())
           .toSQL()
           .toNative(),
       )

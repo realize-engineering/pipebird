@@ -9,7 +9,7 @@ export const initiateNewShare = async ({ shareId }: { shareId: number }) => {
     select: {
       id: true,
       tenantId: true,
-      warehouseAccountId: true,
+      warehouseId: true,
       destination: {
         select: {
           host: true,

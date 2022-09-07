@@ -27,7 +27,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     database: string;
   }) => {
     // ensure schema and table exist for results
-    this.createTable({ schema, database });
+    await this.createTable({ schema, database });
 
     const createShareOperation = this.qb
       .raw("create share ??", [this.shareName])
@@ -63,7 +63,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     const addAccountsOperation = this.qb
       .raw("alter share ?? add account=??", [
         this.shareName,
-        this.share.warehouseAccountId,
+        this.share.warehouseId,
       ])
       .toSQL()
       .toNative();
