@@ -44,3 +44,5 @@ services:
       - AWS_REGION=${AWS_REGION}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - KMS_KEY_ID=${KMS_KEY_ID}
+      - LICENSE_KEY=${LICENSE_KEY}
+      - PIPEBIRD_MONITOR_SECRET_KEY=${PIPEBIRD_MONITOR_SECRET_KEY} # loaded from register_license.py
