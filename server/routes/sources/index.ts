@@ -32,6 +32,9 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
       schema: true,
       database: true,
     },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 
   return res.status(HttpStatusCode.OK).json({ content: sources });
