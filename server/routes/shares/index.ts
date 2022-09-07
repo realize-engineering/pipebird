@@ -20,22 +20,8 @@ type ShareResponse = Prisma.ShareGetPayload<{
     tenantId: true;
     warehouseId: true;
     nickname: true;
-    configuration: {
-      select: {
-        view: {
-          select: {
-            id: true;
-            tableName: true;
-          };
-        };
-      };
-    };
-    destination: {
-      select: {
-        id: true;
-        destinationType: true;
-      };
-    };
+    configurationId: true;
+    destinationId: true;
   };
 }>;
 
@@ -55,22 +41,11 @@ shareRouter.get("/", async (req, res: ListApiResponse<ShareResponse>) => {
       tenantId: true,
       warehouseId: true,
       nickname: true,
-      configuration: {
-        select: {
-          view: {
-            select: {
-              id: true,
-              tableName: true,
-            },
-          },
-        },
-      },
-      destination: {
-        select: {
-          id: true,
-          destinationType: true,
-        },
-      },
+      configurationId: true,
+      destinationId: true,
+    },
+    orderBy: {
+      createdAt: "desc",
     },
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     take,
@@ -137,22 +112,8 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
       tenantId: true,
       warehouseId: true,
       nickname: true,
-      configuration: {
-        select: {
-          view: {
-            select: {
-              id: true,
-              tableName: true,
-            },
-          },
-        },
-      },
-      destination: {
-        select: {
-          id: true,
-          destinationType: true,
-        },
-      },
+      configurationId: true,
+      destinationId: true,
     },
   });
 
@@ -266,25 +227,11 @@ shareRouter.get("/:shareId", async (req, res: ApiResponse<ShareResponse>) => {
     },
     select: {
       id: true,
+      nickname: true,
       tenantId: true,
       warehouseId: true,
-      nickname: true,
-      configuration: {
-        select: {
-          view: {
-            select: {
-              id: true,
-              tableName: true,
-            },
-          },
-        },
-      },
-      destination: {
-        select: {
-          id: true,
-          destinationType: true,
-        },
-      },
+      configurationId: true,
+      destinationId: true,
     },
   });
   if (!share) {
