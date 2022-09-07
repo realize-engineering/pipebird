@@ -393,26 +393,32 @@
                   ]
                 },
                 "mv .env pipebird",
-                "cd pipebird && docker-compose up -d",
                 {
                   "Fn::Sub": [
-                    "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -s ${DEPLOYMENT_STRATEGY}",
+                    "cd pipebird && ${REGISTER} && docker-compose up -d",
                     {
-                      "LICENSE_KEY": {
-                        "Ref": "licenseKey"
-                      },
-                      "DEPLOYMENT_STRATEGY": {
-                        "Fn::FindInMap": [
-                          "DeploymentMapping",
-                          "Details",
-                          "type"
-                        ]
-                      },
-                      "DEPLOYMENT_VERSION": {
-                        "Fn::FindInMap": [
-                          "DeploymentMapping",
-                          "Details",
-                          "version"
+                      "REGISTER": {
+                        "Fn::Sub": [
+                          "python3 register_license.py -d ${DEPLOYMENT_VERSION} -l ${LICENSE_KEY} -s ${DEPLOYMENT_STRATEGY}",
+                          {
+                            "LICENSE_KEY": {
+                              "Ref": "licenseKey"
+                            },
+                            "DEPLOYMENT_STRATEGY": {
+                              "Fn::FindInMap": [
+                                "DeploymentMapping",
+                                "Details",
+                                "type"
+                              ]
+                            },
+                            "DEPLOYMENT_VERSION": {
+                              "Fn::FindInMap": [
+                                "DeploymentMapping",
+                                "Details",
+                                "version"
+                              ]
+                            }
+                          }
                         ]
                       }
                     }
@@ -653,7 +659,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.1",
+        "version": "0.2.2",
         "type": "AWS_EXISTING_VPC"
       }
     }
@@ -698,7 +704,7 @@
       "MinLength": 1
     },
     "licenseKey": {
-      "Description": "License Key for your pipebird deployment. Get yours at my.pipebird.com",
+      "Description": "License Key for your pipebird deployment. Get yours at https://my.pipebird.com/",
       "Type": "String",
       "MinLength": 67
     }
