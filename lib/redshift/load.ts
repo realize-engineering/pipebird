@@ -56,10 +56,9 @@ class RedshiftLoader extends Loader implements LoadingActions {
         this.shareName,
         this.share.warehouseId,
       ])
-      .toSQL()
-      .toNative();
+      .toString();
 
-    await this.query(addAccountsOperation);
+    await this.#queryUnsafe(addAccountsOperation);
   };
 
   public createTable = async ({

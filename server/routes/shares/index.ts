@@ -86,7 +86,12 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
       tenantId: z.string().min(1),
       destinationId: z.number().nonnegative(),
       configurationId: z.number().nonnegative(),
-      warehouseId: z.string().min(1),
+      warehouseId: z
+        .string()
+        .min(1)
+        .refine((val) => validator.isAlphanumeric(val), {
+          message: "The warehouseId param must be alphanumeric.",
+        }),
     })
     .safeParse(req.body);
   if (!body.success) {
