@@ -58,4 +58,5 @@ process.on("unhandledRejection", async (reason) => {
 process.on("SIGTERM", async (reason) => {
   logger.warn(reason);
   await gracefulShutdown();
+  process.exit(0);
 });
