@@ -8,11 +8,12 @@ export type LoadShare = Prisma.ShareGetPayload<{
   select: {
     id: true;
     tenantId: true;
-    warehouseAccountId: true;
+    warehouseId: true;
     destination: {
       select: {
         nickname: true;
         destinationType: true;
+        username: true;
       };
     };
     configuration: {
@@ -37,22 +38,22 @@ export type LoadShare = Prisma.ShareGetPayload<{
 
 const getUniqueTableName = ({
   nickname,
-  warehouseAccountId,
+  warehouseId,
 }: {
   nickname: string;
-  warehouseAccountId: string;
-}) => `SharedData_${nickname.replaceAll(" ", "_")}_${warehouseAccountId}`;
+  warehouseId: string;
+}) => `SharedData_${nickname.replaceAll(" ", "_")}_${warehouseId}`;
 
 const getUniqueShareName = ({
   nickname,
-  warehouseAccountId,
+  warehouseId,
 }: {
   nickname: string;
-  warehouseAccountId: string;
-}) => `Share_${nickname.replaceAll(" ", "_")}_${warehouseAccountId}`;
+  warehouseId: string;
+}) => `Share_${nickname.replaceAll(" ", "_")}_${warehouseId}`;
 
-const getTempStageName = (warehouseAccountId: string) =>
-  `SharedData_TempStage_${warehouseAccountId}_${new Date().getTime()}`;
+const getTempStageName = (warehouseId: string) =>
+  `SharedData_TempStage_${warehouseId}_${new Date().getTime()}`;
 
 const getDialectFromDestination = (type: DestinationType) => {
   if (type === "POSTGRES" || type === "REDSHIFT" || type === "SNOWFLAKE") {
@@ -77,14 +78,14 @@ class Loader {
     this.qb = knex({
       client: getDialectFromDestination(share.destination.destinationType),
     });
-    this.stageName = getTempStageName(share.warehouseAccountId);
+    this.stageName = getTempStageName(share.warehouseId);
     this.tableName = getUniqueTableName({
       nickname: share.destination.nickname,
-      warehouseAccountId: share.warehouseAccountId,
+      warehouseId: share.warehouseId,
     });
     this.shareName = getUniqueShareName({
       nickname: share.destination.nickname,
-      warehouseAccountId: share.warehouseAccountId,
+      warehouseId: share.warehouseId,
     });
   }
 }

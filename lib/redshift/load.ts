@@ -12,10 +12,10 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
   constructor(
     query: ConnectionQueryOp,
-    destination: LoadShare,
+    share: LoadShare,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
-    super(query, destination);
+    super(query, share);
     this.#queryUnsafe = queryUnsafe;
   }
 
@@ -26,7 +26,40 @@ class RedshiftLoader extends Loader implements LoadingActions {
     schema: string;
     database: string;
   }) => {
-    return;
+    // ensure schema and table exist for results
+    await this.createTable({ schema, database });
+
+    const createShareOperation = this.qb
+      .raw("create datashare ??", [this.shareName])
+      .toSQL()
+      .toNative();
+
+    await this.query(createShareOperation);
+
+    const grantSchemaUsageOperation = this.qb
+      .raw("alter datashare ?? add schema ??", [this.shareName, schema])
+      .toSQL()
+      .toNative();
+    await this.query(grantSchemaUsageOperation);
+
+    const grantSelectUsageOperation = this.qb
+      .raw("alter datashare ?? add table ??", [
+        this.shareName,
+        `${schema}.${this.tableName}`,
+      ])
+      .toSQL()
+      .toNative();
+    await this.query(grantSelectUsageOperation);
+
+    const addAccountsOperation = this.qb
+      .raw("grant usage on datashare ?? to account ?", [
+        this.shareName,
+        this.share.warehouseId,
+      ])
+      .toSQL()
+      .toNative();
+
+    await this.query(addAccountsOperation);
   };
 
   public createTable = async ({
