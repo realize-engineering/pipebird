@@ -1180,15 +1180,6 @@
           },
           "tenantId": {
             "type": "string"
-          },
-          "destinationId": {
-            "type": "number"
-          },
-          "configurationId": {
-            "type": "number"
-          },
-          "warehouseId": {
-            "type": "string"
           }
         },
         "required": []

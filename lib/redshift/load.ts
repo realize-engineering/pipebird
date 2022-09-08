@@ -2,7 +2,7 @@ import path from "path";
 import { Gzip } from "zlib";
 
 import { env } from "../env.js";
-import { uploadObject } from "../aws/upload.js";
+import { deleteObjects, uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
 import { LoadShare, Loader, LoadingActions } from "../load/index.js";
@@ -30,7 +30,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     await this.createTable({ schema, database });
 
     const createShareOperation = this.qb
-      .raw("create datashare ??", [this.shareName])
+      .raw("create or replace datashare ??", [this.shareName])
       .toSQL()
       .toNative();
 
@@ -79,7 +79,6 @@ class RedshiftLoader extends Loader implements LoadingActions {
     const columnsWithType = configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
-      // todo(ianedwards): change this to use additional source and destination types
       return `?? ${
         getColumnTypeForDest({
           sourceType: "POSTGRES",
@@ -199,7 +198,8 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   tearDown = async () => {
-    // todo(ianedwards): ensure file is deleted from S3
+    const pathPrefix = `redshift/${this.share.id}`;
+    await deleteObjects({ pathPrefix });
 
     const dropStageOperation = this.qb
       .raw("drop table ??", [this.tableName])

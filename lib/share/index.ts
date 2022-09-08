@@ -1,10 +1,16 @@
+import { Prisma } from "@prisma/client";
 import { useConnection } from "../connections.js";
-import { db } from "../db.js";
 import RedshiftLoader from "../redshift/load.js";
 import SnowflakeLoader from "../snowflake/load.js";
 
-export const initiateNewShare = async ({ shareId }: { shareId: number }) => {
-  const share = await db.share.findUnique({
+export const initiateNewShare = async ({
+  shareId,
+  prisma,
+}: {
+  shareId: number;
+  prisma: Prisma.TransactionClient;
+}) => {
+  const share = await prisma.share.findUnique({
     where: { id: shareId },
     select: {
       id: true,

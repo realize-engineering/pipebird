@@ -87,6 +87,7 @@ model Destination {
   nickname        String
   status          ConnectorStatus
   destinationType DestinationType
+  warehouse       String?
   host            String?
   port            Int?
   database        String?

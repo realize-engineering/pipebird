@@ -30,7 +30,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     await this.createTable({ schema, database });
 
     const createShareOperation = this.qb
-      .raw("create share ??", [this.shareName])
+      .raw("create or replace share ??", [this.shareName])
       .toSQL()
       .toNative();
 
@@ -92,7 +92,6 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     const columnsWithType = configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
-      // todo(ianedwards): change this to use additional source and destination types
       return `?? ${
         getColumnTypeForDest({
           sourceType: "POSTGRES",

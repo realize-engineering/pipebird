@@ -12,6 +12,7 @@ import { db } from "../db.js";
 import { logger } from "../logger.js";
 import { uploadObject } from "../aws/upload.js";
 import { getPresignedURL } from "../aws/signer.js";
+import { LoadingActions } from "../load/index.js";
 import SnowflakeLoader from "../snowflake/load.js";
 import RedshiftLoader from "../redshift/load.js";
 
@@ -50,6 +51,7 @@ const finalizeTransfer = async ({
 };
 
 export async function processTransfer({ id }: { id: number }) {
+  let loader: LoadingActions | null = null;
   try {
     const transfer = await db.transfer.findUnique({
       where: { id },
@@ -67,6 +69,7 @@ export async function processTransfer({ id }: { id: number }) {
                 id: true,
                 nickname: true,
                 destinationType: true,
+                warehouse: true,
                 host: true,
                 port: true,
                 username: true,
@@ -157,6 +160,7 @@ export async function processTransfer({ id }: { id: number }) {
       password: destPassword,
       database: destDatabase,
       schema: destSchema,
+      warehouse: destWarehouse,
     } = destination;
 
     const sourceConnection = await useConnection({
@@ -283,6 +287,7 @@ export async function processTransfer({ id }: { id: number }) {
 
         const destConnection = await useConnection({
           dbType: "SNOWFLAKE",
+          warehouse: destWarehouse,
           host: destHost,
           port: destPort,
           username: destUsername,
@@ -297,19 +302,27 @@ export async function processTransfer({ id }: { id: number }) {
           );
         }
 
-        const loader = new SnowflakeLoader(
+        loader = new SnowflakeLoader(
           destConnection.query,
           share,
           destConnection.queryUnsafe,
         );
 
+        // starting load into Snowflake
+        await loader.beginTransaction();
+
+        // table should exist after creating share, but we want to recreate if it doesn't exist
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
         });
+
         await loader.stage(queryDataStream, destSchema);
         await loader.upsert(destSchema);
         await loader.tearDown(destSchema);
+
+        // committing load into Snowflake
+        await loader.commitTransaction();
 
         await finalizeTransfer({
           transferId: transfer.id,
@@ -349,19 +362,27 @@ export async function processTransfer({ id }: { id: number }) {
           );
         }
 
-        const loader = new RedshiftLoader(
+        loader = new RedshiftLoader(
           destConnection.query,
           share,
           destConnection.queryUnsafe,
         );
 
+        // Starting load into Redshift
+        await loader.beginTransaction();
+
+        // table should exist after creating share, but we want to recreate if it doesn't exist
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
         });
+
         await loader.stage(queryDataStream);
         await loader.upsert();
         await loader.tearDown();
+
+        // Committing load into Redshift
+        await loader.commitTransaction();
 
         await finalizeTransfer({
           transferId: transfer.id,
@@ -379,7 +400,8 @@ export async function processTransfer({ id }: { id: number }) {
   } catch (error) {
     logger.error(error);
 
-    // todo(ianedwards): perform any necessary rollbacks on external stages on failure
+    // rollback if loader has been initialized
+    await loader?.rollbackTransaction();
 
     await finalizeTransfer({
       transferId: id,
