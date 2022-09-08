@@ -26,6 +26,7 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+  CONTROL_PLANE_URL: z.string().min(1).default("https://my.pipebird.com"),
 });
 
 export const env = envSchema.parse(process.env);

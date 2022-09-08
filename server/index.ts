@@ -9,7 +9,7 @@ const gracefulShutdown = async () => {
   await transferQueue.close();
   try {
     logger.info("Graceful shutdown pending");
-    await got.patch("https://my.pipebird.com/api/deployment", {
+    await got.patch(`${env.CONTROL_PLANE_URL}/api/deployment`, {
       headers: {
         "x-pipebird-monitor-secret-key":
           process.env.PIPEBIRD_MONITOR_SECRET_KEY || "",
@@ -26,8 +26,11 @@ const gracefulShutdown = async () => {
 
 http.createServer(app).listen(env.PORT, async () => {
   logger.info(`Server listening on :${env.PORT}`);
+  logger.info(
+    `README ${env.CONTROL_PLANE_URL}, ${env.CONTROL_PLANE_URL}/api/deployment`,
+  );
   try {
-    await got.patch("https://my.pipebird.com/api/deployment", {
+    await got.patch(`${env.CONTROL_PLANE_URL}/api/deployment`, {
       headers: {
         "x-pipebird-monitor-secret-key":
           process.env.PIPEBIRD_MONITOR_SECRET_KEY || "",
