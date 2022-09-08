@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { cpus } from "os";
 import { default as validator } from "validator";
 
 import { z } from "zod";
@@ -26,6 +27,12 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),
+  TEMPORAL_ADDRESS: z.string().min(1),
+  TEMPORAL_CLIENT_CERT_PATH: z.string().optional(),
+  TEMPORAL_CLIENT_KEY_PATH: z.string().optional(),
+  NUM_WORKERS: z
+    .preprocess(Number, z.number().int().positive())
+    .default(cpus().length),
   CONTROL_PLANE_URL: z.string().min(1).default("https://my.pipebird.com"),
 });
 
