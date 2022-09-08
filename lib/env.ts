@@ -23,6 +23,7 @@ const envSchema = z.object({
   AWS_REGION: z.string(),
   ENCRYPTION_KEY: z.string().min(128),
   KMS_KEY_ID: z.string().min(1),
+  LICENSE_KEY: z.string().min(67),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
     .default("info"),

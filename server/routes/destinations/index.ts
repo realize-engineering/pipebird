@@ -44,6 +44,9 @@ destinationRouter.get(
       },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       take,
+      orderBy: {
+        createdAt: "desc",
+      },
     });
     return res.status(HttpStatusCode.OK).json({ content: destinations });
   },
