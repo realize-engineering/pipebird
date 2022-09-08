@@ -47,6 +47,7 @@ services:
       - LICENSE_KEY=${LICENSE_KEY}
       - PIPEBIRD_MONITOR_SECRET_KEY=${PIPEBIRD_MONITOR_SECRET_KEY} # loaded from register_license.py
       - CONTROL_PLANE_URL=${CONTROL_PLANE_URL-"https://my.pipebird.com"}
+      - TEMPORAL_ADDRESS=temporal
   temporal:
     container_name: temporal
     depends_on:
