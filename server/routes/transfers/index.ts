@@ -60,6 +60,9 @@ transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
         },
       },
     },
+    orderBy: {
+      createdAt: "desc",
+    },
     ...(cursor && { cursor: { id: cursor }, skip: 1 }),
     take,
   });

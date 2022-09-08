@@ -24,6 +24,9 @@ const webhookRouter = Router();
 webhookRouter.get("/", async (req, res: ListApiResponse<WebhookResponse>) => {
   const webhooks = await db.webhook.findMany({
     select: { id: true, url: true },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
   return res.status(HttpStatusCode.OK).json({ content: webhooks });
 });

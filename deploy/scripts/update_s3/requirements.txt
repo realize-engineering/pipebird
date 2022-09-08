@@ -1,0 +1,4 @@
+boto3
+python-dotenv
+mypy
+GitPython

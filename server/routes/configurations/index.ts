@@ -51,6 +51,9 @@ configurationRouter.get(
           },
         },
       },
+      orderBy: {
+        createdAt: "desc",
+      },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       take,
     });
