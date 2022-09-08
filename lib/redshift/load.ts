@@ -30,7 +30,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     await this.createTable({ schema, database });
 
     const createShareOperation = this.qb
-      .raw("create or replace datashare ??", [this.shareName])
+      .raw("create datashare ??", [this.shareName])
       .toSQL()
       .toNative();
 
