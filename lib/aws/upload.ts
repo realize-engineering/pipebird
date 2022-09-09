@@ -1,4 +1,8 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectsCommand,
+  ListObjectsCommand,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { randomUUID } from "crypto";
 
 import { S3 } from "./s3.js";
@@ -36,4 +40,27 @@ export const uploadObject = async ({
   });
 
   return { result: await upload.done(), key };
+};
+
+export const deleteObjects = async ({
+  pathPrefix,
+  bucket = BUCKET,
+}: {
+  pathPrefix: string;
+  bucket?: string;
+}) => {
+  const listCommand = new ListObjectsCommand({
+    Bucket: bucket,
+    Prefix: pathPrefix,
+  });
+  const keys = await S3.send(listCommand);
+
+  const command = new DeleteObjectsCommand({
+    Bucket: bucket,
+    Delete: {
+      Objects: keys.Contents?.map((k) => ({ Key: k.Key })) || [],
+    },
+  });
+
+  return S3.send(command);
 };

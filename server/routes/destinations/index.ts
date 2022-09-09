@@ -55,16 +55,31 @@ destinationRouter.post(
   "/",
   async (req, res: ApiResponse<DestinationResponse>) => {
     const body = z
-      .union([
+      .discriminatedUnion("destinationType", [
         z.object({
           nickname: z.string().min(1),
-          destinationType: z.enum(["PROVISIONED_S3"]),
+          destinationType: z.literal("PROVISIONED_S3"),
           tenantId: z.string().min(1),
         }),
         z.object({
           nickname: z.string().min(1),
-          destinationType: z.enum(["SNOWFLAKE", "REDSHIFT"]),
+          destinationType: z.literal("REDSHIFT"),
           tenantId: z.string().min(1),
+          warehouse: z.string().optional(),
+          host: z.string(),
+          port: z.number().nonnegative(),
+          schema: z.string(),
+          database: z.string(),
+          username: z.string(),
+          password: z.string(),
+        }),
+        z.object({
+          nickname: z.string().min(1),
+          destinationType: z.literal("SNOWFLAKE"),
+          tenantId: z.string().min(1),
+          warehouse: z.string().min(1, {
+            message: "A default warehouse is needed for Snowflake destinations",
+          }),
           host: z.string(),
           port: z.number().nonnegative(),
           schema: z.string(),
@@ -74,6 +89,7 @@ destinationRouter.post(
         }),
       ])
       .safeParse(req.body);
+
     if (!body.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
         code: "body_validation_error",
@@ -102,6 +118,7 @@ destinationRouter.post(
         const {
           nickname,
           destinationType,
+          warehouse,
           host,
           port,
           schema,
@@ -112,6 +129,7 @@ destinationRouter.post(
 
         const connection = await useConnection({
           dbType: destinationType,
+          warehouse,
           host,
           port,
           username,
@@ -130,6 +148,7 @@ destinationRouter.post(
           data: {
             destinationType,
             nickname,
+            warehouse,
             host,
             port,
             schema,
@@ -142,6 +161,7 @@ destinationRouter.post(
             id: true,
             nickname: true,
             destinationType: true,
+            warehouse: true,
           },
         });
 

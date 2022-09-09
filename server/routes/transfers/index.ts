@@ -122,7 +122,9 @@ transferRouter.post(
       }),
     );
 
-    await Promise.all(transfers.map((t) => startTransfer({ id: t.id })));
+    await Promise.all(
+      transfers.map(async (t) => await startTransfer({ id: t.id })),
+    );
 
     return res.status(HttpStatusCode.CREATED).json({ content: transfers });
   },

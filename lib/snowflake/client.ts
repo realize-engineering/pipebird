@@ -7,6 +7,7 @@ type SnowflakeOptions = {
   username: string;
   password?: string;
   schema?: string;
+  warehouse?: string | null;
 };
 
 const getSnowflakeAccountFromHost = (host: string) => {
@@ -23,7 +24,7 @@ export class CustomSnowflakeError extends Error {
 class SnowflakeClient {
   #connection: Connection;
   constructor(options: SnowflakeOptions) {
-    const { host, database, schema, username, password } = options;
+    const { host, warehouse, database, schema, username, password } = options;
     this.#connection = snowflake.createConnection({
       account: getSnowflakeAccountFromHost(host),
       database,
@@ -31,6 +32,7 @@ class SnowflakeClient {
       username,
       password,
       role: "accountadmin", // accountadmin enforced to perform necessary grants on created share
+      warehouse: warehouse ?? undefined,
     });
   }
 

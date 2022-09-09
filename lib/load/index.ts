@@ -88,12 +88,33 @@ class Loader {
       warehouseId: share.warehouseId,
     });
   }
+
+  // note: DDL statements will be autocommitted even if wrapped in begin..commit
+  // this pattern will only work for DML
+  // should replace or check if object exists when executing DDL statements
+  beginTransaction = async () => {
+    const begin = this.qb.raw("begin transaction").toSQL().toNative();
+    await this.query(begin);
+  };
+
+  commitTransaction = async () => {
+    const commit = this.qb.raw("commit").toSQL().toNative();
+    await this.query(commit);
+  };
+
+  rollbackTransaction = async () => {
+    const rollback = this.qb.raw("rollback").toSQL().toNative();
+    await this.query(rollback);
+  };
 }
 
 interface LoadingActions extends Loader {
+  beginTransaction: () => Promise<void>;
+  commitTransaction: () => Promise<void>;
+  rollbackTransaction: () => Promise<void>;
   createShare: (params: { schema: string; database: string }) => Promise<void>;
   createTable: (params: { schema: string; database: string }) => Promise<void>;
-  stage: (contents: Gzip) => Promise<void>;
+  stage: (contents: Gzip, schema?: string) => Promise<void>;
   upsert: (schema?: string) => Promise<void>;
   tearDown: (schema?: string) => Promise<void>;
 }

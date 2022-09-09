@@ -1,16 +1,20 @@
+import { Prisma, TransferStatus } from "@prisma/client";
 import { parseISO } from "date-fns";
 import { default as knex } from "knex";
+import zlib from "node:zlib";
+import crypto from "crypto";
+import got from "got";
+import * as csv from "csv";
 import { z } from "zod";
+
 import { useConnection } from "../connections.js";
 import { db } from "../db.js";
 import { logger } from "../logger.js";
-import * as csv from "csv";
 import { uploadObject } from "../aws/upload.js";
 import { getPresignedURL } from "../aws/signer.js";
-import zlib from "node:zlib";
+import { LoadingActions } from "../load/index.js";
 import SnowflakeLoader from "../snowflake/load.js";
 import RedshiftLoader from "../redshift/load.js";
-import { TransferStatus } from "@prisma/client";
 
 const finalizeTransfer = async ({
   transferId,
@@ -44,18 +48,10 @@ const finalizeTransfer = async ({
       objectUrl,
     },
   });
-
-  // TODO: implement separate activity
-  // const webhooks = await db.webhook.findMany();
-  // webhooks.forEach((wh) =>
-  //   webhookQueue.add(queueNames.SEND_WEBHOOK, {
-  //     webhook: { id: wh.id },
-  //     transfer: { id: transferId },
-  //   }),
-  // );
 };
 
 export async function processTransfer({ id }: { id: number }) {
+  let loader: LoadingActions | null = null;
   try {
     const transfer = await db.transfer.findUnique({
       where: { id },
@@ -73,6 +69,7 @@ export async function processTransfer({ id }: { id: number }) {
                 id: true,
                 nickname: true,
                 destinationType: true,
+                warehouse: true,
                 host: true,
                 port: true,
                 username: true,
@@ -163,6 +160,7 @@ export async function processTransfer({ id }: { id: number }) {
       password: destPassword,
       database: destDatabase,
       schema: destSchema,
+      warehouse: destWarehouse,
     } = destination;
 
     const sourceConnection = await useConnection({
@@ -289,6 +287,7 @@ export async function processTransfer({ id }: { id: number }) {
 
         const destConnection = await useConnection({
           dbType: "SNOWFLAKE",
+          warehouse: destWarehouse,
           host: destHost,
           port: destPort,
           username: destUsername,
@@ -303,19 +302,27 @@ export async function processTransfer({ id }: { id: number }) {
           );
         }
 
-        const loader = new SnowflakeLoader(
+        loader = new SnowflakeLoader(
           destConnection.query,
           share,
           destConnection.queryUnsafe,
         );
 
+        // starting load into Snowflake
+        await loader.beginTransaction();
+
+        // table should exist after creating share, but we want to recreate if it doesn't exist
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
         });
+
         await loader.stage(queryDataStream, destSchema);
         await loader.upsert(destSchema);
         await loader.tearDown(destSchema);
+
+        // committing load into Snowflake
+        await loader.commitTransaction();
 
         await finalizeTransfer({
           transferId: transfer.id,
@@ -355,19 +362,27 @@ export async function processTransfer({ id }: { id: number }) {
           );
         }
 
-        const loader = new RedshiftLoader(
+        loader = new RedshiftLoader(
           destConnection.query,
           share,
           destConnection.queryUnsafe,
         );
 
+        // Starting load into Redshift
+        await loader.beginTransaction();
+
+        // table should exist after creating share, but we want to recreate if it doesn't exist
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
         });
+
         await loader.stage(queryDataStream);
         await loader.upsert();
         await loader.tearDown();
+
+        // Committing load into Redshift
+        await loader.commitTransaction();
 
         await finalizeTransfer({
           transferId: transfer.id,
@@ -385,11 +400,69 @@ export async function processTransfer({ id }: { id: number }) {
   } catch (error) {
     logger.error(error);
 
-    // todo(ianedwards): perform any necessary rollbacks on external stages on failure
+    // rollback if loader has been initialized
+    await loader?.rollbackTransaction();
 
     await finalizeTransfer({
       transferId: id,
       status: "FAILED",
     });
+  }
+}
+
+export async function getWebhooks() {
+  return db.webhook.findMany({
+    select: { id: true, url: true, secretKey: true },
+  });
+}
+
+export async function processWebhook({
+  transferId,
+  webhook,
+}: {
+  transferId: number;
+  webhook: Prisma.WebhookGetPayload<{
+    select: { id: true; url: true; secretKey: true };
+  }>;
+}) {
+  try {
+    const transfer = await db.transfer.findUnique({
+      where: {
+        id: transferId,
+      },
+      select: {
+        id: true,
+        status: true,
+        shareId: true,
+        result: {
+          select: {
+            finalizedAt: true,
+            objectUrl: true,
+          },
+        },
+      },
+    });
+
+    if (!transfer) {
+      throw new Error(`Transfer id not found for Transfer=${transferId}`);
+    }
+
+    // todo(ianedwards): increase event type specificity as needed
+    const body = {
+      type: "transfer.finalized",
+      object: transfer,
+    };
+
+    await got.post(webhook.url, {
+      headers: {
+        "X-Pipebird-Signature": crypto
+          .createHmac("sha256", webhook.secretKey)
+          .update(JSON.stringify(body))
+          .digest("hex"),
+      },
+      json: body,
+    });
+  } catch (error) {
+    logger.error(error);
   }
 }
