@@ -32,6 +32,7 @@ services:
     depends_on:
       - redis
       - db
+      - temporal
     environment:
       - REDIS_HOST=redis
       - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird?connect_timeout=300&schema=public
