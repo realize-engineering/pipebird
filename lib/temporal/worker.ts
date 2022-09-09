@@ -1,4 +1,4 @@
-import { Runtime, Worker } from "@temporalio/worker";
+import { NativeConnection, Runtime, Worker } from "@temporalio/worker";
 import * as activities from "./activities.js";
 import cluster from "node:cluster";
 import { cpus } from "node:os";
@@ -49,13 +49,20 @@ if (cluster.isPrimary) {
     );
   });
 } else {
-  const transferWorker = await Worker.create({
-    ...(env.NODE_ENV === "production"
-      ? { workflowBundle: { codePath: bundlePath } }
-      : { workflowsPath }),
-    activities,
-    taskQueue: "transfer",
-  });
+  try {
+    const transferWorker = await Worker.create({
+      ...(env.NODE_ENV === "production"
+        ? { workflowBundle: { codePath: bundlePath } }
+        : { workflowsPath }),
+      activities,
+      taskQueue: "transfer",
+      connection: await NativeConnection.connect({
+        address: env.TEMPORAL_ADDRESS,
+      }),
+    });
 
-  await transferWorker.run();
+    await transferWorker.run();
+  } catch (e) {
+    logger.error({ createWorkerError: e });
+  }
 }

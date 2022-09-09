@@ -17,26 +17,18 @@ services:
       retries: 12
     volumes:
       - /dev/sdf/data/postgres:/data/postgres
-  redis:
-    image: redis:7.0-alpine
-    restart: unless-stopped
-    container_name: pipebird-redis
-    volumes:
-      - /dev/sdf/data/redis:/data
-    ports:
-      - ${REDIS_PORT}:6379
+    networks:
+      - pipebird-network
   api:
     build: .
     ports:
       - ${PORT}:${PORT}
     depends_on:
-      - redis
       - db
+      - temporal
     environment:
-      - REDIS_HOST=redis
       - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird?connect_timeout=300&schema=public
       - SECRET_KEY=${SECRET_KEY}
-      - REDIS_PORT=${REDIS_PORT}
       - PORT=${PORT}
       - S3_USER_ACCESS_ID=${S3_USER_ACCESS_ID}
       - S3_USER_SECRET_KEY=${S3_USER_SECRET_KEY}
@@ -46,3 +38,42 @@ services:
       - KMS_KEY_ID=${KMS_KEY_ID}
       - LICENSE_KEY=${LICENSE_KEY}
       - PIPEBIRD_MONITOR_SECRET_KEY=${PIPEBIRD_MONITOR_SECRET_KEY} # loaded from register_license.py
+      - CONTROL_PLANE_URL=${CONTROL_PLANE_URL:-"https://my.pipebird.com"}
+      - TEMPORAL_ADDRESS=temporal:7233
+    networks:
+      - pipebird-network
+  temporal:
+    container_name: temporal
+    depends_on:
+      - db
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-pipebird}
+      - POSTGRES_PWD=${POSTGRES_PASSWORD:-pipebird}
+      - POSTGRES_SEEDS=db
+      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/production-sql.yml
+    image: temporalio/auto-setup:1.17.5
+    ports:
+      - 7233:7233
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    labels:
+      kompose.volume.type: configMap
+    networks:
+      - pipebird-network
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.17.5
+    stdin_open: true
+    tty: true
+    networks:
+      - pipebird-network
+networks:
+  pipebird-network:
+    driver: bridge
+    name: pipebird-network
