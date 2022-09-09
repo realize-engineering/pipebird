@@ -34,6 +34,7 @@ export const useConnection = async ({
   password,
   database,
   schema,
+  warehouse,
 }: {
   dbType: SourceType | DestinationType;
   host: string;
@@ -42,6 +43,7 @@ export const useConnection = async ({
   username: string;
   password?: string;
   schema?: string;
+  warehouse?: string | null;
 }): Promise<
   | {
       error: true;
@@ -150,6 +152,7 @@ export const useConnection = async ({
 
         case "SNOWFLAKE": {
           const client = new SnowflakeClient({
+            warehouse,
             host,
             database,
             schema,

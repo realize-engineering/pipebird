@@ -99,28 +99,29 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
     });
   }
 
-  const share = await db.share.create({
-    data: {
-      nickname,
-      tenantId,
-      destinationId,
-      configurationId,
-      warehouseId,
-    },
-    select: {
-      id: true,
-      tenantId: true,
-      warehouseId: true,
-      nickname: true,
-      configurationId: true,
-      destinationId: true,
-    },
-  });
+  const share = await db.$transaction(async (prisma) => {
+    const result = await prisma.share.create({
+      data: {
+        nickname,
+        tenantId,
+        destinationId,
+        configurationId,
+        warehouseId,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        warehouseId: true,
+        nickname: true,
+        configurationId: true,
+        destinationId: true,
+      },
+    });
 
-  // todo(ianedwards): look into wrapping this in a transaction with above
-  // reading the uncommitted share would require separate selects as the share return type does
-  // not specify all the fields needed to initiate the share in the WH
-  await initiateNewShare({ shareId: share.id });
+    await initiateNewShare({ shareId: result.id, prisma });
+
+    return result;
+  });
 
   return res.status(HttpStatusCode.CREATED).json(share);
 });
@@ -148,9 +149,6 @@ shareRouter.patch("/:shareId", async (req, res: ApiResponse<null>) => {
     .object({
       nickname: z.string().optional(),
       tenantId: z.string().min(1).optional(),
-      destinationId: z.number().nonnegative().optional(),
-      configurationId: z.number().nonnegative().optional(),
-      warehouseId: z.string().min(1).optional(),
     })
     .safeParse(req.body);
 
@@ -161,27 +159,6 @@ shareRouter.patch("/:shareId", async (req, res: ApiResponse<null>) => {
     });
   }
   try {
-    const { destinationId, configurationId } = bodyParams.data;
-
-    const configuration = await db.configuration.findUnique({
-      where: { id: configurationId },
-    });
-
-    if (configurationId && !configuration) {
-      return res.status(HttpStatusCode.NOT_FOUND).json({
-        code: "configuration_id_not_found",
-      });
-    }
-
-    const destination = await db.destination.findUnique({
-      where: { id: destinationId },
-    });
-    if (destinationId && !destination) {
-      return res
-        .status(HttpStatusCode.NOT_FOUND)
-        .json({ code: "destination_id_not_found" });
-    }
-
     await db.share.update({
       where: {
         id: queryParams.data.shareId,
