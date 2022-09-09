@@ -12,4 +12,5 @@ fi
 
 npx prisma migrate deploy
 npx prisma db push
+npm run start:workers & 
 NODE_ENV="production" exec node dist/server/index.js
