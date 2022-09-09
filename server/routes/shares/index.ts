@@ -66,7 +66,8 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
         .min(1)
         .refine((val) => validator.isAlphanumeric(val), {
           message: "The warehouseId param must be alphanumeric.",
-        }),
+        })
+        .optional(),
     })
     .safeParse(req.body);
   if (!body.success) {
@@ -99,6 +100,13 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
     });
   }
 
+  if (destination.destinationType !== "PROVISIONED_S3" && !warehouseId) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "body_validation_error",
+      message: "Warehouse ID is required for the specified destination",
+    });
+  }
+
   const share = await db.$transaction(async (prisma) => {
     const result = await prisma.share.create({
       data: {
@@ -106,7 +114,7 @@ shareRouter.post("/", async (req, res: ApiResponse<ShareResponse>) => {
         tenantId,
         destinationId,
         configurationId,
-        warehouseId,
+        warehouseId: warehouseId ?? "PROVISIONED_S3", // use const PROVISIONED_S3 as placeholder for bucket transfers
       },
       select: {
         id: true,

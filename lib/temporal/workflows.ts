@@ -14,7 +14,6 @@ export async function transfer({ id }: { id: number }) {
   await processTransfer({ id });
 
   const webhooks = await getWebhooks();
-
   // todo(ianedwards): retry on failed webhook send
   await Promise.allSettled(
     webhooks.map((wh) => processWebhook({ transferId: id, webhook: wh })),

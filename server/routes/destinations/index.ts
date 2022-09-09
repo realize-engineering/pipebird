@@ -59,12 +59,10 @@ destinationRouter.post(
         z.object({
           nickname: z.string().min(1),
           destinationType: z.literal("PROVISIONED_S3"),
-          tenantId: z.string().min(1),
         }),
         z.object({
           nickname: z.string().min(1),
           destinationType: z.literal("REDSHIFT"),
-          tenantId: z.string().min(1),
           warehouse: z.string().optional(),
           host: z.string(),
           port: z.number().nonnegative(),
@@ -76,7 +74,6 @@ destinationRouter.post(
         z.object({
           nickname: z.string().min(1),
           destinationType: z.literal("SNOWFLAKE"),
-          tenantId: z.string().min(1),
           warehouse: z.string().min(1, {
             message: "A default warehouse is needed for Snowflake destinations",
           }),

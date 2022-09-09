@@ -71,7 +71,6 @@ class RedshiftLoader extends Loader implements LoadingActions {
       .raw("create schema if not exists ??", [schema])
       .toSQL()
       .toNative();
-
     await this.query(schemaCreateOperation);
 
     const { configuration } = this.share;
@@ -90,7 +89,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     const tableCreateOperation = this.qb
       .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} )`, [
-        this.tableName,
+        `${schema}.${this.tableName}`,
         ...configuration.columns.map((col) => col.nameInDestination),
       ])
       .toSQL()
@@ -202,7 +201,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     await deleteObjects({ pathPrefix });
 
     const dropStageOperation = this.qb
-      .raw("drop table ??", [this.tableName])
+      .raw("drop table ??", [this.stageName])
       .toSQL()
       .toNative();
     await this.query(dropStageOperation);

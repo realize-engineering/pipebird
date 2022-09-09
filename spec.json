@@ -1072,9 +1072,6 @@
           {
             "title": "Database",
             "properties": {
-              "configurationId": {
-                "type": "number"
-              },
               "destinationType": {
                 "type": "string",
                 "enum": ["POSTGRES", "SNOWFLAKE"]
@@ -1097,15 +1094,11 @@
               "password": {
                 "type": "string"
               },
-              "tenantId": {
-                "type": "string"
-              },
               "nickname": {
                 "type": "string"
               }
             },
             "required": [
-              "configurationId",
               "destinationType",
               "host",
               "port",
@@ -1113,7 +1106,6 @@
               "database",
               "username",
               "password",
-              "tenantId",
               "nickname"
             ]
           },
@@ -1126,20 +1118,9 @@
               "destinationType": {
                 "type": "string",
                 "enum": ["PROVISIONED_S3"]
-              },
-              "configurationId": {
-                "type": "number"
-              },
-              "tenantId": {
-                "type": "string"
               }
             },
-            "required": [
-              "nickname",
-              "destinationType",
-              "configurationId",
-              "tenantId"
-            ]
+            "required": ["nickname", "destinationType"]
           }
         ],
         "type": "object"
