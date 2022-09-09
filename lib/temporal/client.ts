@@ -23,7 +23,10 @@ try {
     connection,
   });
 } catch (e) {
-  logger.error({ connectionError: e, message: "FAILED TO CREATE CONNECTION" });
+  logger.error({
+    connectionError: e,
+    message: "Failed to create workflow client connection.",
+  });
   process.exit(1);
 }
 
