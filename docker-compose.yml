@@ -17,27 +17,18 @@ services:
       retries: 12
     volumes:
       - /dev/sdf/data/postgres:/data/postgres
-  redis:
-    image: redis:7.0-alpine
-    restart: unless-stopped
-    container_name: pipebird-redis
-    volumes:
-      - /dev/sdf/data/redis:/data
-    ports:
-      - ${REDIS_PORT}:6379
+    networks:
+      - pipebird-network
   api:
     build: .
     ports:
       - ${PORT}:${PORT}
     depends_on:
-      - redis
       - db
       - temporal
     environment:
-      - REDIS_HOST=redis
       - DATABASE_URL=postgresql://${POSTGRES_USER:-pipebird}:${POSTGRES_PASSWORD:-pipebird}@db:5432/pipebird?connect_timeout=300&schema=public
       - SECRET_KEY=${SECRET_KEY}
-      - REDIS_PORT=${REDIS_PORT}
       - PORT=${PORT}
       - S3_USER_ACCESS_ID=${S3_USER_ACCESS_ID}
       - S3_USER_SECRET_KEY=${S3_USER_SECRET_KEY}
@@ -48,7 +39,9 @@ services:
       - LICENSE_KEY=${LICENSE_KEY}
       - PIPEBIRD_MONITOR_SECRET_KEY=${PIPEBIRD_MONITOR_SECRET_KEY} # loaded from register_license.py
       - CONTROL_PLANE_URL=${CONTROL_PLANE_URL-"https://my.pipebird.com"}
-      - TEMPORAL_ADDRESS=temporal
+      - TEMPORAL_ADDRESS=temporal:7233
+    networks:
+      - pipebird-network
   temporal:
     container_name: temporal
     depends_on:
@@ -67,6 +60,8 @@ services:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
       kompose.volume.type: configMap
+    networks:
+      - pipebird-network
   temporal-admin-tools:
     container_name: temporal-admin-tools
     depends_on:
@@ -76,6 +71,8 @@ services:
     image: temporalio/admin-tools:1.17.5
     stdin_open: true
     tty: true
+    networks:
+      - pipebird-network
   temporal-ui:
     container_name: temporal-ui
     depends_on:
@@ -86,3 +83,7 @@ services:
     image: temporalio/ui:2.5.1
     ports:
       - 8080:8080
+networks:
+  pipebird-network:
+    driver: bridge
+    name: pipebird-network

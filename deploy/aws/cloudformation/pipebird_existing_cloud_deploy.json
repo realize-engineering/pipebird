@@ -317,8 +317,6 @@
                     }
                   ]
                 },
-                "echo \"REDIS_HOST=localhost\" >> .env",
-                "echo \"REDIS_PORT=6379\" >> .env",
                 "echo \"SECRET_KEY=$(openssl rand -hex 64)\" >> .env",
                 "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
                 {
