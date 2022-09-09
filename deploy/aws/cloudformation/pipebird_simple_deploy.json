@@ -278,8 +278,7 @@
                     }
                   ]
                 },
-                "echo \"REDIS_HOST=localhost\" >> .env",
-                "echo \"REDIS_PORT=6379\" >> .env",
+                "echo \"CONTROL_PLANE_URL=https://my.pipebird.com\" >> .env",
                 "echo \"SECRET_KEY=$(openssl rand -hex 64)\" >> .env",
                 "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
                 {
@@ -620,7 +619,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.2",
+        "version": "0.2.3",
         "type": "AWS_DEFAULT_VPC"
       }
     }
