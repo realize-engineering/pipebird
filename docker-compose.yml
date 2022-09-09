@@ -62,6 +62,17 @@ services:
       kompose.volume.type: configMap
     networks:
       - pipebird-network
+  temporal-admin-tools:
+    container_name: temporal-admin-tools
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    image: temporalio/admin-tools:1.17.5
+    stdin_open: true
+    tty: true
+    networks:
+      - pipebird-network
 networks:
   pipebird-network:
     driver: bridge
