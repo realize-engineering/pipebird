@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es2017",
-    "module": "esnext",
+    "target": "es2016",
+    "module": "node16",
     "moduleResolution": "node16",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -10,7 +10,7 @@
     "skipLibCheck": true,
     "outDir": "dist",
     "lib": ["esnext"],
-    "inlineSourceMap": true,
+    "sourceMap": true,
     "noUncheckedIndexedAccess": true
   },
   "exclude": ["tests", "node_modules", "prisma"]
