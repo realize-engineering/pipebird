@@ -1,21 +1,16 @@
-import { Job } from "bullmq";
-import { logger } from "../../../lib/logger.js";
-import { uploadObject } from "../../../lib/aws/upload.js";
-import { TransferQueueJobData } from "./scheduler.js";
-import { db } from "../../../lib/db.js";
-import { useConnection } from "../../../lib/connections.js";
-import zlib from "node:zlib";
-import { z } from "zod";
 import { parseISO } from "date-fns";
-import * as csv from "csv";
 import { default as knex } from "knex";
+import { z } from "zod";
+import { useConnection } from "../connections.js";
+import { db } from "../db.js";
+import { logger } from "../logger.js";
+import * as csv from "csv";
+import { uploadObject } from "../aws/upload.js";
+import { getPresignedURL } from "../aws/signer.js";
+import zlib from "node:zlib";
+import SnowflakeLoader from "../snowflake/load.js";
+import RedshiftLoader from "../redshift/load.js";
 import { TransferStatus } from "@prisma/client";
-import { getPresignedURL } from "../../../lib/aws/signer.js";
-import { webhookQueue } from "../webhook/scheduler.js";
-import { queueNames } from "../../../lib/queues.js";
-
-import RedshiftLoader from "../../../lib/redshift/load.js";
-import SnowflakeLoader from "../../../lib/snowflake/load.js";
 
 const finalizeTransfer = async ({
   transferId,
@@ -50,19 +45,20 @@ const finalizeTransfer = async ({
     },
   });
 
-  const webhooks = await db.webhook.findMany();
-  webhooks.forEach((wh) =>
-    webhookQueue.add(queueNames.SEND_WEBHOOK, {
-      webhook: { id: wh.id },
-      transfer: { id: transferId },
-    }),
-  );
+  // TODO: implement separate activity
+  // const webhooks = await db.webhook.findMany();
+  // webhooks.forEach((wh) =>
+  //   webhookQueue.add(queueNames.SEND_WEBHOOK, {
+  //     webhook: { id: wh.id },
+  //     transfer: { id: transferId },
+  //   }),
+  // );
 };
 
-export default async function (job: Job<TransferQueueJobData>) {
+export async function processTransfer({ id }: { id: number }) {
   try {
     const transfer = await db.transfer.findUnique({
-      where: { id: job.data.id },
+      where: { id },
       select: {
         id: true,
         status: true,
@@ -115,7 +111,7 @@ export default async function (job: Job<TransferQueueJobData>) {
     });
 
     if (!transfer) {
-      throw new Error(`Transfer with ID ${job.data.id} does not exist`);
+      throw new Error(`Transfer with ID ${id} does not exist`);
     }
 
     if (transfer.status !== "STARTED") {
@@ -126,14 +122,12 @@ export default async function (job: Job<TransferQueueJobData>) {
 
     await db.transfer.update({
       where: {
-        id: job.data.id,
+        id,
       },
       data: {
         status: "PENDING",
       },
     });
-
-    logger.info("Processor is handling job with transfer:", job.data);
 
     const destination = transfer.destination;
     const configuration = destination.configuration;
@@ -249,9 +243,6 @@ export default async function (job: Job<TransferQueueJobData>) {
           .toNative(),
       )
     )
-      .on("data", (chunk) => {
-        logger.trace(chunk, "Got row object");
-      })
       .pipe(
         csv.stringify({
           delimiter: ",",
@@ -395,7 +386,7 @@ export default async function (job: Job<TransferQueueJobData>) {
     // todo(ianedwards): perform any necessary rollbacks on external stages on failure
 
     await finalizeTransfer({
-      transferId: job.data.id,
+      transferId: id,
       status: "FAILED",
     });
   }

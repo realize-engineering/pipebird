@@ -3,8 +3,10 @@ from typing import List, TypedDict, Literal
 import requests
 import argparse
 from enum import Enum
+import os
 
 
+CONTROL_PLANE_URL: str = os.environ.get('CONTROL_PLANE_URL', 'https://my.pipebird.com')
 StrategyLiteral = Literal["AWS_EXISTING_VPC", "AWS_DEFAULT_VPC"]
 
 
@@ -51,7 +53,7 @@ if __name__ == '__main__':
     }
     try:
         resp = requests.post(
-            'https://my.pipebird.com/api/deployment', 
+            f'{CONTROL_PLANE_URL}/api/deployment', 
             json=deployment, 
             headers={'Authorization': f'Bearer {args.licenseKey}'},
             timeout=10
@@ -61,4 +63,4 @@ if __name__ == '__main__':
             envfile.write(f"\nPIPEBIRD_MONITOR_SECRET_KEY={payload['deployment']['monitorSecretKey']}")
     except Exception as e:
         print(e)
-        print(f"Failed to reach https://my.pipebird.com servers.")
+        print(f"Failed to reach {CONTROL_PLANE_URL} servers. Ensure license key is valid and you have a stable internet connection.")
