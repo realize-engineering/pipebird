@@ -54,8 +54,6 @@ services:
       - POSTGRES_SEEDS=db
       - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/production-sql.yml
     image: temporalio/auto-setup:1.17.5
-    ports:
-      - 7233:7233
     volumes:
       - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     labels:
