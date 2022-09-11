@@ -1162,8 +1162,7 @@
           "tenantId": {
             "type": "string"
           }
-        },
-        "required": []
+        }
       },
       "CreateTransfer": {
         "title": "CreateTransfer",
@@ -1175,8 +1174,7 @@
               "type": "number"
             }
           }
-        },
-        "required": []
+        }
       },
       "CreateView": {
         "title": "CreateView",
