@@ -195,6 +195,17 @@
         }
       },
       "Properties": {
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "50",
+              "DeleteOnTermination": "true",
+              "Encrypted": "true"
+            }
+          }
+        ],
         "UserData": {
           "Fn::Base64": {
             "Fn::Join": [
@@ -619,7 +630,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.3",
+        "version": "0.2.4",
         "type": "AWS_DEFAULT_VPC"
       }
     }

@@ -220,6 +220,17 @@
         }
       },
       "Properties": {
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize": "50",
+              "DeleteOnTermination": "true",
+              "Encrypted": "true"
+            }
+          }
+        ],
         "Volumes": [
           {
             "Device": "/dev/sdf",
@@ -658,7 +669,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.3",
+        "version": "0.2.4",
         "type": "AWS_EXISTING_VPC"
       }
     }
