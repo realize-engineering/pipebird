@@ -44,7 +44,7 @@ class RegisterResponse(TypedDict):
 
 
 if __name__ == '__main__':
-    versions: List[Version] = json.load(open('versions.json'))
+    versions: List[Version] = json.load(open('./deploy/configs/versions.json'))
     latest_version = versions[0]
     deployment: RegisterRequest = {
         "strategy": args.strategy.value, 
