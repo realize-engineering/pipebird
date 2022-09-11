@@ -2,22 +2,64 @@ import path from "path";
 import { Gzip } from "zlib";
 
 import { env } from "../env.js";
-import { uploadObject } from "../aws/upload.js";
+import { deleteObjects, uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
-import { LoadDestination, Loader, LoadingActions } from "../load/index.js";
+import { LoadShare, Loader, LoadingActions } from "../load/index.js";
 
 class RedshiftLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
     query: ConnectionQueryOp,
-    destination: LoadDestination,
+    share: LoadShare,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
-    super(query, destination);
+    super(query, share);
     this.#queryUnsafe = queryUnsafe;
   }
+
+  createShare = async ({
+    schema,
+    database,
+  }: {
+    schema: string;
+    database: string;
+  }) => {
+    // ensure schema and table exist for results
+    await this.createTable({ schema, database });
+
+    const createShareOperation = this.qb
+      .raw("create datashare ??", [this.shareName])
+      .toSQL()
+      .toNative();
+
+    await this.query(createShareOperation);
+
+    const grantSchemaUsageOperation = this.qb
+      .raw("alter datashare ?? add schema ??", [this.shareName, schema])
+      .toSQL()
+      .toNative();
+    await this.query(grantSchemaUsageOperation);
+
+    const grantSelectUsageOperation = this.qb
+      .raw("alter datashare ?? add table ??", [
+        this.shareName,
+        `${schema}.${this.tableName}`,
+      ])
+      .toSQL()
+      .toNative();
+    await this.query(grantSelectUsageOperation);
+
+    const addAccountsOperation = this.qb
+      .raw("grant usage on datashare ?? to account ?", [
+        this.shareName,
+        this.share.warehouseId,
+      ])
+      .toString();
+
+    await this.#queryUnsafe(addAccountsOperation);
+  };
 
   public createTable = async ({
     schema,
@@ -29,15 +71,13 @@ class RedshiftLoader extends Loader implements LoadingActions {
       .raw("create schema if not exists ??", [schema])
       .toSQL()
       .toNative();
-
     await this.query(schemaCreateOperation);
 
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
 
     const columnsWithType = configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
-      // todo(ianedwards): change this to use additional source and destination types
       return `?? ${
         getColumnTypeForDest({
           sourceType: "POSTGRES",
@@ -49,7 +89,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     const tableCreateOperation = this.qb
       .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} )`, [
-        this.tableName,
+        `${schema}.${this.tableName}`,
         ...configuration.columns.map((col) => col.nameInDestination),
       ])
       .toSQL()
@@ -69,7 +109,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     await this.query(createStageOperation);
 
-    const pathPrefix = `redshift/${this.destination.id}`;
+    const pathPrefix = `redshift/${this.share.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -100,7 +140,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   upsert = async () => {
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
     const { tableName, stageName } = this;
 
     const names = configuration.columns.map((col) => col.nameInDestination);
@@ -110,7 +150,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     if (!primaryKeyCol) {
       throw new Error(
-        `View used by configuration ID = ${this.destination.configurationId} does not have a primary key col`,
+        `View used by configuration ID = ${this.share.configuration.id} does not have a primary key col`,
       );
     }
 
@@ -157,10 +197,11 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   tearDown = async () => {
-    // todo(ianedwards): ensure file is deleted from S3
+    const pathPrefix = `redshift/${this.share.id}`;
+    await deleteObjects({ pathPrefix });
 
     const dropStageOperation = this.qb
-      .raw("drop table ??", [this.tableName])
+      .raw("drop table ??", [this.stageName])
       .toSQL()
       .toNative();
     await this.query(dropStageOperation);

@@ -5,21 +5,73 @@ import { env } from "../env.js";
 import { uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
-import { LoadDestination, Loader, LoadingActions } from "../load/index.js";
+import { LoadShare, Loader, LoadingActions } from "../load/index.js";
 
 class SnowflakeLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
     query: ConnectionQueryOp,
-    destination: LoadDestination,
+    share: LoadShare,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
-    super(query, destination);
+    super(query, share);
     this.#queryUnsafe = queryUnsafe;
   }
 
-  public createTable = async ({
+  createShare = async ({
+    schema,
+    database,
+  }: {
+    schema: string;
+    database: string;
+  }) => {
+    // ensure schema and table exist for results
+    await this.createTable({ schema, database });
+
+    const createShareOperation = this.qb
+      .raw("create or replace share ??", [this.shareName])
+      .toSQL()
+      .toNative();
+
+    await this.query(createShareOperation);
+
+    const grantDatabaseUsageOperation = this.qb
+      .raw("grant usage on database ?? to share ??", [database, this.shareName])
+      .toSQL()
+      .toNative();
+    await this.query(grantDatabaseUsageOperation);
+
+    const grantSchemaUsageOperation = this.qb
+      .raw("grant usage on schema ?? to share ??", [
+        `${database}.${schema}`,
+        this.shareName,
+      ])
+      .toSQL()
+      .toNative();
+    await this.query(grantSchemaUsageOperation);
+
+    const grantSelectUsageOperation = this.qb
+      .raw("grant select on table ?? to share ??", [
+        `${database}.${schema}.${this.tableName}`,
+        this.shareName,
+      ])
+      .toSQL()
+      .toNative();
+    await this.query(grantSelectUsageOperation);
+
+    const addAccountsOperation = this.qb
+      .raw("alter share ?? add account=??", [
+        this.shareName,
+        this.share.warehouseId,
+      ])
+      .toSQL()
+      .toNative();
+
+    await this.query(addAccountsOperation);
+  };
+
+  createTable = async ({
     schema,
     database,
   }: {
@@ -35,12 +87,11 @@ class SnowflakeLoader extends Loader implements LoadingActions {
 
     await this.query(schemaCreateOperation);
 
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
 
     const columnsWithType = configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
-      // todo(ianedwards): change this to use additional source and destination types
       return `?? ${
         getColumnTypeForDest({
           sourceType: "POSTGRES",
@@ -62,7 +113,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
   };
 
   stage = async (contents: Gzip, schema = "public") => {
-    const pathPrefix = `snowflake/${this.destination.id}`;
+    const pathPrefix = `snowflake/${this.share.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -98,7 +149,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
   };
 
   upsert = async (schema = "public") => {
-    const { configuration } = this.destination;
+    const { configuration } = this.share;
     const { tableName, stageName } = this;
 
     const names = configuration.columns.map((col) => col.nameInDestination);
@@ -108,7 +159,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
 
     if (!primaryKeyCol) {
       throw new Error(
-        `View used by configuration ID = ${this.destination.configurationId} does not have a primary key col`,
+        `View used by configuration ID = ${this.share.configuration.id} does not have a primary key col`,
       );
     }
 

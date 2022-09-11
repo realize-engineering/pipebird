@@ -202,32 +202,22 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
   }
 
   const results = await db.$transaction(async (prisma) => {
-    const sourceWithNoPendingTransfers = await prisma.source.findFirst({
+    const hasPendingTransfer = await prisma.transfer.findFirst({
       where: {
-        id: params.data.sourceId,
-        views: {
-          every: {
-            configurations: {
-              every: {
-                destinations: {
-                  every: {
-                    transfers: {
-                      every: {
-                        status: {
-                          notIn: pendingTransferTypes.slice(),
-                        },
-                      },
-                    },
-                  },
-                },
-              },
+        share: {
+          configuration: {
+            view: {
+              sourceId: params.data.sourceId,
             },
           },
+        },
+        status: {
+          in: pendingTransferTypes.slice(),
         },
       },
     });
 
-    if (!sourceWithNoPendingTransfers) {
+    if (hasPendingTransfer) {
       await LogModel.create(
         {
           action: "DELETE",
@@ -241,6 +231,7 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
       );
       return "PENDING_TRANSFERS";
     }
+
     await LogModel.create(
       {
         action: "DELETE",

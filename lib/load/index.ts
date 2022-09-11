@@ -4,15 +4,21 @@ import { Gzip } from "zlib";
 
 import { ConnectionQueryOp } from "../connections.js";
 
-export type LoadDestination = Prisma.DestinationGetPayload<{
+export type LoadShare = Prisma.ShareGetPayload<{
   select: {
     id: true;
     tenantId: true;
-    configurationId: true;
-    destinationType: true;
-    nickname: true;
+    warehouseId: true;
+    destination: {
+      select: {
+        nickname: true;
+        destinationType: true;
+        username: true;
+      };
+    };
     configuration: {
       select: {
+        id: true;
         columns: {
           select: {
             nameInSource: true;
@@ -32,16 +38,22 @@ export type LoadDestination = Prisma.DestinationGetPayload<{
 
 const getUniqueTableName = ({
   nickname,
-  tenantId,
-  destinationId,
+  warehouseId,
 }: {
   nickname: string;
-  tenantId: string;
-  destinationId: number;
-}) => `ShareData_${nickname.replaceAll(" ", "_")}_${tenantId}_${destinationId}`;
+  warehouseId: string;
+}) => `SharedData_${nickname.replaceAll(" ", "_")}_${warehouseId}`;
 
-const getTempStageName = (destinationId: number) =>
-  `SharedData_TempStage_${destinationId}_${new Date().getTime()}`;
+const getUniqueShareName = ({
+  nickname,
+  warehouseId,
+}: {
+  nickname: string;
+  warehouseId: string;
+}) => `Share_${nickname.replaceAll(" ", "_")}_${warehouseId}`;
+
+const getTempStageName = (warehouseId: string) =>
+  `SharedData_TempStage_${warehouseId}_${new Date().getTime()}`;
 
 const getDialectFromDestination = (type: DestinationType) => {
   if (type === "POSTGRES" || type === "REDSHIFT" || type === "SNOWFLAKE") {
@@ -54,29 +66,55 @@ const getDialectFromDestination = (type: DestinationType) => {
 class Loader {
   protected query: ConnectionQueryOp;
   protected qb: Knex<any, unknown[]>;
-  protected destination: LoadDestination;
-  protected tableName: string;
+  protected share: LoadShare;
   protected stageName: string;
+  protected tableName: string;
+  protected shareName: string;
 
-  constructor(query: ConnectionQueryOp, destination: LoadDestination) {
+  constructor(query: ConnectionQueryOp, share: LoadShare) {
     this.query = query;
-    this.destination = destination;
+    this.share = share;
 
     this.qb = knex({
-      client: getDialectFromDestination(destination.destinationType),
+      client: getDialectFromDestination(share.destination.destinationType),
     });
+    this.stageName = getTempStageName(share.warehouseId);
     this.tableName = getUniqueTableName({
-      nickname: destination.nickname,
-      tenantId: destination.tenantId,
-      destinationId: destination.id,
+      nickname: share.destination.nickname,
+      warehouseId: share.warehouseId,
     });
-    this.stageName = getTempStageName(destination.id);
+    this.shareName = getUniqueShareName({
+      nickname: share.destination.nickname,
+      warehouseId: share.warehouseId,
+    });
   }
+
+  // note: DDL statements will be autocommitted even if wrapped in begin..commit
+  // this pattern will only work for DML
+  // should replace or check if object exists when executing DDL statements
+  beginTransaction = async () => {
+    const begin = this.qb.raw("begin transaction").toSQL().toNative();
+    await this.query(begin);
+  };
+
+  commitTransaction = async () => {
+    const commit = this.qb.raw("commit").toSQL().toNative();
+    await this.query(commit);
+  };
+
+  rollbackTransaction = async () => {
+    const rollback = this.qb.raw("rollback").toSQL().toNative();
+    await this.query(rollback);
+  };
 }
 
 interface LoadingActions extends Loader {
+  beginTransaction: () => Promise<void>;
+  commitTransaction: () => Promise<void>;
+  rollbackTransaction: () => Promise<void>;
+  createShare: (params: { schema: string; database: string }) => Promise<void>;
   createTable: (params: { schema: string; database: string }) => Promise<void>;
-  stage: (contents: Gzip) => Promise<void>;
+  stage: (contents: Gzip, schema?: string) => Promise<void>;
   upsert: (schema?: string) => Promise<void>;
   tearDown: (schema?: string) => Promise<void>;
 }

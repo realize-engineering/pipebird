@@ -18,6 +18,7 @@ const errorCodeSchema = z.enum([
   "resource_already_exists",
   "query_validation_error",
   "params_validation_error",
+  "share_id_not_found",
   "transfer_in_progress",
   "transfer_id_not_found",
   "transfer_not_in_progress",

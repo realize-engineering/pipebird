@@ -45,16 +45,14 @@ model Source {
   database   String
   username   String
   password   String?
-
-  views View[]
+  views      View[]
 }
 
 model View {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tableName String
-
+  id             Int             @id @default(autoincrement())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tableName      String
   source         Source          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   sourceId       Int
   columns        ViewColumn[]
@@ -62,44 +60,17 @@ model View {
 }
 
 model ViewColumn {
-  id             Int      @id @default(autoincrement())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             Int                    @id @default(autoincrement())
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
   name           String
   dataType       String
   isPrimaryKey   Boolean
   isLastModified Boolean
   isTenantColumn Boolean
-
-  resultColumns ColumnTransformation[]
-  view          View                   @relation(fields: [viewId], references: [id])
-  viewId        Int
-}
-
-model Configuration {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  destinations Destination[] // might want to fork data into multiple warehouses
-  view         View                   @relation(fields: [viewId], references: [id], onDelete: Cascade)
-  viewId       Int
-  columns      ColumnTransformation[]
-}
-
-model ColumnTransformation {
-  id                Int      @id @default(autoincrement())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  nameInSource      String
-  nameInDestination String
-
-  configuration   Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
-  configurationId Int
-  viewColumn      ViewColumn    @relation(fields: [viewColumnId], references: [id])
-  viewColumnId    Int
-
-  @@unique([configurationId, nameInDestination]) // no duplicate configuration columns
+  resultColumns  ColumnTransformation[]
+  view           View                   @relation(fields: [viewId], references: [id])
+  viewId         Int
 }
 
 enum DestinationType {
@@ -116,18 +87,54 @@ model Destination {
   nickname        String
   status          ConnectorStatus
   destinationType DestinationType
+  warehouse       String?
   host            String?
   port            Int?
   database        String?
   schema          String?
   username        String?
   password        String?
-  lastModifiedAt  DateTime        @default("1970-01-01T00:00:00-00:00")
+  shares          Share[]
+}
+
+model Configuration {
+  id        Int                    @id @default(autoincrement())
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  view      View                   @relation(fields: [viewId], references: [id], onDelete: Cascade)
+  viewId    Int
+  columns   ColumnTransformation[]
+  shares    Share[] // might want to fork data into multiple warehouses
+}
+
+model ColumnTransformation {
+  id                Int           @id @default(autoincrement())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  nameInSource      String
+  nameInDestination String
+  configuration     Configuration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  configurationId   Int
+  viewColumn        ViewColumn    @relation(fields: [viewColumnId], references: [id])
+  viewColumnId      Int
+
+  @@unique([configurationId, nameInDestination]) // no duplicate configuration columns
+}
+
+model Share {
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  nickname       String?
+  tenantId       String
+  warehouseId    String
+  lastModifiedAt DateTime @default("1970-01-01T00:00:00-00:00")
 
   transfers       Transfer[]
+  destination     Destination   @relation(fields: [destinationId], references: [id])
+  destinationId   Int
   configuration   Configuration @relation(fields: [configurationId], references: [id])
   configurationId Int
-  tenantId        String
 }
 
 enum TransferStatus {
@@ -139,22 +146,20 @@ enum TransferStatus {
 }
 
 model Transfer {
-  id        Int            @id @default(autoincrement())
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  id        Int             @id @default(autoincrement())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
   status    TransferStatus
-
-  result        TransferResult?
-  destination   Destination     @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  destinationId Int
+  result    TransferResult?
+  share     Share           @relation(fields: [shareId], references: [id])
+  shareId   Int
 }
 
 model TransferResult {
   finalizedAt DateTime
   objectUrl   String?
-
-  transfer   Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
-  transferId Int      @unique
+  transfer    Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  transferId  Int      @unique
 
   @@id([transferId, finalizedAt])
 }

@@ -26,7 +26,11 @@
     },
     {
       "name": "Destinations",
-      "description": "Data destinations indicating final location of a pipeline"
+      "description": "Data destinations indicating final location through which data is shared"
+    },
+    {
+      "name": "Shares",
+      "description": "Warehouse accounts that will be consumers of data in destinations"
     },
     {
       "name": "Sources",
@@ -367,7 +371,7 @@
           }
         },
         "operationId": "list-destinations",
-        "description": "A list of all the output destinations created by customers"
+        "description": "A list of all the output destinations to share data from"
       },
       "post": {
         "summary": "Create destination",
@@ -394,7 +398,7 @@
             }
           }
         },
-        "description": "Create a new destination on behalf of a customer according to a set of configurations"
+        "description": "Create a new destination to initialize shares from"
       }
     },
     "/destinations/{destination_id}": {
@@ -468,6 +472,121 @@
         }
       }
     },
+    "/shares": {
+      "get": {
+        "summary": "List shares",
+        "tags": ["Shares"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "$ref": "#/components/schemas/Share"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "list-shares",
+        "description": "A list of all the shares created by customers"
+      },
+      "post": {
+        "summary": "Create share",
+        "tags": ["Shares"],
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Share"
+                }
+              }
+            }
+          }
+        },
+        "operationId": "post-shares",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShare"
+              }
+            }
+          }
+        },
+        "description": "Create a new share on behalf of a customer according to a set of configurations"
+      }
+    },
+    "/shares/{shareId}": {
+      "get": {
+        "description": "Get share by id",
+        "summary": "Get share",
+        "operationId": "get-share-by-id",
+        "tags": ["Shares"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Share"
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": [
+        {
+          "schema": {
+            "type": "string"
+          },
+          "name": "shareId",
+          "in": "path",
+          "required": true,
+          "description": "The id for this share object"
+        }
+      ],
+      "delete": {
+        "description": "Delete share. Cannot delete share if transfer in progress.",
+        "summary": "Delete share",
+        "tags": ["Share"],
+        "operationId": "delete-shares-shareId",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update share",
+        "tags": ["Shares"],
+        "operationId": "patch-shares-shareId",
+        "description": "Update share.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateShare"
+              }
+            }
+          },
+          "description": "Optional fields to update."
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/transfers": {
       "parameters": [],
       "post": {
@@ -479,7 +598,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Transfer"
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Transfer"
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -487,7 +614,7 @@
         },
         "operationId": "post-transfers",
         "parameters": [],
-        "description": "Initialize a new transfer for a given destination",
+        "description": "Initialize a new transfer for the given shares",
         "requestBody": {
           "content": {
             "application/json": {
@@ -529,7 +656,7 @@
           }
         },
         "operationId": "list-transfers",
-        "description": "List all previous transfers for a given destination"
+        "description": "List all previous transfers"
       }
     },
     "/transfers/{transfer_id}": {
@@ -812,12 +939,30 @@
           },
           "destinationType": {
             "type": "string",
-            "enum": ["POSTGRES", "PROVISIONED_S3", "REDSHIFT"]
+            "enum": ["SNOWFLAKE", "PROVISIONED_S3", "REDSHIFT"]
+          },
+          "id": {
+            "type": "number"
+          }
+        }
+      },
+      "Share": {
+        "title": "Share",
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
           },
           "configurationId": {
             "type": "number"
           },
           "tenantId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "destinationId": {
             "type": "string"
           },
           "id": {
@@ -832,7 +977,7 @@
           "id": {
             "type": "number"
           },
-          "destinationId": {
+          "shareId": {
             "type": "number"
           },
           "createdAt": {
@@ -927,9 +1072,6 @@
           {
             "title": "Database",
             "properties": {
-              "configurationId": {
-                "type": "number"
-              },
               "destinationType": {
                 "type": "string",
                 "enum": ["POSTGRES", "SNOWFLAKE"]
@@ -952,15 +1094,11 @@
               "password": {
                 "type": "string"
               },
-              "tenantId": {
-                "type": "string"
-              },
               "nickname": {
                 "type": "string"
               }
             },
             "required": [
-              "configurationId",
               "destinationType",
               "host",
               "port",
@@ -968,7 +1106,6 @@
               "database",
               "username",
               "password",
-              "tenantId",
               "nickname"
             ]
           },
@@ -981,33 +1118,65 @@
               "destinationType": {
                 "type": "string",
                 "enum": ["PROVISIONED_S3"]
-              },
-              "configurationId": {
-                "type": "number"
-              },
-              "tenantId": {
-                "type": "string"
               }
             },
-            "required": [
-              "nickname",
-              "destinationType",
-              "configurationId",
-              "tenantId"
-            ]
+            "required": ["nickname", "destinationType"]
           }
         ],
         "type": "object"
+      },
+      "CreateShare": {
+        "title": "CreateShare",
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "destinationId": {
+            "type": "number"
+          },
+          "configurationId": {
+            "type": "number"
+          },
+          "warehouseId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenantId",
+          "destinationId",
+          "configurationId",
+          "warehouseId"
+        ]
+      },
+      "UpdateShare": {
+        "title": "UpdateShare",
+        "type": "object",
+        "properties": {
+          "nickname": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          }
+        },
+        "required": []
       },
       "CreateTransfer": {
         "title": "CreateTransfer",
         "type": "object",
         "properties": {
-          "destinationId": {
-            "type": "number"
+          "shareIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
           }
         },
-        "required": ["destinationId"]
+        "required": []
       },
       "CreateView": {
         "title": "CreateView",
