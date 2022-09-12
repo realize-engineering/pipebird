@@ -24,6 +24,37 @@ type DestinationResponse = Prisma.DestinationGetPayload<{
   };
 }>;
 
+const destinationData = z.discriminatedUnion("destinationType", [
+  z.object({
+    nickname: z.string().min(1),
+    destinationType: z.literal("PROVISIONED_S3"),
+  }),
+  z.object({
+    nickname: z.string().min(1),
+    destinationType: z.literal("REDSHIFT"),
+    warehouse: z.string().optional(),
+    host: z.string(),
+    port: z.number().nonnegative(),
+    schema: z.string(),
+    database: z.string(),
+    username: z.string(),
+    password: z.string(),
+  }),
+  z.object({
+    nickname: z.string().min(1),
+    destinationType: z.literal("SNOWFLAKE"),
+    warehouse: z.string().min(1, {
+      message: "A default warehouse is needed for Snowflake destinations",
+    }),
+    host: z.string(),
+    port: z.number().nonnegative(),
+    schema: z.string(),
+    database: z.string(),
+    username: z.string(),
+    password: z.string(),
+  }),
+]);
+
 // List destinations
 destinationRouter.get(
   "/",
@@ -58,38 +89,7 @@ destinationRouter.get(
 destinationRouter.post(
   "/",
   async (req, res: ApiResponse<DestinationResponse>) => {
-    const body = z
-      .discriminatedUnion("destinationType", [
-        z.object({
-          nickname: z.string().min(1),
-          destinationType: z.literal("PROVISIONED_S3"),
-        }),
-        z.object({
-          nickname: z.string().min(1),
-          destinationType: z.literal("REDSHIFT"),
-          warehouse: z.string().optional(),
-          host: z.string(),
-          port: z.number().nonnegative(),
-          schema: z.string(),
-          database: z.string(),
-          username: z.string(),
-          password: z.string(),
-        }),
-        z.object({
-          nickname: z.string().min(1),
-          destinationType: z.literal("SNOWFLAKE"),
-          warehouse: z.string().min(1, {
-            message: "A default warehouse is needed for Snowflake destinations",
-          }),
-          host: z.string(),
-          port: z.number().nonnegative(),
-          schema: z.string(),
-          database: z.string(),
-          username: z.string(),
-          password: z.string(),
-        }),
-      ])
-      .safeParse(req.body);
+    const body = destinationData.safeParse(req.body);
 
     if (!body.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -203,11 +203,7 @@ destinationRouter.patch(
         validationIssues: queryParams.error.issues,
       });
     }
-    const bodyParams = z
-      .object({
-        name: z.string().min(1).optional(),
-      })
-      .safeParse(req.body);
+    const bodyParams = destinationData.safeParse(req.body);
 
     if (!bodyParams.success) {
       return res.status(HttpStatusCode.BAD_REQUEST).json({
