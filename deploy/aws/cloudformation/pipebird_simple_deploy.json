@@ -366,7 +366,7 @@
                 "mv .env pipebird",
                 {
                   "Fn::Sub": [
-                    "cd pipebird && ${REGISTER} && docker-compose up -d",
+                    "mv pipebird /home/ubuntu && cd /home/ubuntu/pipebird && ${REGISTER} && docker-compose up -d",
                     {
                       "REGISTER": {
                         "Fn::Sub": [
@@ -630,7 +630,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.2.4",
+        "version": "0.3.0",
         "type": "AWS_DEFAULT_VPC"
       }
     }
