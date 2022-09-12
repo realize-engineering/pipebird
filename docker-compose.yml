@@ -73,11 +73,13 @@ services:
       - pipebird-network
   pipebird-admin-ui:
     container_name: pipebird-admin-ui
-    image: pipebird/admin-ui:latest
     networks:
       - pipebird-network
     ports:
       - 375:375
+    image: pipebird/admin-ui:latest
+    environment:
+      NEXT_PUBLIC_PIPEBIRD_BASE_URL: http://api:${PORT}
 
 networks:
   pipebird-network:

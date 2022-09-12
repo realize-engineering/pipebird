@@ -170,6 +170,12 @@
             "FromPort": 3000,
             "ToPort": 3000,
             "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 375,
+            "ToPort": 375,
+            "CidrIp": "0.0.0.0/0"
           }
         ],
         "SecurityGroupEgress": [
@@ -669,7 +675,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.1",
+        "version": "0.3.2",
         "type": "AWS_EXISTING_VPC"
       }
     }
