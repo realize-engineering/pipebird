@@ -36,7 +36,7 @@ _If applicable, add screenshots or recordings to help explain your problem._
 - Browser [e.g. chrome, safari]
 - Version [e.g. 22]
 
-**Additional context**
+**Any additional context**
 <br>
 _Add any other context about the problem here._
 <br>
