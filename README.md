@@ -2,15 +2,15 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/pipebird/pipebird?style=social&label=Star)](https://GitHub.com/pipebird/pipebird/stargazers/) [![License](https://img.shields.io/static/v1?label=license&message=MIT&color=brightgreen)](https://github.com/pipebird/pipebird/tree/a9b1c6c0420550ad5069aca66c295223e0d05e27/LICENSE/README.md) <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a> [![CodeQL](https://github.com/pipebird/pipebird/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/pipebird/pipebird/actions/workflows/codeql-analysis.yml) ![GitHub commit activity](https://img.shields.io/github/commit-activity/m/pipebird/pipebird) [![Slack](https://img.shields.io/badge/slack-Pipebird-brightgreen.svg?logo=slack)](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg) [![Docs](https://img.shields.io/badge/Docs-readme-brightgreen.svg?)](https://docs.pipebird.com/reference/welcome-to-pipebird) [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Embed%20data%20pipelines%20in%20your%20product&url=https://pipebird.com/&via=getpipebird&hashtags=opensource,data,infrastructure,developers)
 
-Pipebird is the **open source API used for deploying customer-facing data pipelines**. Pipebird requires minimal engineering effort to begin offering customers secure data pushes to their warehouses, directly from your product.
+Pipebird is the **open source platform used for syncing data to customers' data warehouses**. SaaS companies deploy Pipebird to boost revenue by offering customers secure data syncing, without the headache of building and maintaining sharing infrastructure.
 
-With Pipebird you can:
+### With Pipebird you can immediately:
 
-- select sources to push data from (such as PostgreSQL).
-- let customers configure pipelines and apply transformations (such as type casting).
-- periodically sync data directly to customers' warehouses (such as Snowflake).
+- **select sources** to push data from (such as PostgreSQL).
+- let customers configure pipelines and **apply transformations** (such as type casting).
+- **sync data** directly to customers' warehouses (such as Snowflake).
 
-Pipebird is for companies that want to share data directly, securely, and cost efficiently.
+### Pipebird is for companies that want to offer enterprise-grade data sharing.
 
 - **Minimize security and compliance risks** created by involving third-party ETL providers. Pipebird enables direct data sharing from your source to a customer's data warehouse. Your data never hits our servers.
 - **Eliminate pipeline complexity for customers and partners.** Customers can trust verified pipelines offered directly from your product. It takes minutes to activate customer-defined pipelines using a declarative configuration language.
@@ -29,7 +29,7 @@ Deploy on your own infrastructure and keep control of your data.
 
 Join the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg) or email support@pipebird.com if you'd like help with your deployment.
 
-## Product features
+## Platform features
 
 ### Sources
 
@@ -68,13 +68,13 @@ We currently support renaming columns between sources and destinations and will 
 
 ## Our goal for Pipebird
 
-We believe that creating a data pipeline should be made as simple as pressing a button from a vendor's dashboard.
+We believe that SaaS companies sharing data directly with their customers is the future of ELT/ELT. In this world, creating a data pipeline is as simple as pressing a button from a SaaS vendor's dashboard.
 
-Native, customer-facing data pipelines offer a more secure and efficient way for organizations to share data with one another. Companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already invested in building out native data sharing features for their customers. **Pipebird is designed to help developers at any company quickly offer the same powerful data sharing features, increasing security and decreasing complexity for their customers.**
+Companies like [Stripe](https://stripe.com/data-pipeline) and [Customer.io](https://customer.io/data-warehouse) have already invested in building out native data sharing features for their customers. **Pipebird makes it easy for any company to offer the same powerful data sharing features.**
 
 We'd love to work with you to grow Pipebird. Feel free to message us in the [Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg).
 
-You can show some early support by starring this repo 🌟
+If you like Pipebird, please show support by starring this repo 🌟
 
 ## Open source vs. paid versions
 
