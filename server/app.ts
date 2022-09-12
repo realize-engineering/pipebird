@@ -5,6 +5,7 @@ import express, {
   Response,
 } from "express";
 import pg from "pg";
+import cors from "cors";
 
 import { env } from "../lib/env.js";
 import { ErrorApiSchema } from "../lib/handlers.js";
@@ -19,6 +20,7 @@ app.disable("x-powered-by");
 app.disable("etag");
 
 app.use(express.json());
+app.use(cors());
 app.use(httpLogger);
 
 app.use(
