@@ -19,6 +19,7 @@ type DestinationResponse = Prisma.DestinationGetPayload<{
     id: true;
     nickname: true;
     destinationType: true;
+    status: true;
   };
 }>;
 
@@ -39,6 +40,7 @@ destinationRouter.get(
         id: true,
         nickname: true,
         destinationType: true,
+        status: true,
       },
       ...(cursor && { cursor: { id: cursor }, skip: 1 }),
       take,
@@ -105,6 +107,7 @@ destinationRouter.post(
             id: true,
             nickname: true,
             destinationType: true,
+            status: true,
           },
         });
         return res.status(HttpStatusCode.CREATED).json(destination);
@@ -158,7 +161,7 @@ destinationRouter.post(
             id: true,
             nickname: true,
             destinationType: true,
-            warehouse: true,
+            status: true,
           },
         });
 
@@ -267,6 +270,7 @@ destinationRouter.get(
         id: true,
         nickname: true,
         destinationType: true,
+        status: true,
       },
     });
     if (!destination) {
