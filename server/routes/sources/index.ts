@@ -8,6 +8,8 @@ import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
 import { useConnection } from "../../../lib/connections.js";
+import { logger } from "../../../lib/logger.js";
+
 const sourceRouter = Router();
 
 type SourceResponse = Prisma.SourceGetPayload<{
@@ -20,6 +22,23 @@ type SourceResponse = Prisma.SourceGetPayload<{
     database: true;
   };
 }>;
+
+const sourceData = z.object({
+  nickname: z.string().optional(),
+  sourceType: z.enum([
+    "MYSQL",
+    "POSTGRES",
+    "SNOWFLAKE",
+    "REDSHIFT",
+    "BIGQUERY",
+  ]),
+  host: z.string(),
+  port: z.number().int().nonnegative(),
+  schema: z.string().optional(),
+  database: z.string(),
+  username: z.string(),
+  password: z.string().optional(),
+});
 
 // List sources
 sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
@@ -42,24 +61,7 @@ sourceRouter.get("/", async (_req, res: ListApiResponse<SourceResponse>) => {
 
 // Create source
 sourceRouter.post("/", async (req, res: ApiResponse<SourceResponse>) => {
-  const body = z
-    .object({
-      nickname: z.string().optional(),
-      sourceType: z.enum([
-        "MYSQL",
-        "POSTGRES",
-        "SNOWFLAKE",
-        "REDSHIFT",
-        "BIGQUERY",
-      ]),
-      host: z.string(),
-      port: z.number().int().nonnegative(),
-      schema: z.string().optional(),
-      database: z.string(),
-      username: z.string(),
-      password: z.string().optional(),
-    })
-    .safeParse(req.body);
+  const body = sourceData.safeParse(req.body);
 
   if (!body.success) {
     return res.status(HttpStatusCode.BAD_REQUEST).json({
@@ -164,6 +166,80 @@ sourceRouter.get(
     return res.status(HttpStatusCode.OK).json(source);
   },
 );
+
+// Update source
+sourceRouter.patch("/:sourceId", async (req, res: ApiResponse<null>) => {
+  const queryParams = z
+    .object({
+      sourceId: z
+        .string()
+        .min(1)
+        .refine((val) => validator.isNumeric(val, { no_symbols: true }), {
+          message: "The sourceId query param must be an integer.",
+        })
+        .transform((s) => parseInt(s)),
+    })
+    .safeParse(req.params);
+  if (!queryParams.success) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "query_validation_error",
+      validationIssues: queryParams.error.issues,
+    });
+  }
+  const bodyParams = sourceData.safeParse(req.body);
+
+  if (!bodyParams.success) {
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "body_validation_error",
+      validationIssues: bodyParams.error.issues,
+    });
+  }
+  const source = await db.source.findUnique({
+    where: { id: queryParams.data.sourceId },
+  });
+  if (!source) {
+    return res
+      .status(HttpStatusCode.NOT_FOUND)
+      .json({ code: "source_id_not_found" });
+  }
+
+  const { sourceType, database, host, port, username, password } =
+    bodyParams.data;
+
+  const connection = await useConnection({
+    dbType: sourceType,
+    host,
+    port,
+    username,
+    password,
+    database,
+  });
+
+  if (connection.error) {
+    return res
+      .status(HttpStatusCode.SERVICE_UNAVAILABLE)
+      .json({ code: "source_db_unreachable" });
+  }
+
+  try {
+    await db.source.update({
+      where: {
+        id: queryParams.data.sourceId,
+      },
+      data: {
+        ...bodyParams.data,
+      },
+    });
+  } catch (e) {
+    logger.warn(e);
+    return res.status(HttpStatusCode.BAD_REQUEST).json({
+      code: "body_validation_error",
+      message: "Failed to update source.",
+    });
+  }
+
+  return res.status(HttpStatusCode.NO_CONTENT).end();
+});
 
 // Delete source
 sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
