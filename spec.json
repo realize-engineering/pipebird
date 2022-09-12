@@ -472,15 +472,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "configurationId": {
-                    "type": "number"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                }
+                "$ref": "#/components/schemas/CreateDestination"
               }
             }
           },
