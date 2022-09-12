@@ -954,6 +954,9 @@
             "type": "string",
             "enum": ["SNOWFLAKE", "PROVISIONED_S3", "REDSHIFT"]
           },
+          "warehouse": {
+            "type": "string"
+          },
           "id": {
             "type": "number"
           }
