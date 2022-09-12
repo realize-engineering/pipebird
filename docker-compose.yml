@@ -71,6 +71,14 @@ services:
     tty: true
     networks:
       - pipebird-network
+  pipebird-admin-ui:
+    container_name: pipebird-admin-ui
+    image: pipebird/admin-ui:latest
+    networks:
+      - pipebird-network
+    ports:
+      - 375:375
+
 networks:
   pipebird-network:
     driver: bridge
