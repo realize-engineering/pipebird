@@ -147,6 +147,27 @@
             "description": "No Content"
           }
         }
+      },
+      "patch": {
+        "summary": "Update source",
+        "tags": ["Sources"],
+        "operationId": "patch-source-sourceId",
+        "description": "Update source.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSource"
+              }
+            }
+          },
+          "description": "Optional fields to update."
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
       }
     },
     "/views": {
