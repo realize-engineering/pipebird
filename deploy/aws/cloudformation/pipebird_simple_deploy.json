@@ -233,6 +233,7 @@
                 "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
                 "chmod +x /usr/local/bin/docker-compose",
                 "touch .env",
+                "echo \"NEXT_PUBLIC_PIPEBIRD_BASE_URL=http://$(curl -s ifconfig.me):3000\" >> .env",
                 "echo \"PORT=3000\" >> .env",
                 {
                   "Fn::Sub": [
@@ -636,7 +637,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.2",
+        "version": "0.3.3",
         "type": "AWS_DEFAULT_VPC"
       }
     }
