@@ -79,7 +79,8 @@ services:
       - 375:375
     image: pipebird/admin-ui:latest
     environment:
-      NEXT_PUBLIC_PIPEBIRD_BASE_URL: http://api:${PORT}
+      NEXT_PUBLIC_PIPEBIRD_BASE_URL: ${NEXT_PUBLIC_PIPEBIRD_BASE_URL:-http://localhost:3000}
+      PORT: 375
 
 networks:
   pipebird-network:
