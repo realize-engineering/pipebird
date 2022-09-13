@@ -274,6 +274,7 @@
                 "touch .env",
                 "echo \"NEXT_PUBLIC_PIPEBIRD_BASE_URL=http://$(curl -s ifconfig.me):3000\" >> .env",
                 "echo \"PORT=3000\" >> .env",
+                "echo \"LOG_LEVEL=trace\" >> .env",
                 {
                   "Fn::Sub": [
                     "echo \"PROVISIONED_BUCKET_NAME=${BUCKET_NAME}\" >> .env",
@@ -383,7 +384,7 @@
                 },
                 {
                   "Fn::Sub": [
-                    "echo \"AWS_REGION=${DEPLOYMENT_VERSION}\" >> .env",
+                    "echo \"DEPLOYMENT_VERSION=${DEPLOYMENT_VERSION}\" >> .env",
                     {
                       "DEPLOYMENT_VERSION": {
                         "Fn::FindInMap": [
@@ -397,7 +398,7 @@
                 },
                 {
                   "Fn::Sub": [
-                    "echo \"AWS_REGION=${DEPLOYMENT_STRATEGY}\" >> .env",
+                    "echo \"DEPLOYMENT_STRATEGY=${DEPLOYMENT_STRATEGY}\" >> .env",
                     {
                       "DEPLOYMENT_STRATEGY": {
                         "Fn::FindInMap": [
@@ -676,7 +677,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.5",
+        "version": "0.3.6",
         "type": "AWS_EXISTING_VPC"
       }
     }
