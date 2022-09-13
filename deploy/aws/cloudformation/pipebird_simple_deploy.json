@@ -296,7 +296,7 @@
                   ]
                 },
                 "echo \"CONTROL_PLANE_URL=https://my.pipebird.com\" >> .env",
-                "echo \"SECRET_KEY=$(openssl rand -hex 64)\" >> .env",
+                "echo \"SECRET_KEY=sk_$(openssl rand -hex 64)\" >> .env",
                 "echo \"ENCRYPTION_KEY=$(openssl rand -hex 64)\" >> .env",
                 {
                   "Fn::Sub": [
@@ -636,7 +636,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.2",
+        "version": "0.3.3",
         "type": "AWS_DEFAULT_VPC"
       }
     }
