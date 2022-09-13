@@ -637,7 +637,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.3",
+        "version": "0.3.4",
         "type": "AWS_DEFAULT_VPC"
       }
     }
