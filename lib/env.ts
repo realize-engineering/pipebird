@@ -7,7 +7,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]),
   PORT: z.preprocess(Number, z.number()),
   DATABASE_URL: z.string().min(1),
-  SECRET_KEY: z.string().min(128),
+  SECRET_KEY: z.string().min(131),
   S3_USER_ACCESS_ID: z.string(),
   S3_USER_SECRET_KEY: z.string(),
   PROVISIONED_BUCKET_NAME: z.string(),
