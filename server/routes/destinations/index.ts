@@ -53,6 +53,14 @@ const destinationData = z.discriminatedUnion("destinationType", [
     username: z.string(),
     password: z.string(),
   }),
+  z.object({
+    nickname: z.string().min(1),
+    destinationType: z.literal("BIGQUERY"),
+    projectId: z.string().min(1),
+    region: z.string().min(1),
+    datasetId: z.string().min(1),
+    serviceAccountJson: z.string().min(1),
+  }),
 ]);
 
 // List destinations
