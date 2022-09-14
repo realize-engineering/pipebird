@@ -9,13 +9,18 @@ import { default as validator } from "validator";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
 import { logger } from "../../../lib/logger.js";
+import { initiateNewShare } from "../../../lib/share/index.js";
 
 const configurationRouter = Router();
 
 type ConfigurationResponse = Prisma.ConfigurationGetPayload<{
   select: {
-    viewId: true;
     id: true;
+    nickname: true;
+    tenantId: true;
+    warehouseId: true;
+    viewId: true;
+    destinationId: true;
     columns: {
       select: {
         nameInSource: true;
@@ -42,8 +47,12 @@ configurationRouter.get(
 
     const configurations = await db.configuration.findMany({
       select: {
-        viewId: true,
         id: true,
+        nickname: true,
+        tenantId: true,
+        warehouseId: true,
+        viewId: true,
+        destinationId: true,
         columns: {
           select: {
             nameInSource: true,
@@ -67,7 +76,17 @@ configurationRouter.post(
   async (req, res: ApiResponse<ConfigurationResponse>) => {
     const body = z
       .object({
+        nickname: z.string().optional(),
+        tenantId: z.string().min(1),
+        destinationId: z.number().nonnegative(),
         viewId: z.number().nonnegative(),
+        warehouseId: z
+          .string()
+          .min(1)
+          .refine((val) => validator.isAlphanumeric(val), {
+            message: "The warehouseId param must be alphanumeric.",
+          })
+          .optional(),
         columns: z
           .object({
             nameInSource: z
@@ -88,42 +107,60 @@ configurationRouter.post(
         validationIssues: body.error.issues,
       });
     }
-    try {
-      const { viewId, columns } = body.data;
-      const view = await db.view.findUnique({
-        where: { id: viewId },
-        select: {
-          columns: {
-            select: {
-              id: true,
-              name: true,
-              dataType: true,
-            },
+    const { nickname, tenantId, destinationId, viewId, warehouseId, columns } =
+      body.data;
+    const view = await db.view.findUnique({
+      where: { id: viewId },
+      select: {
+        columns: {
+          select: {
+            id: true,
+            name: true,
+            dataType: true,
           },
         },
-      });
+      },
+    });
 
-      if (!view) {
-        return res.status(HttpStatusCode.NOT_FOUND).json({
-          code: "view_id_not_found",
+    if (!view) {
+      return res.status(HttpStatusCode.NOT_FOUND).json({
+        code: "view_id_not_found",
+      });
+    }
+
+    const destination = await db.destination.findUnique({
+      where: { id: destinationId },
+    });
+
+    if (!destination) {
+      return res.status(HttpStatusCode.NOT_FOUND).json({
+        code: "destination_id_not_found",
+      });
+    }
+
+    try {
+      const result = await db.$transaction(async (prisma) => {
+        const config = await db.configuration.create({
+          data: {
+            nickname,
+            tenantId,
+            warehouseId,
+            destinationId,
+            viewId,
+          },
+          select: {
+            id: true,
+            nickname: true,
+            tenantId: true,
+            warehouseId: true,
+            viewId: true,
+            destinationId: true,
+          },
         });
-      }
 
-      const configuration = await db.configuration.create({
-        data: {
-          viewId,
-        },
-        select: {
-          id: true,
-          viewId: true,
-        },
-      });
+        // todo: ensure that primary key is included in config for upserts
 
-      // todo: ensure that primary key is included in config for upserts
-
-      let mappedCols = [];
-      try {
-        mappedCols = columns.map((col) => {
+        const mappedCols = columns.map((col) => {
           const sourceCol = view.columns.find(
             (viewCol) => viewCol.name === col.nameInSource,
           );
@@ -137,40 +174,43 @@ configurationRouter.post(
             sourceCol,
           };
         });
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Given columns were not valid";
-        return res.status(HttpStatusCode.BAD_REQUEST).json({
-          code: "body_validation_error",
-          message,
-        });
-      }
 
-      const configColumns = await db.$transaction(
-        mappedCols.map((column) => {
-          return db.columnTransformation.create({
-            data: {
-              configurationId: configuration.id,
-              nameInSource: column.nameInSource,
-              nameInDestination: column.nameInDestination,
-              viewColumnId: column.sourceCol.id,
-            },
-            select: {
-              nameInSource: true,
-              nameInDestination: true,
-            },
-          });
-        }),
-      );
+        const configColumns = await Promise.all(
+          mappedCols.map(async (column) => {
+            return prisma.columnTransformation.create({
+              data: {
+                configurationId: config.id,
+                nameInSource: column.nameInSource,
+                nameInDestination: column.nameInDestination,
+                viewColumnId: column.sourceCol.id,
+              },
+              select: {
+                nameInSource: true,
+                nameInDestination: true,
+              },
+            });
+          }),
+        );
+
+        if (warehouseId) {
+          await initiateNewShare({ shareId: config.id, prisma });
+        }
+
+        return { config, configColumns };
+      });
 
       return res
         .status(HttpStatusCode.CREATED)
-        .json({ ...configuration, columns: configColumns });
+        .json({ ...result.config, columns: result.configColumns });
     } catch (e) {
       logger.error(e);
-      return res.status(HttpStatusCode.NOT_FOUND).json({
-        code: "view_id_not_found",
-        message: `Failed to create configuration. Verify view id=${body.data.viewId} exists.`,
+      const message =
+        e instanceof Error
+          ? e.message
+          : "The configuration could not be created as specified";
+      return res.status(HttpStatusCode.BAD_REQUEST).json({
+        code: "body_validation_error",
+        message,
       });
     }
   },
@@ -203,8 +243,12 @@ configurationRouter.get(
         id: queryParams.data.configurationId,
       },
       select: {
-        viewId: true,
         id: true,
+        nickname: true,
+        tenantId: true,
+        warehouseId: true,
+        viewId: true,
+        destinationId: true,
         columns: {
           select: {
             nameInSource: true,
@@ -259,9 +303,7 @@ configurationRouter.delete(
     const results = await db.$transaction(async (prisma) => {
       const hasPendingTransfer = await prisma.transfer.findFirst({
         where: {
-          share: {
-            configurationId: queryParams.data.configurationId,
-          },
+          configurationId: queryParams.data.configurationId,
           status: {
             in: pendingTransferTypes.slice(),
           },
@@ -293,7 +335,7 @@ configurationRouter.delete(
         },
         select: {
           id: true,
-          shares: {
+          transfers: {
             select: {
               id: true,
             },
@@ -307,8 +349,8 @@ configurationRouter.delete(
           action: "DELETE",
           domainId: configuration.id,
           meta: {
-            message: `Deleted configuration attached to share ids: ${JSON.stringify(
-              configuration.shares,
+            message: `Deleted configuration attached to transfer ids: ${JSON.stringify(
+              configuration.transfers,
             )}`,
           },
         },

@@ -314,7 +314,7 @@ destinationRouter.delete(
     const results = await db.$transaction(async (prisma) => {
       const hasPendingTransfer = await prisma.transfer.findFirst({
         where: {
-          share: {
+          configuration: {
             destinationId: queryParams.data.destinationId,
           },
           status: {

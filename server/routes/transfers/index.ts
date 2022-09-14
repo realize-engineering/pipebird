@@ -13,9 +13,9 @@ const transferRouter = Router();
 
 type TransferResponse = Prisma.TransferGetPayload<{
   select: {
-    status: true;
     id: true;
-    shareId: true;
+    status: true;
+    configurationId: true;
     result: {
       select: {
         finalizedAt: true;
@@ -50,9 +50,9 @@ transferRouter.get("/", async (req, res: ListApiResponse<TransferResponse>) => {
   const transfers = await db.transfer.findMany({
     ...(status && { where: { status } }),
     select: {
-      status: true,
       id: true,
-      shareId: true,
+      status: true,
+      configurationId: true,
       result: {
         select: {
           finalizedAt: true,
@@ -75,7 +75,7 @@ transferRouter.post(
   async (req, res: ListApiResponse<TransferResponse>) => {
     const bodyParams = z
       .object({
-        shareIds: z.number().nonnegative().array().optional(),
+        configurationIds: z.number().nonnegative().array().optional(),
       })
       .safeParse(req.body);
 
@@ -86,31 +86,31 @@ transferRouter.post(
       });
     }
 
-    const relevantShares = await db.share.findMany({
-      ...(bodyParams.data.shareIds && {
+    const relevantConfigs = await db.configuration.findMany({
+      ...(bodyParams.data.configurationIds && {
         where: {
-          id: { in: bodyParams.data.shareIds },
+          id: { in: bodyParams.data.configurationIds },
         },
       }),
     });
 
-    if (!relevantShares) {
+    if (!relevantConfigs) {
       return res
         .status(HttpStatusCode.NOT_FOUND)
         .json({ code: "share_id_not_found" });
     }
 
     const transfers = await db.$transaction(
-      relevantShares.map((share) => {
+      relevantConfigs.map((config) => {
         return db.transfer.create({
           data: {
             status: "STARTED",
-            shareId: share.id,
+            configurationId: config.id,
           },
           select: {
             id: true,
             status: true,
-            shareId: true,
+            configurationId: true,
             result: {
               select: {
                 finalizedAt: true,
@@ -156,9 +156,9 @@ transferRouter.get(
         id: queryParams.data.transferId,
       },
       select: {
-        status: true,
         id: true,
-        shareId: true,
+        status: true,
+        configurationId: true,
         result: {
           select: {
             finalizedAt: true,
@@ -223,7 +223,7 @@ transferRouter.delete(
             select: {
               id: true,
               status: true,
-              shareId: true,
+              configurationId: true,
               result: {
                 select: {
                   finalizedAt: true,

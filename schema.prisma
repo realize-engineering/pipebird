@@ -94,17 +94,24 @@ model Destination {
   schema          String?
   username        String?
   password        String?
-  shares          Share[]
+  configurations  Configuration[]
 }
 
 model Configuration {
-  id        Int                    @id @default(autoincrement())
-  createdAt DateTime               @default(now())
-  updatedAt DateTime               @updatedAt
-  view      View                   @relation(fields: [viewId], references: [id], onDelete: Cascade)
-  viewId    Int
-  columns   ColumnTransformation[]
-  shares    Share[] // might want to fork data into multiple warehouses
+  id             Int      @id @default(autoincrement())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  nickname       String?
+  warehouseId    String?
+  tenantId       String
+  lastModifiedAt DateTime @default("1970-01-01T00:00:00-00:00")
+
+  destination   Destination            @relation(fields: [destinationId], references: [id])
+  destinationId Int
+  view          View                   @relation(fields: [viewId], references: [id], onDelete: Cascade)
+  viewId        Int
+  columns       ColumnTransformation[]
+  transfers     Transfer[]
 }
 
 model ColumnTransformation {
@@ -121,22 +128,6 @@ model ColumnTransformation {
   @@unique([configurationId, nameInDestination]) // no duplicate configuration columns
 }
 
-model Share {
-  id             Int      @id @default(autoincrement())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  nickname       String?
-  tenantId       String
-  warehouseId    String
-  lastModifiedAt DateTime @default("1970-01-01T00:00:00-00:00")
-
-  transfers       Transfer[]
-  destination     Destination   @relation(fields: [destinationId], references: [id])
-  destinationId   Int
-  configuration   Configuration @relation(fields: [configurationId], references: [id])
-  configurationId Int
-}
-
 enum TransferStatus {
   STARTED
   PENDING
@@ -146,13 +137,13 @@ enum TransferStatus {
 }
 
 model Transfer {
-  id        Int             @id @default(autoincrement())
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  status    TransferStatus
-  result    TransferResult?
-  share     Share           @relation(fields: [shareId], references: [id])
-  shareId   Int
+  id              Int             @id @default(autoincrement())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  status          TransferStatus
+  result          TransferResult?
+  configuration   Configuration   @relation(fields: [configurationId], references: [id])
+  configurationId Int
 }
 
 model TransferResult {

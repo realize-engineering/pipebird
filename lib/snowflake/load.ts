@@ -5,17 +5,17 @@ import { env } from "../env.js";
 import { uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
-import { LoadShare, Loader, LoadingActions } from "../load/index.js";
+import { LoadConfiguration, Loader, LoadingActions } from "../load/index.js";
 
 class SnowflakeLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
     query: ConnectionQueryOp,
-    share: LoadShare,
+    configuration: LoadConfiguration,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
-    super(query, share);
+    super(query, configuration);
     this.#queryUnsafe = queryUnsafe;
   }
 
@@ -63,7 +63,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     const addAccountsOperation = this.qb
       .raw("alter share ?? add account=??", [
         this.shareName,
-        this.share.warehouseId,
+        this.configuration.warehouseId,
       ])
       .toSQL()
       .toNative();
@@ -86,10 +86,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
       .toNative();
 
     await this.query(schemaCreateOperation);
-
-    const { configuration } = this.share;
-
-    const columnsWithType = configuration.columns.map((destCol) => {
+    const columnsWithType = this.configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
       return `?? ${
@@ -104,7 +101,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     const tableCreateOperation = this.qb
       .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} );`, [
         `${schema}.${this.tableName}`,
-        ...configuration.columns.map((col) => col.nameInDestination),
+        ...this.configuration.columns.map((col) => col.nameInDestination),
       ])
       .toSQL()
       .toNative();
@@ -113,7 +110,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
   };
 
   stage = async (contents: Gzip, schema = "public") => {
-    const pathPrefix = `snowflake/${this.share.id}`;
+    const pathPrefix = `snowflake/${this.configuration.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -149,8 +146,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
   };
 
   upsert = async (schema = "public") => {
-    const { configuration } = this.share;
-    const { tableName, stageName } = this;
+    const { tableName, stageName, configuration } = this;
 
     const names = configuration.columns.map((col) => col.nameInDestination);
     const primaryKeyCol = configuration.view.columns.find(
@@ -159,7 +155,7 @@ class SnowflakeLoader extends Loader implements LoadingActions {
 
     if (!primaryKeyCol) {
       throw new Error(
-        `View used by configuration ID = ${this.share.configuration.id} does not have a primary key col`,
+        `View used by configuration ID = ${configuration.id} does not have a primary key col`,
       );
     }
 

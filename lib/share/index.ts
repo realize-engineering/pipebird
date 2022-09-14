@@ -57,12 +57,24 @@ export const initiateNewShare = async ({
   shareId: number;
   prisma: Prisma.TransactionClient;
 }) => {
-  const share = await prisma.share.findUnique({
+  const share = await prisma.configuration.findUnique({
     where: { id: shareId },
     select: {
       id: true,
       tenantId: true,
       warehouseId: true,
+      columns: {
+        select: {
+          nameInSource: true,
+          nameInDestination: true,
+          viewColumn: true,
+        },
+      },
+      view: {
+        select: {
+          columns: true,
+        },
+      },
       destination: {
         select: {
           host: true,
@@ -73,23 +85,6 @@ export const initiateNewShare = async ({
           database: true,
           nickname: true,
           destinationType: true,
-        },
-      },
-      configuration: {
-        select: {
-          id: true,
-          columns: {
-            select: {
-              nameInSource: true,
-              nameInDestination: true,
-              viewColumn: true,
-            },
-          },
-          view: {
-            select: {
-              columns: true,
-            },
-          },
         },
       },
     },

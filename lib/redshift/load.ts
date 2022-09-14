@@ -5,17 +5,17 @@ import { env } from "../env.js";
 import { deleteObjects, uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
 import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
-import { LoadShare, Loader, LoadingActions } from "../load/index.js";
+import { LoadConfiguration, Loader, LoadingActions } from "../load/index.js";
 
 class RedshiftLoader extends Loader implements LoadingActions {
   #queryUnsafe: ConnectionQueryUnsafeOp;
 
   constructor(
     query: ConnectionQueryOp,
-    share: LoadShare,
+    configuration: LoadConfiguration,
     queryUnsafe: ConnectionQueryUnsafeOp,
   ) {
-    super(query, share);
+    super(query, configuration);
     this.#queryUnsafe = queryUnsafe;
   }
 
@@ -54,7 +54,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     const addAccountsOperation = this.qb
       .raw("grant usage on datashare ?? to account ?", [
         this.shareName,
-        this.share.warehouseId,
+        this.configuration.warehouseId,
       ])
       .toString();
 
@@ -73,9 +73,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
       .toNative();
     await this.query(schemaCreateOperation);
 
-    const { configuration } = this.share;
-
-    const columnsWithType = configuration.columns.map((destCol) => {
+    const columnsWithType = this.configuration.columns.map((destCol) => {
       const columnType = destCol.viewColumn.dataType;
 
       return `?? ${
@@ -90,7 +88,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     const tableCreateOperation = this.qb
       .raw(`create table if not exists ?? ( ${columnsWithType.join(", ")} )`, [
         `${schema}.${this.tableName}`,
-        ...configuration.columns.map((col) => col.nameInDestination),
+        ...this.configuration.columns.map((col) => col.nameInDestination),
       ])
       .toSQL()
       .toNative();
@@ -109,7 +107,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     await this.query(createStageOperation);
 
-    const pathPrefix = `redshift/${this.share.id}`;
+    const pathPrefix = `redshift/${this.configuration.id}`;
     const { key } = await uploadObject({
       contents,
       pathPrefix,
@@ -140,8 +138,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   upsert = async () => {
-    const { configuration } = this.share;
-    const { tableName, stageName } = this;
+    const { tableName, stageName, configuration } = this;
 
     const names = configuration.columns.map((col) => col.nameInDestination);
     const primaryKeyCol = configuration.view.columns.find(
@@ -150,7 +147,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
 
     if (!primaryKeyCol) {
       throw new Error(
-        `View used by configuration ID = ${this.share.configuration.id} does not have a primary key col`,
+        `View used by configuration ID = ${configuration.id} does not have a primary key col`,
       );
     }
 
@@ -197,7 +194,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
   };
 
   tearDown = async () => {
-    const pathPrefix = `redshift/${this.share.id}`;
+    const pathPrefix = `redshift/${this.configuration.id}`;
     await deleteObjects({ pathPrefix });
 
     const dropStageOperation = this.qb

@@ -58,7 +58,7 @@ export async function processTransfer({ id }: { id: number }) {
       select: {
         id: true,
         status: true,
-        share: {
+        configuration: {
           select: {
             id: true,
             tenantId: true,
@@ -78,32 +78,27 @@ export async function processTransfer({ id }: { id: number }) {
                 schema: true,
               },
             },
-            configuration: {
+            columns: {
+              select: {
+                nameInSource: true,
+                nameInDestination: true,
+                viewColumn: true,
+              },
+            },
+            view: {
               select: {
                 id: true,
-                columns: {
-                  select: {
-                    nameInSource: true,
-                    nameInDestination: true,
-                    viewColumn: true,
-                  },
-                },
-                view: {
+                tableName: true,
+                columns: true,
+                source: {
                   select: {
                     id: true,
-                    tableName: true,
-                    columns: true,
-                    source: {
-                      select: {
-                        id: true,
-                        host: true,
-                        port: true,
-                        username: true,
-                        password: true,
-                        database: true,
-                        sourceType: true,
-                      },
-                    },
+                    host: true,
+                    port: true,
+                    username: true,
+                    password: true,
+                    database: true,
+                    sourceType: true,
                   },
                 },
               },
@@ -132,15 +127,14 @@ export async function processTransfer({ id }: { id: number }) {
       },
     });
 
-    const share = transfer.share;
-    const { destination, configuration } = share;
-
+    const configuration = transfer.configuration;
     if (!configuration) {
       throw new Error(
         `No configuration found for transfer with ID ${transfer.id}, aborting`,
       );
     }
 
+    const destination = configuration.destination;
     const view = configuration.view;
     const source = view.source;
 
@@ -198,7 +192,7 @@ export async function processTransfer({ id }: { id: number }) {
     const lastModifiedQuery = qb
       .select(lastModifiedColumn)
       .from(view.tableName)
-      .where(tenantColumn, "=", share.tenantId)
+      .where(tenantColumn, "=", configuration.tenantId)
       .orderBy(lastModifiedColumn, "desc")
       .limit(1)
       .toSQL()
@@ -237,8 +231,12 @@ export async function processTransfer({ id }: { id: number }) {
               .from(view.tableName)
               .as("t"),
           )
-          .where(tenantColumn, "=", share.tenantId)
-          .where(lastModifiedColumn, ">", share.lastModifiedAt.toISOString())
+          .where(tenantColumn, "=", configuration.tenantId)
+          .where(
+            lastModifiedColumn,
+            ">",
+            configuration.lastModifiedAt.toISOString(),
+          )
           .toSQL()
           .toNative(),
       )
@@ -304,14 +302,15 @@ export async function processTransfer({ id }: { id: number }) {
 
         loader = new SnowflakeLoader(
           destConnection.query,
-          share,
+          transfer.configuration,
           destConnection.queryUnsafe,
         );
 
         // starting load into Snowflake
         await loader.beginTransaction();
 
-        // table should exist after creating share, but we want to recreate if it doesn't exist
+        // table should exist after creating share
+        // need to create in cases when directly pushing
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
@@ -364,14 +363,15 @@ export async function processTransfer({ id }: { id: number }) {
 
         loader = new RedshiftLoader(
           destConnection.query,
-          share,
+          transfer.configuration,
           destConnection.queryUnsafe,
         );
 
         // Starting load into Redshift
         await loader.beginTransaction();
 
-        // table should exist after creating share, but we want to recreate if it doesn't exist
+        // table should exist after creating share
+        // need to create in cases when directly pushing
         await loader.createTable({
           schema: destSchema,
           database: destDatabase,
@@ -393,8 +393,8 @@ export async function processTransfer({ id }: { id: number }) {
       }
     }
 
-    await db.share.update({
-      where: { id: share.id },
+    await db.configuration.update({
+      where: { id: configuration.id },
       data: { lastModifiedAt: newLastModifiedAt },
     });
   } catch (error) {
@@ -433,7 +433,13 @@ export async function processWebhook({
       select: {
         id: true,
         status: true,
-        shareId: true,
+        configuration: {
+          select: {
+            tenantId: true,
+            nickname: true,
+            lastModifiedAt: true,
+          },
+        },
         result: {
           select: {
             finalizedAt: true,
