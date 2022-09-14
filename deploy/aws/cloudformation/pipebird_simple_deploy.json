@@ -221,15 +221,14 @@
                 "apt-get update -y",
                 "apt install unzip -y",
                 "apt install docker.io -y",
+                "cd /home/ubuntu && git clone https://github.com/pipebird/pipebird && cd pipebird",
+                "git config --global --add safe.directory /home/ubuntu/pipebird",
                 {
                   "Fn::Sub": [
-                    "wget https://github.com/pipebird/pipebird/archive/refs/tags/${AGENT_VERSION}.zip -O pipebird.zip || wget https://github.com/pipebird/pipebird/archive/refs/heads/main.zip -O pipebird.zip",
-                    {
-                      "AGENT_VERSION": { "Ref": "agentVersion" }
-                    }
+                    "git checkout ${AGENT_VERSION}",
+                    { "AGENT_VERSION": { "Ref": "agentVersion" } }
                   ]
                 },
-                "unzip pipebird.zip && mv pipebird-* pipebird",
                 "curl -L \"https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose",
                 "chmod +x /usr/local/bin/docker-compose",
                 "touch .env",
@@ -371,10 +370,9 @@
                     }
                   ]
                 },
-                "mv .env pipebird",
                 {
                   "Fn::Sub": [
-                    "mv pipebird /home/ubuntu && cd /home/ubuntu/pipebird && ${REGISTER} && docker-compose up -d",
+                    "${REGISTER} && docker-compose up -d",
                     {
                       "REGISTER": {
                         "Fn::Sub": [
@@ -638,7 +636,7 @@
   "Mappings": {
     "DeploymentMapping": {
       "Details": {
-        "version": "0.3.6",
+        "version": "0.3.7",
         "type": "AWS_DEFAULT_VPC"
       }
     }
