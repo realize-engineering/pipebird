@@ -34,7 +34,7 @@ model Source {
   username     String
   password     String?
   views        View[]
-  credential   Credential      @relation(fields: [credentialId], references: [id])
+  credential   Credential      @relation(fields: [credentialId], references: [id], onDelete: Cascade)
   credentialId Int             @unique
 }
 
@@ -83,7 +83,7 @@ model Destination {
   status    ConnectorStatus
 
   configurations Configuration[]
-  credential     Credential      @relation(fields: [credentialId], references: [id])
+  credential     Credential      @relation(fields: [credentialId], references: [id], onDelete: Cascade)
   credentialId   Int             @unique
 }
 
