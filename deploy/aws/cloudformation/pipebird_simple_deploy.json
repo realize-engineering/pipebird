@@ -225,7 +225,7 @@
                 "git config --global --add safe.directory /home/ubuntu/pipebird",
                 {
                   "Fn::Sub": [
-                    "git checkout ${AGENT_VERSION}",
+                    "git checkout ${AGENT_VERSION} || true",
                     { "AGENT_VERSION": { "Ref": "agentVersion" } }
                   ]
                 },
