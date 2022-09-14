@@ -7,7 +7,6 @@ import { sourceRouter } from "./sources/index.js";
 import { viewRouter } from "./views/index.js";
 import { transferRouter } from "./transfers/index.js";
 import { webhookRouter } from "./webhooks/index.js";
-import { shareRouter } from "./shares/index.js";
 
 const indexRouter = Router();
 
@@ -16,7 +15,6 @@ indexRouter.use("/sources", sourceRouter);
 indexRouter.use("/views", viewRouter);
 indexRouter.use("/destinations", destinationRouter);
 indexRouter.use("/configurations", configurationRouter);
-indexRouter.use("/shares", shareRouter);
 indexRouter.use("/transfers", transferRouter);
 indexRouter.use("/webhooks", webhookRouter);
 

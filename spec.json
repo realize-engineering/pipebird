@@ -18,7 +18,7 @@
   "tags": [
     {
       "name": "Configurations",
-      "description": "Configuration defining transformations for a materialized view"
+      "description": "Configuration defining details for transfers and column transformations"
     },
     {
       "name": "Transfers",
@@ -27,10 +27,6 @@
     {
       "name": "Destinations",
       "description": "Data destinations indicating final location through which data is shared"
-    },
-    {
-      "name": "Shares",
-      "description": "Warehouse accounts that will be consumers of data in destinations"
     },
     {
       "name": "Sources",
@@ -107,14 +103,14 @@
       },
       "parameters": []
     },
-    "/sources/{source_id}": {
+    "/sources/{sourceId}": {
       "parameters": [
         {
           "description": "The id of this data source",
           "schema": {
             "type": "string"
           },
-          "name": "source_id",
+          "name": "sourceId",
           "in": "path",
           "required": true
         }
@@ -141,7 +137,7 @@
         "tags": ["Sources"],
         "summary": "Delete source",
         "description": "Delete source. You cannot delete sources if there is an in progress transfer.",
-        "operationId": "delete-sources-source_id",
+        "operationId": "delete-sources-sourceId",
         "responses": {
           "204": {
             "description": "No Content"
@@ -328,13 +324,13 @@
       },
       "parameters": []
     },
-    "/configurations/{configuration_id}": {
+    "/configurations/{configurationId}": {
       "parameters": [
         {
           "schema": {
             "type": "string"
           },
-          "name": "configuration_id",
+          "name": "configurationId",
           "in": "path",
           "required": true,
           "description": "The id of this configuration object"
@@ -362,7 +358,7 @@
         "description": "Delete configuration. Cannot delete configuration if transfer is ongoing.",
         "tags": ["Configurations"],
         "summary": "Delete configuration",
-        "operationId": "delete-configurations-configuration_id",
+        "operationId": "delete-configurations-configurationId",
         "responses": {
           "204": {
             "description": "No Content"
@@ -392,7 +388,7 @@
           }
         },
         "operationId": "list-destinations",
-        "description": "A list of all the output destinations to share data from"
+        "description": "A list of all the output destinations to share data through"
       },
       "post": {
         "summary": "Create destination",
@@ -419,10 +415,10 @@
             }
           }
         },
-        "description": "Create a new destination to initialize shares from"
+        "description": "Create a new destination to transfer data into"
       }
     },
-    "/destinations/{destination_id}": {
+    "/destinations/{destinationId}": {
       "get": {
         "description": "Get destination by id",
         "summary": "Get destination",
@@ -446,7 +442,7 @@
           "schema": {
             "type": "string"
           },
-          "name": "destination_id",
+          "name": "destinationId",
           "in": "path",
           "required": true,
           "description": "The id for this destination object"
@@ -456,7 +452,7 @@
         "description": "Delete destination. Cannot delete destination if transfer in progress.",
         "summary": "Delete destination",
         "tags": ["Destinations"],
-        "operationId": "delete-destinations-destination_id",
+        "operationId": "delete-destinations-destinationId",
         "responses": {
           "204": {
             "description": "No Content"
@@ -466,128 +462,13 @@
       "patch": {
         "summary": "Update destination",
         "tags": ["Destinations"],
-        "operationId": "patch-destinations-destination_id",
+        "operationId": "patch-destinations-destinationId",
         "description": "Update destination.",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CreateDestination"
-              }
-            }
-          },
-          "description": "Optional fields to update."
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      }
-    },
-    "/shares": {
-      "get": {
-        "summary": "List shares",
-        "tags": ["Shares"],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": {
-                      "$ref": "#/components/schemas/Share"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "operationId": "list-shares",
-        "description": "A list of all the shares created by customers"
-      },
-      "post": {
-        "summary": "Create share",
-        "tags": ["Shares"],
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Share"
-                }
-              }
-            }
-          }
-        },
-        "operationId": "post-shares",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateShare"
-              }
-            }
-          }
-        },
-        "description": "Create a new share on behalf of a customer according to a set of configurations"
-      }
-    },
-    "/shares/{shareId}": {
-      "get": {
-        "description": "Get share by id",
-        "summary": "Get share",
-        "operationId": "get-share-by-id",
-        "tags": ["Shares"],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Share"
-                }
-              }
-            }
-          }
-        }
-      },
-      "parameters": [
-        {
-          "schema": {
-            "type": "string"
-          },
-          "name": "shareId",
-          "in": "path",
-          "required": true,
-          "description": "The id for this share object"
-        }
-      ],
-      "delete": {
-        "description": "Delete share. Cannot delete share if transfer in progress.",
-        "summary": "Delete share",
-        "tags": ["Share"],
-        "operationId": "delete-shares-shareId",
-        "responses": {
-          "204": {
-            "description": "No Content"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Update share",
-        "tags": ["Shares"],
-        "operationId": "patch-shares-shareId",
-        "description": "Update share.",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateShare"
               }
             }
           },
@@ -627,7 +508,7 @@
         },
         "operationId": "post-transfers",
         "parameters": [],
-        "description": "Initialize a new transfer for the given shares",
+        "description": "Initialize a new transfer for the given configuration sets",
         "requestBody": {
           "content": {
             "application/json": {
@@ -672,13 +553,13 @@
         "description": "List all previous transfers"
       }
     },
-    "/transfers/{transfer_id}": {
+    "/transfers/{transferId}": {
       "parameters": [
         {
           "schema": {
             "type": "string"
           },
-          "name": "transfer_id",
+          "name": "transferId",
           "in": "path",
           "required": true,
           "description": "The id of this transfer object"
@@ -700,13 +581,13 @@
             }
           }
         },
-        "operationId": "get-destinations-destination_id-transfers-transfer_id"
+        "operationId": "get-destinations-destination_id-transfers-transferId"
       },
       "delete": {
         "tags": ["Transfers"],
         "summary": "Cancel transfer",
         "description": "Cancel this transfer. Poll transfer by id to determine when transfer successfully cancelled.",
-        "operationId": "delete-transfers-transfer_id",
+        "operationId": "delete-transfers-transferId",
         "responses": {
           "202": {
             "description": "Accepted",
@@ -865,7 +746,22 @@
         "title": "Configuration",
         "type": "object",
         "properties": {
+          "id": {
+            "type": "number"
+          },
+          "nickname": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
           "viewId": {
+            "type": "number"
+          },
+          "destinationId": {
             "type": "number"
           },
           "columns": {
@@ -881,9 +777,6 @@
                 }
               }
             }
-          },
-          "id": {
-            "type": "number"
           }
         }
       },
@@ -957,6 +850,9 @@
           "warehouse": {
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/Status"
+          },
           "id": {
             "type": "number"
           }
@@ -993,7 +889,7 @@
           "id": {
             "type": "number"
           },
-          "shareId": {
+          "configurationId": {
             "type": "number"
           },
           "createdAt": {
@@ -1019,7 +915,14 @@
       "SourceType": {
         "type": "string",
         "title": "SourceTypes",
-        "enum": ["MYSQL", "POSTGRES", "SNOWFLAKE", "REDSHIFT", "BIGQUERY"]
+        "enum": [
+          "MYSQL",
+          "POSTGRES",
+          "SNOWFLAKE",
+          "REDSHIFT",
+          "COCKROACHDB",
+          "MARIADB"
+        ]
       },
       "Status": {
         "type": "string",
@@ -1030,7 +933,19 @@
         "title": "CreateConfiguration",
         "type": "object",
         "properties": {
+          "nickname": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
           "viewId": {
+            "type": "number"
+          },
+          "destinationId": {
             "type": "number"
           },
           "columns": {
@@ -1049,7 +964,7 @@
             }
           }
         },
-        "required": ["viewId"]
+        "required": ["tenantId", "viewId", "destinationId"]
       },
       "CreateSource": {
         "title": "CreateSource",
@@ -1086,11 +1001,24 @@
         "title": "CreateDestination",
         "oneOf": [
           {
-            "title": "Database",
+            "title": "Object Store",
+            "properties": {
+              "nickname": {
+                "type": "string"
+              },
+              "destinationType": {
+                "type": "string",
+                "enum": ["PROVISIONED_S3"]
+              }
+            },
+            "required": ["nickname", "destinationType"]
+          },
+          {
+            "title": "Redshift",
             "properties": {
               "destinationType": {
                 "type": "string",
-                "enum": ["POSTGRES", "SNOWFLAKE"]
+                "enum": ["REDSHIFT"]
               },
               "host": {
                 "type": "string"
@@ -1126,65 +1054,56 @@
             ]
           },
           {
-            "title": "Object Store",
+            "title": "Snowflake",
             "properties": {
+              "destinationType": {
+                "type": "string",
+                "enum": ["SNOWFLAKE"]
+              },
+              "host": {
+                "type": "string"
+              },
+              "port": {
+                "type": "number"
+              },
+              "schema": {
+                "type": "string"
+              },
+              "database": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
               "nickname": {
                 "type": "string"
               },
-              "destinationType": {
-                "type": "string",
-                "enum": ["PROVISIONED_S3"]
+              "warehouse": {
+                "type": "string"
               }
             },
-            "required": ["nickname", "destinationType"]
+            "required": [
+              "destinationType",
+              "host",
+              "port",
+              "schema",
+              "database",
+              "username",
+              "password",
+              "nickname"
+            ]
           }
         ],
         "type": "object"
-      },
-      "CreateShare": {
-        "title": "CreateShare",
-        "type": "object",
-        "properties": {
-          "nickname": {
-            "type": "string"
-          },
-          "tenantId": {
-            "type": "string"
-          },
-          "destinationId": {
-            "type": "number"
-          },
-          "configurationId": {
-            "type": "number"
-          },
-          "warehouseId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "tenantId",
-          "destinationId",
-          "configurationId",
-          "warehouseId"
-        ]
-      },
-      "UpdateShare": {
-        "title": "UpdateShare",
-        "type": "object",
-        "properties": {
-          "nickname": {
-            "type": "string"
-          },
-          "tenantId": {
-            "type": "string"
-          }
-        }
       },
       "CreateTransfer": {
         "title": "CreateTransfer",
         "type": "object",
         "properties": {
-          "shareIds": {
+          "configurationIds": {
             "type": "array",
             "items": {
               "type": "number"

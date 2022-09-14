@@ -30,7 +30,8 @@ const sourceData = z.object({
     "POSTGRES",
     "SNOWFLAKE",
     "REDSHIFT",
-    "BIGQUERY",
+    "COCKROACHDB",
+    "MARIADB",
   ]),
   host: z.string(),
   port: z.number().int().nonnegative(),
@@ -280,11 +281,9 @@ sourceRouter.delete("/:sourceId", async (req, res: ApiResponse<null>) => {
   const results = await db.$transaction(async (prisma) => {
     const hasPendingTransfer = await prisma.transfer.findFirst({
       where: {
-        share: {
-          configuration: {
-            view: {
-              sourceId: params.data.sourceId,
-            },
+        configuration: {
+          view: {
+            sourceId: params.data.sourceId,
           },
         },
         status: {

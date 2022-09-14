@@ -294,10 +294,8 @@ viewRouter.delete("/:viewId", async (req, res: ApiResponse<null>) => {
   const results = await db.$transaction(async (prisma) => {
     const hasPendingTransfer = await prisma.transfer.findFirst({
       where: {
-        share: {
-          configuration: {
-            viewId: queryParams.data.viewId,
-          },
+        configuration: {
+          viewId: queryParams.data.viewId,
         },
         status: {
           in: pendingTransferTypes.slice(),
