@@ -13,16 +13,6 @@ enum ConnectorStatus {
   UNREACHABLE
 }
 
-enum SourceType {
-  MYSQL
-  MARIADB
-  POSTGRES
-  COCKROACHDB
-  REDSHIFT
-  SNOWFLAKE
-  MSSQL
-}
-
 model Webhook {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -32,19 +22,20 @@ model Webhook {
 }
 
 model Source {
-  id         Int             @id @default(autoincrement())
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  nickname   String?
-  status     ConnectorStatus
-  sourceType SourceType
-  host       String
-  port       Int
-  schema     String?
-  database   String
-  username   String
-  password   String?
-  views      View[]
+  id           Int             @id @default(autoincrement())
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  nickname     String?
+  status       ConnectorStatus
+  host         String
+  port         Int
+  schema       String?
+  database     String
+  username     String
+  password     String?
+  views        View[]
+  credential   Credential      @relation(fields: [credentialId], references: [id])
+  credentialId Int             @unique
 }
 
 model View {
@@ -72,49 +63,69 @@ model ViewColumn {
   viewId         Int
 }
 
-enum DestinationType {
+enum CredentialType {
   POSTGRES
   PROVISIONED_S3
   SNOWFLAKE
   REDSHIFT
   BIGQUERY
+  MYSQL
+  MARIADB
+  COCKROACHDB
+  MSSQL
 }
 
 model Destination {
-  id              Int             @id @default(autoincrement())
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  nickname        String
-  status          ConnectorStatus
-  destinationType DestinationType
+  id        Int             @id @default(autoincrement())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  nickname  String
+  status    ConnectorStatus
 
-  configurations      Configuration[]
-  DatabaseCredentials DatabaseCredentials?
-  BigQueryCredentials BigQueryCredentials?
+  configurations Configuration[]
+  credential     Credential      @relation(fields: [credentialId], references: [id])
+  credentialId   Int             @unique
 }
 
-model DatabaseCredentials {
-  warehouse String?
-  host      String
-  port      Int
-  database  String
-  schema    String
-  username  String
-  password  String
+model Credential {
+  id        Int            @id @default(autoincrement())
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  type      CredentialType
 
-  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  destinationId Int         @unique
+  destination        Destination?
+  source             Source?
+  BigQueryCredential BigQueryCredential?
+  DatabaseCredential DatabaseCredential?
+  destinationId      Int
 }
 
-model BigQueryCredentials {
+model DatabaseCredential {
+  id            Int        @id @default(autoincrement())
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  warehouse     String?
+  host          String
+  port          Int
+  database      String
+  schema        String
+  username      String
+  password      String
+  credential    Credential @relation(fields: [credentialsId], references: [id])
+  credentialsId Int        @unique
+}
+
+model BigQueryCredential {
+  id                 Int        @id @default(autoincrement())
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
   // Credentials for BigQuery
   projectId          String
   region             String
   datasetId          String
   serviceAccountJson String
-
-  destination   Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
-  destinationId Int         @unique
+  credential         Credential @relation(fields: [credentialsId], references: [id])
+  credentialsId      Int        @unique
 }
 
 model Configuration {
