@@ -261,7 +261,6 @@
                 "apt install unzip -y",
                 "apt install docker.io -y",
                 "cd /home/ubuntu && git clone https://github.com/pipebird/pipebird && cd pipebird",
-                "git config --global --add safe.directory /home/ubuntu/pipebird",
                 {
                   "Fn::Sub": [
                     "git checkout ${AGENT_VERSION} || true",
