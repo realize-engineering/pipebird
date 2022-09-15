@@ -14,7 +14,7 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 60
     volumes:
       - ${PIPEBIRD_VOLUME_PATH:-/dev/sdf/data/postgres}:/data/postgres
     networks:
@@ -73,13 +73,15 @@ services:
       - pipebird-network
   pipebird-admin-ui:
     container_name: pipebird-admin-ui
+    image: pipebird/admin-ui:latest
+    depends_on:
+      - api
     networks:
       - pipebird-network
     ports:
       - 375:375
-    image: pipebird/admin-ui:latest
     environment:
-      NEXT_PUBLIC_PIPEBIRD_BASE_URL: ${NEXT_PUBLIC_PIPEBIRD_BASE_URL:-http://localhost:3000}
+      NEXT_PUBLIC_PIPEBIRD_BASE_URL: ${NEXT_PUBLIC_PIPEBIRD_BASE_URL:-http://localhost:$PORT}
       PORT: 375
 
 networks:
