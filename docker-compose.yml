@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 12
     volumes:
-      - /dev/sdf/data/postgres:/data/postgres
+      - ${PIPEBIRD_VOLUME_PATH:-/dev/sdf/data/postgres}:/data/postgres
     networks:
       - pipebird-network
   api:
