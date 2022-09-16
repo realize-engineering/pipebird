@@ -1,5 +1,5 @@
 import { Bucket } from "@google-cloud/storage";
-import { Prisma } from "@prisma/client";
+import { DestinationType, Prisma, SourceType } from "@prisma/client";
 import { default as knex, Knex } from "knex";
 import { Gzip } from "zlib";
 
@@ -54,8 +54,15 @@ const getUniqueShareName = ({
 const getTempStageName = (configurationId: number) =>
   `SharedData_TempStage_${configurationId}_${new Date().getTime()}`;
 
-export const getDialectFromDestination = (type: string) => {
-  if (type === "POSTGRES" || type === "REDSHIFT" || type === "SNOWFLAKE") {
+export const getDialectFromDestination = (
+  type: SourceType | DestinationType,
+) => {
+  if (
+    type === "POSTGRES" ||
+    type === "REDSHIFT" ||
+    type === "SNOWFLAKE" ||
+    type === "COCKROACHDB"
+  ) {
     return "postgres";
   }
 
