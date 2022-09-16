@@ -1,12 +1,26 @@
 import { DestinationType, SourceType } from "@prisma/client";
 import { Readable } from "stream";
 import pg from "pg";
-import { logger } from "./logger.js";
+import { logger } from "../logger.js";
 import QueryStream from "pg-query-stream";
-import SnowflakeClient from "./snowflake/client.js";
+import SnowflakeClient from "../snowflake/client.js";
 import crypto from "crypto";
 import mysql2 from "mysql2";
 import { Knex } from "knex";
+import { BigQuery } from "@google-cloud/bigquery";
+
+export type BigQueryServiceAccount = {
+  type: string;
+  project_id: string;
+  private_key_id: string;
+  private_key: string;
+  client_email: string;
+  client_id: string;
+  auth_uri: string;
+  token_uri: string;
+  auth_provider_x509_cert_url: string;
+  client_x509_cert_url: string;
+};
 
 export type ConnectionQueryOp = (
   sql: Knex.SqlNative,
@@ -35,15 +49,17 @@ export const useConnection = async ({
   database,
   schema,
   warehouse,
+  serviceAccount,
 }: {
   dbType: SourceType | DestinationType;
-  host: string;
-  port: number;
+  host?: string;
+  port?: number;
   database: string;
   username: string;
   password?: string;
   schema?: string;
   warehouse?: string | null;
+  serviceAccount?: BigQueryServiceAccount;
 }): Promise<
   | {
       error: true;
@@ -151,6 +167,11 @@ export const useConnection = async ({
         }
 
         case "SNOWFLAKE": {
+          // todo(ianedwards): improve error handling
+          if (!host) {
+            throw new Error("Host required for Snowflake.");
+          }
+
           const client = new SnowflakeClient({
             warehouse,
             host,
@@ -174,6 +195,35 @@ export const useConnection = async ({
                 })
                 .streamRows(),
             queryUnsafe: (sql: string) => client.queryUnsafe(sql),
+          };
+        }
+
+        case "BIGQUERY": {
+          const client = new BigQuery({
+            credentials: serviceAccount,
+          });
+
+          await client.query("SELECT 1=1");
+
+          return {
+            error: false,
+            code: "connection_reachable",
+            query: async (sql: Knex.SqlNative) => {
+              const [rows] = await client.query({
+                query: sql.sql,
+                params: sql.bindings,
+              });
+              return { rows: rows.flatMap((row) => row) ?? [] };
+            },
+            queryStream: (sql: Knex.SqlNative) =>
+              client.createQueryStream({
+                query: sql.sql,
+                params: sql.bindings,
+              }),
+            queryUnsafe: async (sql: string) => {
+              const [rows] = await client.query(sql);
+              return { rows: rows.flatMap((row) => row) ?? [] };
+            },
           };
         }
 

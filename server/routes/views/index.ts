@@ -4,7 +4,7 @@ import { default as validator } from "validator";
 import { z } from "zod";
 
 import { HttpStatusCode } from "../../../utils/http.js";
-import { useConnection } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections/index.js";
 import { db } from "../../../lib/db.js";
 import { pendingTransferTypes } from "../../../lib/transfer.js";
 import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";

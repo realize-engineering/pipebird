@@ -78,6 +78,7 @@ enum DestinationType {
   PROVISIONED_S3
   SNOWFLAKE
   REDSHIFT
+  BIGQUERY
 }
 
 model Destination {
@@ -95,6 +96,18 @@ model Destination {
   username        String?
   password        String?
   configurations  Configuration[]
+
+  // BQ specific
+  serviceAccountJson String?
+  stagingBucket      StagingBucket?
+}
+
+model StagingBucket {
+  bucketName   String
+  bucketRegion String?
+
+  destination   Destination @relation(fields: [destinationId], references: [id])
+  destinationId Int         @unique
 }
 
 model Configuration {

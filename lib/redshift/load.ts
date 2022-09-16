@@ -4,7 +4,10 @@ import { Gzip } from "zlib";
 import { env } from "../env.js";
 import { deleteObjects, uploadObject } from "../aws/upload.js";
 import { getColumnTypeForDest } from "../transform/index.js";
-import { ConnectionQueryOp, ConnectionQueryUnsafeOp } from "../connections.js";
+import {
+  ConnectionQueryOp,
+  ConnectionQueryUnsafeOp,
+} from "../connections/index.js";
 import { LoadConfiguration, Loader, LoadingActions } from "../load/index.js";
 
 class RedshiftLoader extends Loader implements LoadingActions {

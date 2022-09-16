@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { useConnection } from "../connections.js";
+import { useConnection } from "../connections/index.js";
 import RedshiftLoader from "../redshift/load.js";
 import SnowflakeLoader from "../snowflake/load.js";
 

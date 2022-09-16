@@ -2,9 +2,9 @@ import { Knex } from "knex";
 import snowflake, { SnowflakeError, Connection } from "snowflake-sdk";
 
 type SnowflakeOptions = {
-  host: string;
-  database: string;
   username: string;
+  database: string;
+  host: string;
   password?: string;
   schema?: string;
   warehouse?: string | null;

@@ -1,8 +1,12 @@
+import { Bucket } from "@google-cloud/storage";
 import { DestinationType, Prisma } from "@prisma/client";
 import { default as knex, Knex } from "knex";
 import { Gzip } from "zlib";
 
-import { ConnectionQueryOp } from "../connections.js";
+import {
+  BigQueryServiceAccount,
+  ConnectionQueryOp,
+} from "../connections/index.js";
 
 export type LoadConfiguration = Prisma.ConfigurationGetPayload<{
   select: {
@@ -111,8 +115,13 @@ interface LoadingActions extends Loader {
   rollbackTransaction: () => Promise<void>;
   createShare: (params: { schema: string; database: string }) => Promise<void>;
   createTable: (params: { schema: string; database: string }) => Promise<void>;
-  stage: (contents: Gzip, schema?: string) => Promise<void>;
-  upsert: (schema?: string) => Promise<void>;
+  stage: (
+    contents: Gzip,
+    schema?: string,
+    bucket?: Bucket,
+    serviceAccount?: BigQueryServiceAccount,
+  ) => Promise<void>;
+  upsert: (schema?: string, database?: string) => Promise<void>;
   tearDown: (schema?: string) => Promise<void>;
 }
 
