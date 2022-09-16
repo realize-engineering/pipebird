@@ -99,7 +99,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
     await this.query(tableCreateOperation);
   };
 
-  stage = async (contents: Gzip) => {
+  stage = async ({ contents }: { contents: Gzip }) => {
     const createStageOperation = this.qb
       .raw(`create temp table if not exists ?? (like ??);`, [
         this.stageName,
@@ -127,7 +127,7 @@ class RedshiftLoader extends Loader implements LoadingActions {
       .raw(
         `
         copy ?? from ?
-        credentials ? csv gzip timeformat as 'epochmillisecs' IGNOREHEADER 1
+        credentials ? csv gzip timeformat 'YYYY-MM-DDTHH:MI:SS' IGNOREHEADER 1
         `,
         [
           this.stageName,

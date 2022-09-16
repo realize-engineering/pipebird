@@ -110,19 +110,23 @@ class Loader {
 }
 
 interface LoadingActions extends Loader {
-  beginTransaction: () => Promise<void>;
-  commitTransaction: () => Promise<void>;
-  rollbackTransaction: () => Promise<void>;
-  createShare: (params: { schema: string; database: string }) => Promise<void>;
-  createTable: (params: { schema: string; database: string }) => Promise<void>;
-  stage: (
-    contents: Gzip,
-    schema?: string,
-    bucket?: Bucket,
-    serviceAccount?: BigQueryServiceAccount,
-  ) => Promise<void>;
-  upsert: (schema?: string, database?: string) => Promise<void>;
-  tearDown: (schema?: string) => Promise<void>;
+  beginTransaction(): Promise<void>;
+  commitTransaction(): Promise<void>;
+  rollbackTransaction(): Promise<void>;
+  createShare(params: { schema: string; database: string }): Promise<void>;
+  createTable(params: { schema: string; database: string }): Promise<void>;
+  stage(
+    params:
+      | {
+          contents: Gzip;
+          schema: string;
+          bucket: Bucket;
+          serviceAccount: BigQueryServiceAccount;
+        }
+      | { contents: Gzip; schema?: string },
+  ): Promise<void>;
+  upsert(schema?: string, database?: string): Promise<void>;
+  tearDown(schema?: string): Promise<void>;
 }
 
 export { LoadingActions, Loader };

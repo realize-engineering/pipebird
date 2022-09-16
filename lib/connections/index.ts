@@ -40,27 +40,31 @@ type Pool = {
 
 const pools: Record<string, Pool> = {};
 
-export const useConnection = async ({
-  dbType,
-  host,
-  port,
-  username,
-  password,
-  database,
-  schema,
-  warehouse,
-  serviceAccount,
-}: {
-  dbType: SourceType | DestinationType;
-  host?: string;
-  port?: number;
-  database: string;
-  username: string;
-  password?: string;
-  schema?: string;
-  warehouse?: string | null;
-  serviceAccount?: BigQueryServiceAccount;
-}): Promise<
+// todo: improve discrimination between credential arguments so as to not include unneeded params
+export const useConnection = async (
+  credentials:
+    | {
+        dbType: Exclude<SourceType | DestinationType, "BIGQUERY">;
+        host: string;
+        database: string;
+        username: string;
+        port?: number;
+        password?: string;
+        schema?: string;
+        warehouse?: string | null;
+      }
+    | {
+        dbType: "BIGQUERY";
+        database: string;
+        serviceAccount: BigQueryServiceAccount;
+        username: string;
+        host?: string;
+        port?: number;
+        password?: string;
+        schema?: string;
+        warehouse?: string | null;
+      },
+): Promise<
   | {
       error: true;
       code: "not_implemented" | "connection_refused";
@@ -72,6 +76,7 @@ export const useConnection = async ({
     } & Pool)
 > => {
   try {
+    const { dbType, host, port, username, password, database } = credentials;
     const connectionOptions = {
       host,
       port,
@@ -167,11 +172,7 @@ export const useConnection = async ({
         }
 
         case "SNOWFLAKE": {
-          // todo(ianedwards): improve error handling
-          if (!host) {
-            throw new Error("Host required for Snowflake.");
-          }
-
+          const { warehouse, schema } = credentials;
           const client = new SnowflakeClient({
             warehouse,
             host,
@@ -199,6 +200,7 @@ export const useConnection = async ({
         }
 
         case "BIGQUERY": {
+          const { serviceAccount } = credentials;
           const client = new BigQuery({
             credentials: serviceAccount,
           });

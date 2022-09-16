@@ -11,6 +11,35 @@ import { Bucket } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
 import { BigQuery } from "@google-cloud/bigquery";
 
+interface BQTypeMap {
+  [key: string]: string;
+}
+
+const typeMap: BQTypeMap = {
+  tinyint: "int64",
+  smallint: "int64",
+  mediumint: "int64",
+  integer: "int64",
+  bigint: "int64",
+  decimal: "numeric",
+  real: "float64",
+  "double precision": "float64",
+  boolean: "bool",
+  char: "string",
+  varchar: "string",
+  bytea: "bytes",
+  tinytext: "string",
+  text: "string",
+  mediumtext: "string",
+  longtext: "string",
+  timestamp: "timestamp",
+  "timestamp without time zone": "timestamp",
+  "timestamp with time zone": "timestamp",
+  date: "date",
+  time: "time",
+  jsonb: "json",
+};
+
 const uploadStream = ({
   filePath,
   contents,
@@ -65,7 +94,7 @@ class BigQueryLoader extends Loader implements LoadingActions {
       const columnType = destCol.viewColumn.dataType;
 
       // todo(ianedwards): verify types for BQ
-      return `?? ${columnType}`;
+      return `?? ${typeMap[columnType] ?? "string"}`;
     });
 
     const tableCreateOperation = this.qb
@@ -79,17 +108,17 @@ class BigQueryLoader extends Loader implements LoadingActions {
     await this.query(tableCreateOperation);
   };
 
-  // todo(ianedwards): improve interface with function overloads instead of nullish arguments
-  stage = async (
-    contents: Gzip,
-    schema?: string,
-    bucket?: Bucket,
-    serviceAccount?: BigQueryServiceAccount,
-  ) => {
-    if (!schema || !bucket || !serviceAccount) {
-      throw new Error();
-    }
-
+  stage = async ({
+    contents,
+    schema,
+    bucket,
+    serviceAccount,
+  }: {
+    contents: Gzip;
+    schema: string;
+    bucket: Bucket;
+    serviceAccount: BigQueryServiceAccount;
+  }) => {
     const key = randomUUID();
     const pathPrefix = `bigquery/${this.configuration.id}`;
     const filePath = path.posix.join(pathPrefix, `${key}.gz`);
@@ -111,7 +140,7 @@ class BigQueryLoader extends Loader implements LoadingActions {
         schema: {
           fields: this.configuration.columns.map((destCol) => ({
             name: destCol.nameInDestination,
-            type: "string", // todo(ianedwards): verify types for BQ
+            type: typeMap[destCol.viewColumn.dataType] ?? "string", // todo(ianedwards): verify types for BQ
           })),
         },
       },
