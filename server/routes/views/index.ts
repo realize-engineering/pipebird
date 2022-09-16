@@ -11,6 +11,7 @@ import { ApiResponse, ListApiResponse } from "../../../lib/handlers.js";
 import { cursorPaginationValidator } from "../../../lib/pagination.js";
 import { LogModel } from "../../../lib/models/log.js";
 import { default as knex } from "knex";
+import { getDialectFromDestination } from "../../../lib/load/index.js";
 
 type ViewResponse = Prisma.ViewGetPayload<{
   select: {
@@ -149,7 +150,9 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     });
   }
 
-  const qb = knex({ client: sourceType.toLowerCase() });
+  const qb = knex({
+    client: getDialectFromDestination(sourceType.toLowerCase()),
+  });
 
   // ping DB to ensure valid column names for given schema + table
   await conn.query(
