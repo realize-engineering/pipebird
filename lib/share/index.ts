@@ -27,6 +27,10 @@ const checkWarehouseConnection = async (
     throw new Error(`Incomplete credentials for destination`);
   }
 
+  if (destinationType === "BIGQUERY") {
+    throw new Error("BigQuery not currently supported for sharing.");
+  }
+
   const connection = await useConnection({
     dbType: destinationType,
     host,

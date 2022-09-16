@@ -112,7 +112,13 @@ class SnowflakeLoader extends Loader implements LoadingActions {
     await this.query(tableCreateOperation);
   };
 
-  stage = async (contents: Gzip, schema = "public") => {
+  stage = async ({
+    contents,
+    schema = "public",
+  }: {
+    contents: Gzip;
+    schema?: string;
+  }) => {
     const pathPrefix = `snowflake/${this.configuration.id}`;
     const { key } = await uploadObject({
       contents,

@@ -256,6 +256,9 @@ export async function processTransfer({ id }: { id: number }) {
           delimiter: ",",
           header: true,
           bom: true,
+          cast: {
+            date: (value) => value.toISOString(),
+          },
         }),
       )
       .pipe(zlib.createGzip());
@@ -326,7 +329,7 @@ export async function processTransfer({ id }: { id: number }) {
           database: destDatabase,
         });
 
-        await loader.stage(queryDataStream, destSchema);
+        await loader.stage({ contents: queryDataStream, schema: destSchema });
         await loader.upsert(destSchema);
         await loader.tearDown(destSchema);
 
@@ -387,7 +390,7 @@ export async function processTransfer({ id }: { id: number }) {
           database: destDatabase,
         });
 
-        await loader.stage(queryDataStream);
+        await loader.stage({ contents: queryDataStream });
         await loader.upsert();
         await loader.tearDown();
 
@@ -461,12 +464,12 @@ export async function processTransfer({ id }: { id: number }) {
           database: destDatabase,
         });
 
-        await loader.stage(
-          queryDataStream,
-          destSchema,
-          bucketConnection.bucket,
+        await loader.stage({
+          contents: queryDataStream,
+          schema: destSchema,
+          bucket: bucketConnection.bucket,
           serviceAccount,
-        );
+        });
         await loader.upsert(destSchema, destDatabase);
         await loader.tearDown(destSchema);
 
