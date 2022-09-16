@@ -151,7 +151,7 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
   }
 
   const qb = knex({
-    client: getDialectFromDestination(sourceType.toLowerCase()),
+    client: getDialectFromDestination(sourceType),
   });
 
   // ping DB to ensure valid column names for given schema + table
@@ -159,18 +159,28 @@ viewRouter.post("/", async (req, res: ApiResponse<ViewResponse>) => {
     qb
       .select(columns.map((column) => column.name))
       .from(schema ? `${schema}.${tableName}` : `${tableName}`)
-      .limit(1)
+      .limit(1, { skipBinding: true })
       .toSQL()
       .toNative(),
   );
-  const infoResult = await conn.query(
-    qb
-      .select("column_name", "data_type")
-      .from("information_schema.columns")
-      .where("table_name", "=", tableName)
-      .toSQL()
-      .toNative(),
-  );
+  const infoResult =
+    sourceType === "SNOWFLAKE"
+      ? await conn.query(
+          qb
+            .select("COLUMN_NAME", "DATA_TYPE")
+            .from("INFORMATION_SCHEMA.COLUMNS")
+            .where("TABLE_NAME", "=", tableName)
+            .toSQL()
+            .toNative(),
+        )
+      : await conn.query(
+          qb
+            .select("column_name", "data_type")
+            .from("information_schema.columns")
+            .where("table_name", "=", tableName)
+            .toSQL()
+            .toNative(),
+        );
 
   const viewColumnCreateData = columns.map((col) => {
     const columnInfo = infoResult.rows.find(
