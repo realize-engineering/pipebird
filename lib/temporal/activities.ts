@@ -7,7 +7,8 @@ import got from "got";
 import * as csv from "csv";
 import { z } from "zod";
 
-import { useConnection } from "../connections.js";
+import { BigQueryServiceAccount, useConnection } from "../connections/index.js";
+import { useBucketConnection } from "../connections/bucket.js";
 import { db } from "../db.js";
 import { logger } from "../logger.js";
 import { uploadObject } from "../aws/upload.js";
@@ -15,6 +16,7 @@ import { getPresignedURL } from "../aws/signer.js";
 import { LoadingActions } from "../load/index.js";
 import SnowflakeLoader from "../snowflake/load.js";
 import RedshiftLoader from "../redshift/load.js";
+import BigQueryLoader from "../bigquery/load.js";
 
 const finalizeTransfer = async ({
   transferId,
@@ -76,6 +78,13 @@ export async function processTransfer({ id }: { id: number }) {
                 password: true,
                 database: true,
                 schema: true,
+                serviceAccountJson: true,
+                stagingBucket: {
+                  select: {
+                    bucketName: true,
+                    bucketRegion: true,
+                  },
+                },
               },
             },
             columns: {
@@ -155,6 +164,7 @@ export async function processTransfer({ id }: { id: number }) {
       database: destDatabase,
       schema: destSchema,
       warehouse: destWarehouse,
+      serviceAccountJson,
     } = destination;
 
     const sourceConnection = await useConnection({
@@ -391,6 +401,82 @@ export async function processTransfer({ id }: { id: number }) {
 
         break;
       }
+
+      case "BIGQUERY": {
+        const credentialsExist =
+          !!destUsername &&
+          !!destDatabase &&
+          !!destSchema &&
+          !!serviceAccountJson;
+
+        if (!credentialsExist) {
+          throw new Error(
+            `Incomplete credentials for destination with ID ${destination.id}, aborting transfer ${transfer.id}`,
+          );
+        }
+        const serviceAccount: BigQueryServiceAccount =
+          JSON.parse(serviceAccountJson);
+
+        const destConnection = await useConnection({
+          dbType: "BIGQUERY",
+          database: destDatabase,
+          username: destUsername,
+          schema: destSchema,
+          serviceAccount,
+        });
+
+        if (destConnection.error) {
+          throw new Error(
+            `Destination with ID ${destination.id} is unreachable, aborting transfer ${transfer.id}`,
+          );
+        }
+
+        loader = new BigQueryLoader(
+          destConnection.query,
+          transfer.configuration,
+          destConnection.queryUnsafe,
+        );
+
+        if (!destination.stagingBucket) {
+          throw new Error("Staging bucket required for loading into BigQuery");
+        }
+
+        const { bucketName } = destination.stagingBucket;
+        const bucketConnection = await useBucketConnection({
+          projectId: destDatabase,
+          bucketName,
+          serviceAccount,
+        });
+
+        if (bucketConnection.error) {
+          throw new Error(
+            `Destination with ID ${destination.id} has unreachable staging bucket, aborting transfer ${transfer.id}`,
+          );
+        }
+
+        // table should exist after creating share
+        // need to create in cases when directly pushing
+        await loader.createTable({
+          schema: destSchema,
+          database: destDatabase,
+        });
+
+        await loader.stage(
+          queryDataStream,
+          destSchema,
+          bucketConnection.bucket,
+          serviceAccount,
+        );
+        await loader.upsert(destSchema, destDatabase);
+        await loader.tearDown(destSchema);
+
+        await finalizeTransfer({
+          transferId: transfer.id,
+          status: "COMPLETE",
+        });
+
+        break;
+      }
     }
 
     await db.configuration.update({
@@ -401,6 +487,7 @@ export async function processTransfer({ id }: { id: number }) {
     logger.error(error);
 
     // rollback if loader has been initialized
+    // todo(ianedwards): review transactions for BigQuery
     await loader?.rollbackTransaction();
 
     await finalizeTransfer({

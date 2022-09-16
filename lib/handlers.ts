@@ -12,6 +12,8 @@ const errorCodeSchema = z.enum([
   "destination_id_not_found",
   "source_id_not_found",
   "source_db_unreachable",
+  "destination_db_unreachable",
+  "staging_bucket_unreachable",
   "invalid_table_expression",
   "unhandled_exception",
   "internal_server_error",

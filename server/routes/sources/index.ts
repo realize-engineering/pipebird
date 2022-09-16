@@ -7,7 +7,7 @@ import { HttpStatusCode } from "../../../utils/http.js";
 import { z } from "zod";
 import { default as validator } from "validator";
 import { LogModel } from "../../../lib/models/log.js";
-import { useConnection } from "../../../lib/connections.js";
+import { useConnection } from "../../../lib/connections/index.js";
 import { logger } from "../../../lib/logger.js";
 
 const sourceRouter = Router();
