@@ -13,7 +13,7 @@ import { db } from "../db.js";
 import { logger } from "../logger.js";
 import { uploadObject } from "../aws/upload.js";
 import { getPresignedURL } from "../aws/signer.js";
-import { LoadingActions } from "../load/index.js";
+import { getDialectFromDestination, LoadingActions } from "../load/index.js";
 import SnowflakeLoader from "../snowflake/load.js";
 import RedshiftLoader from "../redshift/load.js";
 import BigQueryLoader from "../bigquery/load.js";
@@ -108,6 +108,7 @@ export async function processTransfer({ id }: { id: number }) {
                     password: true,
                     database: true,
                     sourceType: true,
+                    schema: true,
                   },
                 },
               },
@@ -182,7 +183,8 @@ export async function processTransfer({ id }: { id: number }) {
       );
     }
 
-    const qb = knex({ client: source.sourceType.toLowerCase() });
+    const qb = knex({ client: getDialectFromDestination(source.sourceType) });
+
     const lastModifiedColumn = view.columns.find(
       (col) => col.isLastModified,
     )?.name;
@@ -199,16 +201,34 @@ export async function processTransfer({ id }: { id: number }) {
       throw new Error(`Missing lastModified column for view ${view.id}`);
     }
 
-    const lastModifiedQuery = qb
-      .select(lastModifiedColumn)
-      .from(view.tableName)
-      .where(tenantColumn, "=", configuration.tenantId)
-      .orderBy(lastModifiedColumn, "desc")
-      .limit(1)
-      .toSQL()
-      .toNative();
+    const lastModifiedQuery =
+      source.sourceType === "SNOWFLAKE"
+        ? qb
+            .select(lastModifiedColumn)
+            .from(
+              source.schema
+                ? `${view.source.schema}.${view.tableName}`
+                : `${view.tableName}`,
+            )
+            .where(tenantColumn, "=", configuration.tenantId)
+            .orderBy(lastModifiedColumn, "desc")
+            .limit(1, { skipBinding: true })
+            .toSQL()
+            .toNative()
+        : qb
+            .select(lastModifiedColumn)
+            .from(view.tableName)
+            .where(tenantColumn, "=", configuration.tenantId)
+            .orderBy(lastModifiedColumn, "desc")
+            .limit(1, { skipBinding: true })
+            .toSQL()
+            .toNative();
+    logger.info({
+      lastModifiedQuery: lastModifiedQuery.sql,
+    });
     const { rows } = await sourceConnection.query(lastModifiedQuery);
 
+    // TODO(cumason) figure out why zero returns gets returned on snowflake
     if (!rows[0]) {
       logger.warn(
         lastModifiedQuery,
@@ -238,7 +258,11 @@ export async function processTransfer({ id }: { id: number }) {
           .from(
             qb
               .select(view.columns.map((col) => col.name))
-              .from(view.tableName)
+              .from(
+                view.source.sourceType === "SNOWFLAKE"
+                  ? `${view.source.schema}.${view.tableName}`
+                  : view.tableName,
+              )
               .as("t"),
           )
           .where(tenantColumn, "=", configuration.tenantId)
