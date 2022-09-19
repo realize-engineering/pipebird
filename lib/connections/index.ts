@@ -31,11 +31,14 @@ export type ConnectionStreamOp = (
 export type ConnectionQueryUnsafeOp = (
   sql: string,
 ) => Promise<{ rows: Record<string, unknown>[] }>;
-
+export type ConnectionUnsafeStreamOp = (
+  sql: string,
+) => Promise<Readable> | Readable;
 type Pool = {
   query: ConnectionQueryOp;
   queryStream: ConnectionStreamOp;
   queryUnsafe: ConnectionQueryUnsafeOp;
+  queryStreamUnsafe: ConnectionUnsafeStreamOp;
 };
 
 const pools: Record<string, Pool> = {};
@@ -125,6 +128,12 @@ export const useConnection = async (
               return stream;
             },
             queryUnsafe: (sql: string) => pool.query(sql),
+            queryStreamUnsafe: async (sql: string) => {
+              const client = await pool.connect();
+              const stream = client.query(new QueryStream(sql));
+              stream.on("end", client.release);
+              return stream;
+            },
           };
 
           break;
@@ -166,6 +175,8 @@ export const useConnection = async (
                     ? rows.flatMap((row) => row)
                     : [rows],
                 })),
+            queryStreamUnsafe: (sql: string) =>
+              pool.query(sql).stream({ objectMode: true }),
           };
 
           break;
@@ -196,6 +207,13 @@ export const useConnection = async (
                 })
                 .streamRows(),
             queryUnsafe: (sql: string) => client.queryUnsafe(sql),
+            queryStreamUnsafe: (sql: string) =>
+              client
+                .getConnection()
+                .execute({
+                  sqlText: sql,
+                })
+                .streamRows(),
           };
         }
 
@@ -226,6 +244,10 @@ export const useConnection = async (
               const [rows] = await client.query(sql);
               return { rows: rows.flatMap((row) => row) ?? [] };
             },
+            queryStreamUnsafe: async (sql: string) =>
+              client.createQueryStream({
+                query: sql,
+              }),
           };
         }
 

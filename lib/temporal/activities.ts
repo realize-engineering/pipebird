@@ -6,7 +6,6 @@ import crypto from "crypto";
 import got from "got";
 import * as csv from "csv";
 import { z } from "zod";
-
 import { BigQueryServiceAccount, useConnection } from "../connections/index.js";
 import { useBucketConnection } from "../connections/bucket.js";
 import { db } from "../db.js";
@@ -213,27 +212,25 @@ export async function processTransfer({ id }: { id: number }) {
             .where(tenantColumn, "=", configuration.tenantId)
             .orderBy(lastModifiedColumn, "desc")
             .limit(1, { skipBinding: true })
-            .toSQL()
-            .toNative()
         : qb
             .select(lastModifiedColumn)
             .from(view.tableName)
             .where(tenantColumn, "=", configuration.tenantId)
             .orderBy(lastModifiedColumn, "desc")
-            .limit(1, { skipBinding: true })
-            .toSQL()
-            .toNative();
+            .limit(1, { skipBinding: true });
     logger.info({
-      lastModifiedQuery: lastModifiedQuery.sql,
+      lastModifiedQuery: lastModifiedQuery.toString(),
     });
-    const { rows } = await sourceConnection.query(lastModifiedQuery);
+    const { rows } = await sourceConnection.queryUnsafe(
+      lastModifiedQuery.toString(),
+    );
+    logger.info({ rows });
 
-    // TODO(cumason) figure out why zero returns gets returned on snowflake
     if (!rows[0]) {
-      logger.warn(
-        lastModifiedQuery,
-        "Zero rows returned by lastModified query",
-      );
+      logger.warn({
+        lastModifiedQuery: lastModifiedQuery.toString(),
+        msg: "Zero rows returned by lastModified query",
+      });
 
       return db.transfer.update({
         where: { id: transfer.id },
@@ -247,8 +244,8 @@ export async function processTransfer({ id }: { id: number }) {
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
 
-    const queryDataStream = (
-      await sourceConnection.queryStream(
+    logger.info({
+      allData: await sourceConnection.queryUnsafe(
         qb
           .select(
             configuration.columns.map(
@@ -271,8 +268,35 @@ export async function processTransfer({ id }: { id: number }) {
             ">",
             configuration.lastModifiedAt.toISOString(),
           )
-          .toSQL()
-          .toNative(),
+          .toString(),
+      ),
+    });
+
+    const queryDataStream = (
+      await sourceConnection.queryStreamUnsafe(
+        qb
+          .select(
+            configuration.columns.map(
+              (col) => `${col.nameInSource} as ${col.nameInDestination}`,
+            ),
+          )
+          .from(
+            qb
+              .select(view.columns.map((col) => col.name))
+              .from(
+                view.source.sourceType === "SNOWFLAKE"
+                  ? `${view.source.schema}.${view.tableName}`
+                  : view.tableName,
+              )
+              .as("t"),
+          )
+          .where(tenantColumn, "=", configuration.tenantId)
+          .where(
+            lastModifiedColumn,
+            ">",
+            configuration.lastModifiedAt.toISOString(),
+          )
+          .toString(),
       )
     )
       .pipe(
