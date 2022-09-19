@@ -102,6 +102,8 @@ model Destination {
 }
 
 model StagingBucket {
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   bucketName   String
   bucketRegion String?
 
