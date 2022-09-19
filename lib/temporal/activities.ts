@@ -218,16 +218,13 @@ export async function processTransfer({ id }: { id: number }) {
             .where(tenantColumn, "=", configuration.tenantId)
             .orderBy(lastModifiedColumn, "desc")
             .limit(1, { skipBinding: true });
-    logger.info({
-      lastModifiedQuery: lastModifiedQuery.toString(),
-    });
+
     const { rows } = await sourceConnection.queryUnsafe(
       lastModifiedQuery.toString(),
     );
 
     if (!rows[0]) {
       logger.warn({
-        lastModifiedQuery: lastModifiedQuery.toString(),
         msg: "Zero rows returned by lastModified query",
       });
 
