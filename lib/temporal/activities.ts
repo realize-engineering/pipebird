@@ -224,7 +224,6 @@ export async function processTransfer({ id }: { id: number }) {
     const { rows } = await sourceConnection.queryUnsafe(
       lastModifiedQuery.toString(),
     );
-    logger.info({ rows });
 
     if (!rows[0]) {
       logger.warn({
@@ -243,34 +242,6 @@ export async function processTransfer({ id }: { id: number }) {
       .transform((str) => parseISO(str))
       .or(z.date())
       .parse(rows[0][lastModifiedColumn]);
-
-    logger.info({
-      allData: await sourceConnection.queryUnsafe(
-        qb
-          .select(
-            configuration.columns.map(
-              (col) => `${col.nameInSource} as ${col.nameInDestination}`,
-            ),
-          )
-          .from(
-            qb
-              .select(view.columns.map((col) => col.name))
-              .from(
-                view.source.sourceType === "SNOWFLAKE"
-                  ? `${view.source.schema}.${view.tableName}`
-                  : view.tableName,
-              )
-              .as("t"),
-          )
-          .where(tenantColumn, "=", configuration.tenantId)
-          .where(
-            lastModifiedColumn,
-            ">",
-            configuration.lastModifiedAt.toISOString(),
-          )
-          .toString(),
-      ),
-    });
 
     const queryDataStream = (
       await sourceConnection.queryStreamUnsafe(
