@@ -14,31 +14,21 @@ auth: "bearer"
 ### Response
 
 <ResponseField name="content" type="array of objects">
-<Expandable title="Toggle object">
+  <Expandable title="Toggle object">
+    <ResponseField name="id" type="number"></ResponseField>
+    <ResponseField name="shareId" type="number"></ResponseField>
+    <ResponseField name="createdAt" type="string"></ResponseField>
+    <ResponseField name="status" type="string">
+      `STARTED` `PENDING` `COMPLETE` `FAILED` `CANCELLED`
+    </ResponseField>
+    <ResponseField name="result" type="object">
+      <Expandable title="columns properties">
+        <ResponseField name="finalizedAt" type="string"></ResponseField>
+        <ResponseField name="obejctUrl" type="string"></ResponseField>
+      </Expandable>
+    </ResponseField>
 
-<ResponseField name="id" type="number"></ResponseField>
-
-<ResponseField name="shareId" type="number"></ResponseField>
-
-<ResponseField name="createdAt" type="string"></ResponseField>
-
-<ResponseField name="status" type="string">
-
-`STARTED` `PENDING` `COMPLETE` `FAILED` `CANCELLED`
-
-</ResponseField>
-
-<ResponseField name="result" type="object">
-<Expandable title="columns properties">
-
-<ResponseField name="finalizedAt" type="string"></ResponseField>
-
-<ResponseField name="obejctUrl" type="string"></ResponseField>
-
-</Expandable>
-</ResponseField>
-
-</Expandable>
+  </Expandable>
 </ResponseField>
 
 <RequestExample>
