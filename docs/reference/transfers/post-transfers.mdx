@@ -1,0 +1,41 @@
+---
+title: "Initiate transfer"
+description: "Initialize a new transfer for the given shares"
+api: "POST http://localhost:3000/transfers"
+auth: "bearer"
+---
+
+### Body Params
+
+<ParamField body="shareIds" type="array of numbers"></ParamField>
+
+### Response
+
+<ResponseField name="content" type="array of objects">
+  <Expandable title="Toggle object">
+    <ResponseField name="id" type="number"></ResponseField>
+    <ResponseField name="shareId" type="number"></ResponseField>
+    <ResponseField name="createdAt" type="string"></ResponseField>
+    <ResponseField name="status" type="string">
+      `STARTED` `PENDING` `COMPLETE` `FAILED` `CANCELLED`
+    </ResponseField>
+    <ResponseField name="result" type="object">
+      <Expandable title="columns properties">
+        <ResponseField name="finalizedAt" type="string"></ResponseField>
+        <ResponseField name="obejctUrl" type="string"></ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash Example Request
+const sdk = require('api')('@pipebird/v1.0#1ae9zul7zbunn1');
+
+sdk.postTransfers()
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+```
+
+</RequestExample>

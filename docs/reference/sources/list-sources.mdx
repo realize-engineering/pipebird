@@ -1,0 +1,31 @@
+---
+openapi: "GET /sources"
+---
+
+<RequestExample>
+
+```bash Example Request
+curl --request GET \
+     --url http://localhost:3000/sources \
+     --header 'Accept: application/json'
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json Response
+{
+  "content": [
+    {
+      "nickname": string,
+      "schema": string,
+      "database": string,
+      "status": "REACHABLE" | "UNREACHABLE",
+      "sourceType": "MYSQL" | "POSTGRES" | "SNOWFLAKE" | "REDSHIFT" | "BIGQUERY",
+    }
+  ]
+}
+```
+
+</ResponseExample>

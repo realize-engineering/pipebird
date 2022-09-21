@@ -1,0 +1,200 @@
+---
+sidebarTitle: "Welcome to Pipebird"
+---
+
+<img class="w-full" src="/images/pipebird-intro.png" />
+
+<div class="flex space-x-1 flex-wrap">
+  <a
+    class="border-none my-0.5"
+    href="https://github.com/pipebird/pipebird/stargazers/"
+  >
+    <img
+      class="m-0"
+      src="https://img.shields.io/github/stars/pipebird/pipebird?style=social&label=Star"
+      alt="GitHub Stars"
+    />
+  </a>
+  <a
+    class="border-none my-0.5"
+    href="https://github.com/pipebird/pipebird/tree/a9b1c6c0420550ad5069aca66c295223e0d05e27/LICENSE/README.md"
+  >
+    <img
+      class="m-0"
+      src="https://img.shields.io/static/v1?label=license&message=MIT&color=brightgreen"
+      alt="License"
+    />
+  </a>
+  <a class="border-none my-0.5" href="http://makeapullrequest.com/">
+    <img
+      class="m-0"
+      src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields"
+      alt="PRs Welcome"
+    />
+  </a>
+  <a
+    class="border-none my-0.5"
+    href="https://github.com/pipebird/pipebird/actions/workflows/codeql-analysis.yml"
+  >
+    <img
+      class="m-0"
+      src="https://github.com/pipebird/pipebird/actions/workflows/codeql-analysis.yml/badge.svg"
+      alt="CodeQL"
+    />
+  </a>
+  <a
+    class="border-none my-0.5"
+    href="https://github.com/pipebird/pipebird/actions/workflows/codeql-analysis.yml"
+  >
+    <img
+      class="m-0"
+      src="https://img.shields.io/github/commit-activity/m/pipebird/pipebird"
+      alt="Commit Activity"
+    />
+  </a>
+  <a
+    class="border-none my-0.5"
+    href="https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg"
+  >
+    <img
+      class="m-0"
+      src="https://img.shields.io/badge/slack-Pipebird-brightgreen.svg?logo=slack"
+      alt="Join Slack"
+    />
+  </a>
+</div>
+
+If you like Pipebird, you can show support by starring our [GitHub repo](https://github.com/pipebird/pipebird) 🌟
+
+## Welcome to Pipebird
+
+Pipebird is **open source infrastructure for deploying customer-facing data
+pipelines**. Pipebird requires minimal engineering effort to begin offering
+customers secure data pushes to their warehouses, directly from your product.
+
+With Pipebird you can:
+
+- select sources to push data from (such as PostgreSQL).
+- let customers configure pipelines and apply transformations (such as type
+  casting).
+- periodically sync data directly to customers' warehouses (such as Snowflake).
+
+Pipebird is for companies that want to share data directly, securely, and cost
+efficiently.
+
+- **Minimize security and compliance risks** created by involving third-party
+  ETL providers. Pipebird enables direct data sharing from your source to a
+  customer's data warehouse. Your data never hits our servers.
+- **Eliminate pipeline complexity for customers and partners.** Customers can
+  trust verified pipelines offered directly from your product. It takes minutes
+  to activate customer-defined pipelines using a declarative configuration
+  language.
+- **Internalize revenue previously captured by third-party ETL providers.**
+  Rather than contracting a third-party, customers pay you for higher-quality
+  data, ease of use, and security enhancements.
+
+<img
+  class="w-full"
+  src="/images/welcome-to-pipebird.svg"
+  alt="Welcome to PipeBird"
+/>
+
+### Get started for free
+
+Deploy on your own infrastructure and keep control of your data.
+
+##### [Click here to view our deployment guide.](/reference/quickstart)
+
+Pipebird is designed to be self-hosted. Our platform can be launched within your
+virtual cloud with the press of a button - your business data never hits our
+servers. Furthermore, we perform networking and compute cost optimizations to
+minimize your cloud provider bill.
+
+Join the
+[Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared%5Finvite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg)
+or email [sales@pipebird.com](mailto:sales@pipebird.com) if you'd like help with
+your deployment.
+
+### Product features
+
+#### Sources
+
+Data originates from one of your company's sources, which can be any of:
+
+- Postgres
+- Redshift
+- CockroachDB
+- MySQL
+- MariaDB
+- etc.
+
+#### Destinations
+
+Your customers can define their own destinations, which your team can configure
+through our Destinations API.
+
+- Snowflake
+- Amazon S3
+- Amazon Redshift
+- BigQuery \[in progress\]
+- Databricks \[in progress\]
+- CSV Export
+
+### Data transformers
+
+Customers can choose to define some set of transformations to be applied on data
+by uploading Configurations which define mutations on the source data. For
+example, a consumer may want the Date column updated_at to be casted into a
+DateTime object in the destination.
+
+We currently support renaming columns between sources and destinations and will
+be expanding destinations and working on transformations like:
+
+- casting data types
+- sums
+- averages
+- sorts
+- groupby
+- etc.
+
+### Our goal for Pipebird
+
+We believe that creating a data pipeline should be made as simple as pressing a
+button from a vendor's dashboard.
+
+Native, customer-facing data pipelines offer a more secure and efficient way for
+organizations to share data with one another. Companies like
+[Stripe](https://stripe.com/data-pipeline) and
+[Customer.io](https://customer.io/data-warehouse) have already invested in
+building out native data sharing features for their customers. **Pipebird is
+designed to help developers at any company quickly offer the same powerful data
+sharing features, increasing security and decreasing complexity for their
+customers.**
+
+We'd love to work with you to grow Pipebird. Feel free to message us in the
+[Pipebird Slack Community](https://join.slack.com/t/pipebirdcommunity/shared%5Finvite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg).
+
+You can show support by
+[starring this repo](https://github.com/pipebird/pipebird) 🌟
+
+### Open source vs. paid versions
+
+The Pipebird repo is entirely [MIT licensed](/LICENSE), with the exception of
+the `ee` directory (if applicable).
+
+Premium features (contained in the `ee` directory) require a Pipebird license.
+Contact us at [sales@pipebird.com](mailto:sales@pipebird.com) for more
+information, or see our [pricing page](https://pipebird.com/pricing).
+
+Pipebird is entirely free for developers. We'll make money by charging larger
+companies that have more specific needs for additional features around security
+and scale.
+
+Want to book a meeting with someone on our team?
+[Choose a time here!](https://calendly.com/pipebird)
+
+### Is there a Pipebird community?
+
+Yes! Pipebird is open source so that anyone can benefit from or contribute to
+our mission. Join us in our
+[Slack Community](https://join.slack.com/t/pipebirdcommunity/shared%5Finvite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg).

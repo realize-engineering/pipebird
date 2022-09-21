@@ -1,0 +1,32 @@
+---
+title: "Technical overview"
+description: "A technical guide to the Pipebird platform"
+---
+
+## How does Pipebird create pipelines?
+
+Pipebird handles the flow of data by chaining together the following domain models:
+
+* Declaring where the pipeline inputs data from by specifying data [Sources](/reference/sources)
+* Grabbing data from the source through [Views](/reference/views)
+* Applying custom transformation functions on those views through [Configurations](/reference/configurations)
+* Shipping the data to an end [Destination](/reference/destinations) such as S3
+* Queueing and managing an async [Transfer](/reference/transfers) job.
+
+## What data types can be shared?
+
+We support the piping of data from a **Postgres** read replica directly into end customers' data warehouses or S3 buckets. You can also pipe CSV files directly into S3 when triggered by an event.
+
+## Domain Models
+
+We break up domain models into two categories: providers (party uploading sources, and views) and consumers (party specifying configuration templates and end data destinations).
+
+Data originates from one of a Provider's [Sources](/reference/sources), which can be any of: S3, Postgres, Redshift, MySQL, etc.
+
+You can use [Views](/reference/views) to transform data extracted from these data sources. Views represent a table structure which consumers may then apply transformations on (read: materialized view).
+
+Consumers may then define where they expect the output of the data to be delivered by configuring their own [Destinations](/reference/destinations). For example, a consumer may want the provider (you) to pipe data directly into their warehouse, or to an S3 bucket provisioned through Pipebird via a pre-signed URL.
+
+After consumers define where they expect data to go they may define some set of transformations to be applied on this data by uploading [Configurations](/reference/configurations) which define mutations on the source data. For example, a consumer may want the _Date_ column _updated\_at_ to be casted into a _DateTime_ object in the destination.
+
+Once you've created a pipeline, you may initiate [Transfers](/reference/transfers) and track their progress. Pipebird will enqueue and manage transfer state internally, notifying you when any material state change occurs.
