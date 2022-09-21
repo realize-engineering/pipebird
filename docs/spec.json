@@ -1095,6 +1095,78 @@
               "password",
               "nickname"
             ]
+          },
+          {
+            "title": "BigQuery",
+            "properties": {
+              "destinationType": {
+                "type": "string",
+                "enum": ["BIGQUERY"]
+              },
+              "projectId": {
+                "type": "string"
+              },
+              "dataset": {
+                "type": "string"
+              },
+              "clientEmail": {
+                "type": "string"
+              },
+              "serviceAccount": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string"
+                  },
+                  "project_id": {
+                    "type": "string"
+                  },
+                  "private_key_id": {
+                    "type": "string"
+                  },
+                  "private_key": {
+                    "type": "string"
+                  },
+                  "client_email": {
+                    "type": "string"
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "auth_uri": {
+                    "type": "string"
+                  },
+                  "token_uri": {
+                    "type": "string"
+                  },
+                  "auth_provider_x509_cert_url": {
+                    "type": "string"
+                  },
+                  "client_x509_cert_url": {
+                    "type": "string"
+                  }
+                }
+              },
+              "bucketName": {
+                "type": "string"
+              },
+              "bucketRegion": {
+                "type": "string"
+              },
+              "nickname": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "destinationType",
+              "projectId",
+              "dataset",
+              "clientEmail",
+              "serviceAccount",
+              "bucketName",
+              "bucketRegion",
+              "nickname"
+            ]
           }
         ],
         "type": "object"
