@@ -1,0 +1,54 @@
+---
+title: "Get transfer progress"
+description: "Get a transfer object which represents the status of a created data pipeline"
+api: "GET http://localhost:3000/transfers/{transfer_id}"
+auth: "bearer"
+---
+
+### Path Params
+
+<ParamField path="transfer_id" type="string" required>
+  The id of this transfer object
+</ParamField>
+
+### Response
+
+<ResponseField name="content" type="array of objects">
+<Expandable title="Toggle object">
+
+<ResponseField name="id" type="number"></ResponseField>
+
+<ResponseField name="shareId" type="number"></ResponseField>
+
+<ResponseField name="createdAt" type="string"></ResponseField>
+
+<ResponseField name="status" type="string">
+
+`STARTED` `PENDING` `COMPLETE` `FAILED` `CANCELLED`
+
+</ResponseField>
+
+<ResponseField name="result" type="object">
+<Expandable title="columns properties">
+
+<ResponseField name="finalizedAt" type="string"></ResponseField>
+
+<ResponseField name="obejctUrl" type="string"></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash Example Request
+const sdk = require('api')('@pipebird/v1.0#1ae9zul7zbunn1');
+
+sdk.getDestinationsDestination_idTransfersTransfer_id({transfer_id: 'transfer_id'})
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+```
+
+</RequestExample>

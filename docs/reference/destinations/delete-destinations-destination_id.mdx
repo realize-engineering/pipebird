@@ -1,0 +1,15 @@
+---
+openapi: "DELETE /destinations/{destinationId}"
+---
+
+<RequestExample>
+
+```bash Example Request
+const sdk = require('api')('@pipebird/v1.0#1ae9zul7zbunn1');
+
+sdk.deleteDestinationsDestination_id({destination_id: 'destination_id'})
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+```
+
+</RequestExample>

@@ -1,0 +1,48 @@
+---
+title: "List transfers"
+description: "List all previous transfers"
+api: "GET http://localhost:3000/transfers"
+auth: "bearer"
+---
+
+### Response
+
+<ResponseField name="content" type="array of objects">
+<Expandable title="Toggle object">
+
+<ResponseField name="id" type="number"></ResponseField>
+
+<ResponseField name="shareId" type="number"></ResponseField>
+
+<ResponseField name="createdAt" type="string"></ResponseField>
+
+<ResponseField name="status" type="string">
+
+`STARTED` `PENDING` `COMPLETE` `FAILED` `CANCELLED`
+
+</ResponseField>
+
+<ResponseField name="result" type="object">
+<Expandable title="columns properties">
+
+<ResponseField name="finalizedAt" type="string"></ResponseField>
+
+<ResponseField name="obejctUrl" type="string"></ResponseField>
+
+</Expandable>
+</ResponseField>
+
+</Expandable>
+</ResponseField>
+
+<RequestExample>
+
+```bash Example Request
+const sdk = require('api')('@pipebird/v1.0#1ae9zul7zbunn1');
+
+sdk.listTransfers()
+  .then(res => console.log(res))
+  .catch(err => console.error(err));
+```
+
+</RequestExample>

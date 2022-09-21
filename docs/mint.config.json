@@ -1,0 +1,124 @@
+{
+  "name": "PipeBird",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.png",
+  "colors": {
+    "primary": "#5155D7",
+    "light": "#6D72F6",
+    "dark": "#3033A6",
+    "ultraLight": "#BCBCEF",
+    "ultraDark": "#070963"
+  },
+  "api": {
+    "auth": {
+      "method": "bearer"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Book a demo",
+      "url": "https://calendly.com/pipebird"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Login",
+    "url": "https://my.pipebird.com"
+  },
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "color": "#333333",
+      "url": "https://github.com/Realize-Engineering/pipebird"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://join.slack.com/t/pipebirdcommunity/shared_invite/zt-1emvmxdk6-jBc9qXDDgeLhinJ8ktOgHg"
+    },
+    {
+      "name": "Contact Us",
+      "icon": "envelope",
+      "color": "#0284c7",
+      "url": "https://pipebird.com/contact"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "welcome-to-pipebird",
+        "quickstart",
+        "overview",
+        "contributions"
+      ]
+    },
+    {
+      "group": "Sources",
+      "pages": [
+        "reference/sources/list-sources",
+        "reference/sources/post-sources",
+        "reference/sources/get-source-by-id",
+        "reference/sources/delete-sources-source_id",
+        "reference/sources/patch-source-sourceid"
+      ]
+    },
+    {
+      "group": "Views",
+      "pages": [
+        "reference/views/list-views",
+        "reference/views/post-views",
+        "reference/views/get-views-view_id",
+        "reference/views/delete-views-view_id"
+      ]
+    },
+    {
+      "group": "Configurations",
+      "pages": [
+        "reference/configurations/list-configs",
+        "reference/configurations/post-configs",
+        "reference/configurations/get-configuration-by-id",
+        "reference/configurations/delete-configurations-configuration_id"
+      ]
+    },
+    {
+      "group": "Destinations",
+      "pages": [
+        "reference/destinations/list-destinations",
+        "reference/destinations/post-destinations",
+        "reference/destinations/get-destination-by-id",
+        "reference/destinations/delete-destinations-destination_id",
+        "reference/destinations/patch-destinations-destination_id"
+      ]
+    },
+    {
+      "group": "Transfers",
+      "pages": [
+        "reference/transfers/post-transfers",
+        "reference/transfers/list-transfers",
+        "reference/transfers/get-destinations-destination_id-transfers-transfer_id",
+        "reference/transfers/delete-transfers-transfer_id"
+      ]
+    },
+    {
+      "group": "Logs",
+      "pages": ["reference/logs/list-logs", "reference/logs/get-logs-log_id"]
+    },
+    {
+      "group": "Webhooks",
+      "pages": [
+        "reference/webhooks/list-webhooks",
+        "reference/webhooks/post-webhooks",
+        "reference/webhooks/delete-webhooks"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/getpipebird",
+    "linkedin": "https://linkedin.com/company/pipebird",
+    "github": "https://github.com/Realize-Engineering/pipebird"
+  }
+}
